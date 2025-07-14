@@ -1,0 +1,1241 @@
+const express = require('express');
+const router = express.Router();
+const multer = require('multer');
+const uploadFile = require('../../model/functlity/uploadfunclite')
+const path = require('path');
+const fs = require('fs');
+const cors = require('cors');
+const db = require('../../DB/ConnectionSql');
+const { Console } = require('console');
+router.use(cors());
+const uploadsDir = path.join(__dirname, '../../uploads/logo/');
+
+// Create uploads directory if it doesn't exist
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir);
+}
+// Configure multer storage
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, uploadsDir);
+    },
+    filename: (req, file, cb) => {
+        cb(null, Date.now() + path.extname(file.originalname));
+    }
+});
+
+// File type filtering
+const upload = multer({
+    storage: storage,
+    fileFilter: (req, file, cb) => {
+        const filetypes = /jpeg|jpg|png/;
+        const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+        const mimetype = filetypes.test(file.mimetype);
+        if (mimetype && extname) {
+            return cb(null, true);
+        }
+        cb(new Error(`Error: File upload only supports the following file types - ${filetypes}`));
+    }
+});
+
+// Route to handle company submissions
+// upload.single('logo'),
+
+router.post('/api/Add', async (req, res) => {
+    const { company_name, owner_name, industry, headquarters, website, phone_number, email, address, member } = req.body;
+    const logo = '/uploads/logo/logodummy.png';
+    // const logo = '/uploads/logo/'.req.file ? req.file.filename : null;
+    // Check for required fields
+    if (!company_name || !owner_name || !industry || !phone_number || !email || !address) {
+        return res.status(200).json({ status: false, message: 'All fields are required.' });
+    }
+    // Check if the phone number already exists
+    db.query('SELECT * FROM companies WHERE phone_number = ?', [phone_number], (err, results) => {
+        if (err) {
+            return res.status(500).json({
+                status: false,
+                message: 'Database error.',
+                error: err
+            });
+        }
+        if (results.length === 0) {
+            // Insert new company
+            db.query(
+                'INSERT INTO companies (member,company_name, owner_name, industry, headquarters, website, phone_number, email, address, logo) VALUES (?,?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                [member, company_name, owner_name, industry, headquarters, website, phone_number, email, address, logo],
+                (err) => {
+                    if (err) {
+                        return res.status(500).json({
+                            status: false,
+                            message: 'Failed to add company.',
+                            error: err
+                        });
+                    }
+                    db.query('SELECT * FROM employees WHERE contact_number = ?', [phone_number], (err, results) => {
+                        if (results.length == 0) {
+                            db.query('INSERT INTO employees (contact_number,email_id,first_name,type) VALUES (?,?,?,?)',
+                                [phone_number, email, owner_name, 'Company_Admin'])
+                        } else {
+                            return res.status(200).json({
+                                status: true,
+                                message: 'pls connect with yuvraj singh - ph. 7976929440.'
+                            });
+                        }
+                    });
+                }
+            );
+        } else {
+            return res.status(200).json({
+                status: false,
+                message: 'Company with this phone number already exists.'
+            });
+        }
+    });
+});
+
+
+router.post('/api/Edit', upload.single('logo'), async (req, res) => {
+    const {
+        company_name,
+        owner_name,
+        industry,
+        headquarters,
+        website,
+        phone_number,
+        email,
+        address,
+        editId,
+        member
+    } = req.body;
+
+    // Check for required fields
+    if (!company_name || !owner_name || !industry || !phone_number || !email || !address || !editId) {
+        return res.status(400).json({ status: false, message: 'All fields are required.' });
+    }
+
+    // Get the new logo filename if it exists
+    const newLogo = req.file ? req.file.filename : null;
+
+    // Fetch the current logo from the database
+    db.query('SELECT logo FROM companies WHERE id = ?', [editId], (err, results) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({
+                status: false,
+                message: 'Failed to fetch current logo.',
+                error: err.message
+            });
+        }
+
+        // Check if the company exists
+        if (results.length === 0) {
+            return res.status(404).json({ status: false, message: 'Company not found.' });
+        }
+
+        // Use the existing logo if no new logo is uploaded
+        const currentLogo = results[0].logo;
+        const logoToUse = newLogo || currentLogo;
+        // Update company details
+        db.query(
+            'UPDATE companies SET company_name = ?,member = ?, owner_name = ?, industry = ?, headquarters = ?, website = ?, phone_number = ?, email = ?, address = ?, logo = ? WHERE id = ?',
+            [company_name, member, owner_name, industry, headquarters, website, phone_number, email, address, logoToUse, editId],
+            (err) => {
+                if (err) {
+                    console.error(err);
+                    return res.status(500).json({
+                        status: false,
+                        message: 'Failed to edit company.',
+                        error: err.message
+                    });
+                }
+                return res.status(200).json({
+                    status: true,
+                    message: 'Company edited successfully.'
+                });
+            }
+        );
+    });
+});
+
+router.post('/api/UploadLogo', uploadFile, async (req, res) => {
+    const { userData, folderName } = req.body;
+    let decodedUserData = null;
+
+    if (userData) {
+        try {
+            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+            decodedUserData = JSON.parse(decodedString);
+        } catch (error) {
+            return res.status(400).json({ status: false, error: 'Invalid userData' });
+        }
+    }
+
+    if (!decodedUserData || !decodedUserData.company_id) {
+        return res.status(400).json({ status: false, error: 'Company ID is required' });
+    }
+
+    const uploadedFileName = req.file ? path.basename(req.file.path) : null;
+    // const filePath = req.file ? req.file.path.replace(/^.*uploads\\/, '/uploads/') : null;
+    const filePath = req.file ? '/uploads/' + path.relative('uploads', req.file.path) : null;
+
+    db.query('SELECT logo FROM companies WHERE id = ?', [decodedUserData.company_id], (err, results) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ status: false, message: 'Failed to fetch current logo.' });
+        }
+        if (results.length === 0) {
+            return res.status(404).json({ status: false, message: 'Company not found.' });
+        }
+        const currentLogo = results[0].logo;
+        const logoToUse = filePath || currentLogo;
+
+        db.query('UPDATE companies SET logo = ? WHERE id = ?', [logoToUse, decodedUserData.company_id], (err) => {
+            if (err) {
+                console.error(err);
+                return res.status(500).json({ status: false, message: 'Failed to update company logo.' });
+            }
+            return res.status(200).json({
+                status: true,
+                message: 'Logo uploaded and updated successfully.',
+                folderName: folderName || 'default',
+                imageName: uploadedFileName
+            });
+        });
+    });
+});
+
+
+
+
+
+router.get('/api/data', (req, res) => {
+    const { userData } = req.query;
+    let decodedUserData = null;
+    if (userData) {
+        try {
+            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+            decodedUserData = JSON.parse(decodedString);
+        } catch (error) {
+            return res.status(400).json({ status: false, error: 'Invalid userData' });
+        }
+    }
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const page = parseInt(req.query.page, 10) || 1;
+    const offset = (page - 1) * limit;
+    if (!decodedUserData || !decodedUserData.id) {
+        return res.status(400).json({ status: false, error: 'Employee ID is required' });
+    }
+    const query = 'SELECT a.id, a.company_name, a.owner_name,a.member, a.logo, a.industry, a.headquarters, a.website, a.phone_number, a.email, a.address_id FROM companies a WHERE 1=1  ORDER BY a.id DESC LIMIT ? OFFSET ?';
+    const queryParams = [limit, offset];
+
+    db.query(query, queryParams, (err, results) => {
+        if (err) {
+            console.error('Error fetching attendance records:', err);
+            return res.status(500).json({ status: false, error: 'Server error' });
+        }
+        // Count total records for pagination
+        const countQuery = 'SELECT COUNT(id) AS total FROM companies WHERE 1=1';
+        db.query(countQuery, (err, countResults) => {
+            if (err) {
+                console.error('Error counting attendance records:', err);
+                return res.status(500).json({ status: false, error: 'Server error' });
+            }
+            const total = countResults[0].total;
+            // Add srnu to each result
+            const companiesWithSrnu = results.map((company, index) => ({
+                srnu: offset + index + 1,
+                ...company
+            }));
+
+            res.json({
+                status: true,
+                companies: companiesWithSrnu,
+                total,
+                page,
+                limit
+            });
+
+        });
+    });
+});
+
+
+// new for company 
+
+router.get('/api/fetchDetails', (req, res) => {
+    const { userData, type } = req.query;
+    let decodedUserData = null;
+    // Decode userData
+
+    if (userData) {
+        try {
+            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+            decodedUserData = JSON.parse(decodedString);
+        } catch (error) {
+            return res.status(400).json({ status: false, error: 'Invalid userData' });
+        }
+    }
+
+    // Validate decoded userData
+    if (!decodedUserData || !decodedUserData.company_id) {
+        return res.status(400).json({ status: false, error: 'Company ID is required' });
+    }
+
+    // Determine the query based on type
+    let query;
+    let queryParams = [decodedUserData.company_id];
+    if (type === 'Overview') {
+        query = `SELECT id, company_name, logo, industry, website, phone_number, email, address_id, domain_name, brand_name FROM companies WHERE id = ?`;
+    } else if (type === 'Address') {
+        query = `SELECT  id,  parent_id, address_title, address_line1, address_line2, city, state, country, pincode FROM address WHERE parent_id = ?`;
+    } else {
+        return res.status(400).json({ status: false, error: 'Invalid type specified' });
+    }
+
+    // Execute the query
+    db.query(query, queryParams, (err, results) => {
+        if (err) {
+            console.error('Error fetching data:', err);
+            return res.status(500).json({ status: false, error: 'Server error' });
+        }
+        // Check if any results were found
+        if (results.length == 0) {
+            return res.status(200).json({ status: false, error: 'No data found' });
+        }
+        res.json({
+            data: results[0],
+            status: true,
+            message: 'Data found'
+        });
+    });
+});
+
+router.post('/api/Update', upload.none(), (req, res) => {
+    const { type, id, activeSection, company_name, brand_name, domain_name, industry, website, phone_number, email, parent_id, address_title, address_line1, address_line2, city, state, country, pincode } = req.body;
+
+    if (!id || !activeSection) {
+        return res.status(400).json({ status: false, message: 'Missing required fields: id and activeSection' });
+    }
+    let query;
+    let values;
+    // if (type == 'Overview') {
+    switch (activeSection) {
+        case 'Overview':
+            query = 'UPDATE companies SET company_name=?,domain_name=?, brand_name=?, industry=?,  website=?, phone_number=?, email=? WHERE id=?';
+            values = [company_name, domain_name, brand_name, industry, website, phone_number, email, id];
+            break;
+        case 'Address':
+            query = 'UPDATE address SET address_line1=?, address_line2=?, city=?, state=?, country=?, pincode=? WHERE id=?';
+            values = [address_line1, address_line2, city, state, country, pincode, id];
+            break;
+        default:
+            return res.status(400).json({ status: false, message: 'Invalid activeSection provided' });
+    }
+
+    db.query(query, values, (err, results) => {
+        if (err) {
+            console.error('Database error:', err);
+            return res.status(500).json({ status: false, message: 'Database error', error: err });
+        }
+
+        res.json({ status: true, message: 'Update successful', data: results });
+    });
+});
+
+router.get('/api/AddressDetails', (req, res) => {
+    const { userData } = req.query;
+    let decodedUserData = null;
+
+    if (userData) {
+        try {
+            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+            decodedUserData = JSON.parse(decodedString);
+        } catch (error) {
+            return res.status(400).json({ status: false, error: 'Invalid userData format' });
+        }
+    }
+
+    // Validate decoded userData
+    if (!decodedUserData || !decodedUserData.company_id) {
+        return res.status(400).json({ status: false, error: 'Company ID is required' });
+    }
+
+    const companyId = decodedUserData.company_id;
+
+    // Queries for each address type
+    const queries = {
+        RegisteredOffice: `SELECT address_line1, address_line2, city, state, country, pincode FROM address WHERE type = 'RegisteredOffice' AND parent_id = ?`,
+        CorporateOffice: `SELECT address_line1, address_line2, city, state, country, pincode FROM address WHERE type = 'CorporateOffice' AND parent_id = ?`,
+        CustomAddressTitle: `SELECT address_line1, address_line2, city, state, country, pincode FROM address WHERE type = 'CustomAddressTitle' AND parent_id = ?`
+    };
+
+    const fetchAddressData = (query, params) => {
+        return new Promise((resolve, reject) => {
+            db.query(query, params, (err, results) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(results[0] || null);
+                }
+            });
+        });
+    };
+
+    // Fetch all address types concurrently
+    Promise.all([
+        fetchAddressData(queries.RegisteredOffice, [companyId]),
+        fetchAddressData(queries.CorporateOffice, [companyId]),
+        fetchAddressData(queries.CustomAddressTitle, [companyId])
+    ])
+        .then(([registeredOffice, corporateOffice, customAddressTitle]) => {
+            // Construct the response object
+            const response = {
+                RegisteredOffice: registeredOffice || {
+                    address_line1: '',
+                    address_line2: '',
+                    city: '',
+                    state: '',
+                    country: '',
+                    pincode: ''
+                },
+                CorporateOffice: corporateOffice || {
+                    address_line1: '',
+                    address_line2: '',
+                    city: '',
+                    state: '',
+                    country: '',
+                    pincode: ''
+                },
+                CustomAddressTitle: customAddressTitle || {
+                    address_line1: '',
+                    address_line2: '',
+                    city: '',
+                    state: '',
+                    country: '',
+                    pincode: ''
+                }
+            };
+            // Send the successful response
+            res.json({
+                data: response,
+                status: true,
+                message: 'Data found'
+            });
+        })
+        .catch(err => {
+            res.status(500).json({ status: false, error: 'Failed to fetch address details' });
+        });
+});
+const checkIfAddressExists = (companyId, type) => {
+    return new Promise((resolve, reject) => {
+        const query = `SELECT * FROM address WHERE parent_id = ? AND type = ? LIMIT 1`;
+        db.query(query, [companyId, type], (err, results) => {
+            if (err) return reject(err);
+            resolve(results.length > 0 ? results[0] : null);
+        });
+    });
+};
+
+// API to insert or update address
+router.post('/api/AddressUpdate', (req, res) => {
+    const { id, activeSection, type, address_line1, address_line2, city, state, country, userData, pincode } = req.body;
+    let decodedUserData = null;
+    if (userData) {
+        try {
+            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+            decodedUserData = JSON.parse(decodedString);
+        } catch (error) {
+            return res.status(403).json({ status: false, error: 'Invalid userData format' });
+        }
+    }
+    // Validate decoded userData
+    if (!decodedUserData || !decodedUserData.company_id) {
+        return res.status(400).json({ status: false, error: 'Company ID is required' });
+    }
+    const company_id = decodedUserData.company_id;
+    if (!activeSection || !company_id || !type || !address_line1 || !city || !state || !country || !pincode) {
+        return res.status(400).json({ status: false, message: 'Missing required fields' });
+    }
+    checkIfAddressExists(company_id, activeSection)
+        .then(existingAddress => {
+            let query;
+            let values;
+            if (existingAddress) {
+                // Update the address if it already exists
+                query = `UPDATE address SET address_line1 = ?, address_line2 = ?, city = ?, state = ?, country = ?, pincode = ? WHERE id = ?`;
+                values = [address_line1, address_line2, city, state, country, pincode, existingAddress.id];
+            } else {
+                // Insert a new address if it doesn't exist
+                query = `INSERT INTO address (parent_id, type, address_line1, address_line2, city, state, country, pincode) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+                values = [company_id, activeSection, address_line1, address_line2, city, state, country, pincode];
+            }
+            // Execute the query (insert or update)
+            db.query(query, values, (err, results) => {
+                if (err) {
+                    console.error('Database error:', err);
+                    return res.status(500).json({ status: false, message: 'Database error', error: err });
+                }
+                if (existingAddress) {
+                    res.json({ status: true, message: 'Update successful', data: results });
+                } else {
+                    res.json({ status: true, message: 'Insert successful', data: results });
+                }
+            });
+        })
+        .catch(err => {
+            console.error('Error checking address existence:', err);
+            res.status(500).json({ status: false, message: 'Error checking address existence', error: err });
+        });
+});
+
+// Department page api start----
+
+router.post('/api/DepartmentDetails', (req, res) => {
+    const { userData, type, UserId } = req.body;
+    let decodedUserData = null;
+    if (userData) {
+        try {
+            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+            decodedUserData = JSON.parse(decodedString);
+        } catch (error) {
+            return res.status(400).json({ status: false, error: 'Invalid userData' });
+        }
+    }
+    // Validate decoded userData
+    const company_id = decodedUserData.company_id;
+    if (!company_id) {
+        return res.status(400).json({ status: false, error: 'Company ID is missing or invalid' });
+    }
+    db.query(
+        'SELECT id, name, type, parent_id, company_id FROM departments WHERE company_id = ?',
+        [company_id],
+        (err, results) => {
+            if (err) {
+                console.error('Database error:', err);
+                return res.status(500).json({
+                    status: false,
+                    message: 'Database error occurred while fetching department details',
+                    error: err.message || err
+                });
+            }
+            // Check if any departments are found
+            if (results.length === 0) {
+                return res.status(200).json({ status: false, message: 'No departments found for this company' });
+            }
+            // Organize departments into a nested structure
+            const departments = results.filter(dep => dep.type === 1); // Get main departments
+            const subDepartments = results.filter(dep => dep.parent_id !== null);
+            // Add sub-departments to their parent departments
+            departments.forEach(dep => {
+                dep.subDepartments = subDepartments.filter(sub => sub.parent_id === dep.id);
+            });
+            // Return the structured data
+            res.json({
+                status: true,
+                data: departments
+            });
+        }
+    );
+});
+
+// Endpoint to add a new department
+router.post('/api/AddDepartment', (req, res) => {
+    const { name, userData, type } = req.body;
+    let decodedUserData = null;
+
+    // Decode userData
+    if (userData) {
+        try {
+            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+            decodedUserData = JSON.parse(decodedString);
+        } catch (error) {
+            return res.status(400).json({ status: false, error: 'Invalid userData' });
+        }
+    }
+    const company_id = decodedUserData.company_id;
+    if (!name || !company_id || !type) {
+        return res.status(400).json({ status: false, error: 'Department name, company ID, and type are required' });
+    }
+
+    // Insert the new department into the database
+
+    db.query(
+        'INSERT INTO departments (name, company_id, type) VALUES (?, ?, ?)',
+        [name, company_id, type],
+        (err, result) => {
+            if (err) {
+                console.error('Database error:', err);
+                return res.status(500).json({ status: false, error: 'Error while adding department' });
+            }
+            res.status(201).json({ status: true, message: 'Department added successfully' });
+        }
+    );
+});
+
+// Endpoint to add a new department
+router.post('/api/EditDepartment', (req, res) => {
+    const { name, userData, type, Id ,parent_id=0} = req.body;
+    let decodedUserData = null;
+
+    // Decode userData
+    if (userData) {
+        try {
+            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+            decodedUserData = JSON.parse(decodedString);
+        } catch (error) {
+            return res.status(400).json({ status: false, error: 'Invalid userData' });
+        }
+    }
+    const company_id = decodedUserData.company_id;
+    if (!name || !company_id || !type) {
+        return res.status(400).json({ status: false, error: 'Department name, company ID, and type are required' });
+    }
+
+    // Insert the new department into the database
+
+    db.query(
+        'UPDATE departments SET name=?, type=?,parent_id=? Where id =? And company_id=?',
+        [name, type,parent_id, Id, company_id],
+        (err, result) => {
+            if (err) {
+                console.error('Database error:', err);
+                return res.status(500).json({ status: false, error: 'Error while UPDATE department' });
+            }
+            res.status(200).json({ status: true, message: 'UPDATE successfully' });
+        }
+    );
+});
+// Endpoint to add a new sub-department
+router.post('/api/AddSubDepartment', (req, res) => {
+    const { name, userData, parent_id, type } = req.body;
+    let decodedUserData = null;
+    // Decode userData
+    if (userData) {
+        try {
+            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+            decodedUserData = JSON.parse(decodedString);
+        } catch (error) {
+            return res.status(400).json({ status: false, error: 'Invalid userData' });
+        }
+    }
+    // Validate decoded userData
+    const company_id = decodedUserData.company_id;
+
+    // Validate input
+    if (!name || !company_id || !parent_id || !type) {
+        return res.status(400).json({ status: false, error: 'Sub-department name, company ID, parent department ID, and type are required' });
+    }
+
+    // Insert the new sub-department into the database
+    db.query(
+        'INSERT INTO departments (name, company_id, parent_id, type) VALUES (?, ?, ?, ?)',
+        [name, company_id, parent_id, type],
+        (err, result) => {
+            if (err) {
+                console.error('Database error:', err);
+                return res.status(500).json({ status: false, error: 'Error while adding sub-department' });
+            }
+            res.status(201).json({ status: true, message: 'Sub-department added successfully' });
+        }
+    );
+});
+// Department page api End----
+
+
+
+
+// Department page api start----
+
+
+router.post('/api/DesignationDetails', (req, res) => {
+
+    const { userData, type, UserId } = req.body;
+
+    let decodedUserData = null;
+    if (userData) {
+        try {
+            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+            decodedUserData = JSON.parse(decodedString);
+        } catch (error) {
+            return res.status(400).json({ status: false, error: 'Invalid userData' });
+        }
+    }
+    // Validate decoded userData
+    const company_id = decodedUserData.company_id;
+    if (!company_id) {
+        return res.status(400).json({ status: false, error: 'Company ID is missing or invalid' });
+    }
+    db.query(
+        `SELECT designation, COUNT(*) AS employee_count,GROUP_CONCAT(CONCAT(first_name, ' ', last_name) SEPARATOR ', ') AS employee_names,GROUP_CONCAT(id SEPARATOR ', ') AS id FROM employees WHERE company_id = ? GROUP BY designation`,
+        // 'SELECT d.id AS department_id, d.name AS department_name, d.type AS department_type, d.parent_id, COUNT(e.id) AS employee_count, GROUP_CONCAT(e.first_name) AS employee_names, d.company_id FROM departments AS d INNER JOIN employees AS e ON e.sub_department = d.id WHERE d.company_id = ? AND d.type = 2 GROUP BY d.id, d.name, d.type, d.parent_id, d.company_id;',
+        // 'SELECT d.id, d.name, d.type, d.parent_id, COUNT(e.id) AS employee_count, d.company_id FROM departments AS d INNER JOIN employees AS e ON e.sub_department = d.id WHERE d.company_id = ? AND d.type = 2 GROUP BY d.id, d.name, d.type, d.parent_id, d.company_id',
+        [company_id],
+        (err, results) => {
+            if (err) {
+                console.error('Database error:', err);
+                return res.status(500).json({
+                    status: false,
+                    message: 'Database error occurred while fetching department details',
+                    error: err.message || err
+                });
+            }
+            if (results.length === 0) {
+                return res.status(200).json({ status: false, message: 'No Designation found for this company' });
+            }
+            res.json({
+                status: true,
+                data: results,
+                message: ''
+            });
+        }
+    );
+});
+router.post('/api/Designation', (req, res) => {
+
+    const { userData } = req.body;
+
+    let decodedUserData = null;
+    if (userData) {
+        try {
+            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+            decodedUserData = JSON.parse(decodedString);
+        } catch (error) {
+            return res.status(400).json({ status: false, error: 'Invalid userData' });
+        }
+    }
+    // Validate decoded userData
+    const company_id = decodedUserData.company_id;
+    if (!company_id) {
+        return res.status(400).json({ status: false, error: 'Company ID is missing or invalid' });
+    }
+    db.query(`SELECT designation
+FROM employees
+WHERE company_id = ?
+  AND designation IS NOT NULL
+  AND designation != 'null'
+GROUP BY designation`, [company_id],
+        (err, results) => {
+            if (err) {
+                console.error('Database error:', err);
+                return res.status(500).json({
+                    status: false,
+                    message: 'Database error occurred while fetching details',
+                    error: err.message || err
+                });
+            }
+            if (results.length === 0) {
+                return res.status(200).json({ status: false, message: 'No Designation found for this company' });
+            }
+            res.json({
+                status: true,
+                data: results,
+                message: ''
+            });
+        }
+    );
+});
+
+router.post('/api/DesignationUpdate', async (req, res) => {
+    const { userData, Designation, oldDesignation, employeesId } = req.body;
+
+    let parsed = JSON.parse(employeesId); // parsed = [1,2,3]
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+        return res.status(400).json({ status: false, error: 'No employee IDs provided for designation update' });
+    }
+
+    let DesignationOld = oldDesignation || 'null';
+
+    let decodedUserData = null;
+    if (userData) {
+        try {
+            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+            decodedUserData = JSON.parse(decodedString);
+        } catch (error) {
+            return res.status(400).json({ status: false, error: 'Invalid userData' });
+        }
+    }
+
+    if (!decodedUserData || !decodedUserData.company_id) {
+        return res.status(400).json({ status: false, error: 'Company ID is missing or invalid' });
+    }
+
+    if (!Designation) {
+        return res.status(400).json({ status: false, error: 'Designation is required' });
+    }
+
+    // Safe query
+    let idPlaceholders = parsed.map(() => '?').join(', '); // e.g. ?, ?, ?
+    const UpdateQuery = `
+      UPDATE employees 
+      SET designation = ? 
+      WHERE employee_status = 1 
+        AND status = 1 
+        AND delete_status = 0 
+        AND company_id = ? 
+        AND (id IN (${idPlaceholders}) And designation = ?)
+    `;
+
+    const UpdateValues = [Designation, decodedUserData.company_id, ...parsed, DesignationOld];
+
+    db.query(UpdateQuery, UpdateValues, (err, result) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({
+                status: false,
+                message: 'Failed to edit designation.',
+                error: err.message
+            });
+        }
+        return res.status(200).json({
+            status: true,
+            message: 'Designation edited successfully.',
+            data: result
+        });
+    });
+});
+// get logo 
+router.post('/api/GetCompanyLogo', async (req, res) => {
+
+    const { userData } = req.body;
+    let decodedUserData = null;
+
+    if (userData) {
+        try {
+            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+            decodedUserData = JSON.parse(decodedString);
+        } catch (error) {
+            return res.status(400).json({ status: false, error: 'Invalid userData' });
+        }
+    }
+    if (!decodedUserData.company_id) {
+        return res.status(400).json({ status: false, error: 'Company ID is missing or invalid' });
+    }
+
+    db.query(
+        'SELECT logo,company_name FROM companies WHERE id = ?',
+        [decodedUserData.company_id],
+        (err, results) => {
+            if (err) {
+                return res.status(500).json({
+                    status: false,
+                    message: 'Database error occurred while fetching department details',
+                    error: err.message || err
+                });
+            }
+            if (results.length === 0) {
+                return res.status(200).json({ status: false, message: 'No found for this company' });
+            }
+            res.json({
+                status: true,
+                data: results
+            });
+        }
+    );
+});
+
+
+router.post('/api/SocialLink', async (req, res) => {
+
+    const { userData, instagram, facebook, linkedin, type } = req.body;
+    let decodedUserData = null;
+
+    // Decode and parse userData
+    if (userData) {
+        try {
+            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+            decodedUserData = JSON.parse(decodedString);
+        } catch (error) {
+            return res.status(400).json({ status: false, error: 'Invalid userData' });
+        }
+    }
+
+    // Validate required user data fields
+    if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+        return res.status(400).json({
+            status: false,
+            error: 'Invalid user data. Employee ID and Company ID are required.'
+        });
+    }
+
+    // Prepare the query and data array
+    let query = "SELECT instagram, facebook, linkedin FROM social_profile WHERE company_id = ?";
+    let dataArray = [decodedUserData.company_id];
+
+    if (type === 'Company_Profile') {
+        query += " AND type = ?";
+        dataArray.push(type);
+    } else {
+        query += " AND employee_id = ?";
+        dataArray.push(decodedUserData.id);
+    }
+
+    // Execute the database query
+    db.query(query, dataArray, (err, results) => {
+        if (err) {
+            return res.status(500).json({
+                status: false,
+                message: 'Database error.',
+                error: err
+            });
+        }
+
+        if (results.length === 0) {
+            // Insert new social profile
+            db.query(
+                `INSERT INTO social_profile (company_id, employee_id, instagram, facebook, linkedin, type) 
+                 VALUES (?, ?, ?, ?, ?, ?)`,
+                [decodedUserData.company_id, decodedUserData.id, instagram, facebook, linkedin, type],
+                (err) => {
+                    if (err) {
+                        return res.status(500).json({
+                            status: false,
+                            message: 'Failed to add Social Profile.',
+                            error: err
+                        });
+                    }
+                    return res.status(200).json({
+                        status: true,
+                        message: 'Social Profile added successfully.'
+                    });
+                }
+            );
+        } else {
+            // Update existing social profile
+            db.query(
+                `UPDATE social_profile 
+                 SET instagram = ?, facebook = ?, linkedin = ?, type = ? 
+                 WHERE company_id = ? AND employee_id = ?`,
+                [instagram, facebook, linkedin, type, decodedUserData.company_id, decodedUserData.id],
+                (err) => {
+                    if (err) {
+                        return res.status(500).json({
+                            status: false,
+                            message: 'Failed to update Social Profile.',
+                            error: err
+                        });
+                    }
+                    return res.status(200).json({
+                        status: true,
+                        message: 'Social Profile updated successfully.'
+                    });
+                }
+            );
+        }
+    });
+});
+
+router.post('/api/GetSocialLink', async (req, res) => {
+    const { userData, type } = req.body;
+    let decodedUserData = null;
+
+    // Decode and parse userData
+    if (userData) {
+        try {
+            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+            decodedUserData = JSON.parse(decodedString);
+        } catch (error) {
+            return res.status(400).json({ status: false, error: 'Invalid userData' });
+        }
+    }
+
+    // Validate required user data fields
+    if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+        return res.status(400).json({
+            status: false,
+            error: 'Invalid user data. Employee ID and Company ID are required.'
+        });
+    }
+
+    // Prepare the query and data array
+    let query = "SELECT instagram, facebook, linkedin FROM social_profile WHERE company_id = ?";
+    let dataArray = [decodedUserData.company_id];
+
+    if (type === 'Company_Profile') {
+        query += " AND type = ?";
+        dataArray.push(type);
+    } else {
+        query += " AND employee_id = ?";
+        dataArray.push(decodedUserData.id);
+    }
+
+    // Execute the database query
+    db.query(query, dataArray, (err, results) => {
+        if (err) {
+            return res.status(500).json({
+                status: false,
+                message: 'Database error.',
+                error: err
+            });
+        }
+        if (results.length === 0) {
+            return res.status(200).json({
+                status: false,
+                data: [],
+                message: 'No data Found.'
+            });
+        } else {
+            return res.status(200).json({
+                status: true,
+                data: results,
+                message: 'Social Profile Get.'
+            });
+        }
+    });
+});
+
+
+
+
+
+
+router.post('/employee-hierarchyTeam', (req, res) => {
+    const { userData } = req.body;
+    let CheckId = req.body.CheckId || null;
+    if (!CheckId || CheckId === 'undefined' || CheckId === 'null') {
+        CheckId = null;
+    }
+
+    let decodedUserData = null;
+    if (userData) {
+        try {
+            const decodedString = Buffer.from(userData, "base64").toString("utf-8");
+            decodedUserData = JSON.parse(decodedString);
+        } catch (error) {
+            return res.status(400).json({ status: false, error: "Invalid userData" });
+        }
+    }
+    if (!decodedUserData.company_id) {
+        return res
+            .status(400)
+            .json({ status: false, error: "Company ID is missing or invalid" });
+    }
+    const id = CheckId || decodedUserData.id;
+    const company_id = decodedUserData.company_id;
+    db.query(
+        'SELECT id, type,profile_image, company_id, first_name, reporting_manager FROM employees WHERE company_id = ? and status=1',
+        [company_id],
+        (err, employees) => {
+            if (err) return res.status(500).json({ error: err.message });
+
+            const currentUser = employees.find(emp => emp.id == id);
+            if (!currentUser) return res.status(404).json({ error: 'Employee not found' });
+
+            // Normalize reporting_manager
+            const normalizedEmployees = employees.map(emp => ({
+                ...emp,
+                reporting_manager: (
+                    emp.reporting_manager === null ||
+                    emp.reporting_manager === 0 ||
+                    emp.reporting_manager === "0" ||
+                    emp.reporting_manager === "" ||
+                    emp.reporting_manager === "null"
+                ) ? null : Number(emp.reporting_manager)
+            }));
+
+            // Create a map
+            const map = {};
+            normalizedEmployees.forEach(emp => {
+                map[emp.id] = {
+                    id: emp.id,
+                    name: emp.first_name,
+                    profile_image: emp.profile_image,
+                    reporting_manager: emp.reporting_manager,
+                    children: []
+                };
+            });
+
+            // Build hierarchy
+            const tree = [];
+            normalizedEmployees.forEach(emp => {
+                const node = map[emp.id];
+                if (emp.reporting_manager && map[emp.reporting_manager]) {
+                    map[emp.reporting_manager].children.push(node);
+                } else {
+                    tree.push(node); // top-level
+                }
+            });
+
+            // HR/ADMIN/CEO - get full tree
+            if (['ceo', 'hr', 'admin'].includes(currentUser.type)) {
+                return res.json(tree);
+            }
+
+            // Regular employee - return only their subtree
+            const getSubtree = (id) => {
+                return map[id] || null;
+            };
+
+            return res.json([getSubtree(currentUser.id)]);
+        }
+    );
+
+});
+
+
+
+
+
+
+
+// Branch code 
+router.get("/Branchfetch", (req, res) => {
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const page = parseInt(req.query.page, 10) || 1;
+    const offset = (page - 1) * limit;
+
+    const { userData } = req.query;
+    let decodedUserData = null;
+
+    if (userData) {
+        try {
+            const decodedString = Buffer.from(userData, "base64").toString("utf-8");
+            decodedUserData = JSON.parse(decodedString);
+        } catch (error) {
+            return res.status(400).json({ status: false, error: "Invalid userData" });
+        }
+    }
+
+    if (!decodedUserData.company_id) {
+        return res
+            .status(400)
+            .json({ status: false, error: "Company ID is missing or invalid" });
+    }
+    const holidayQuery = `
+        SELECT * FROM branches WHERE company_id=? ORDER BY id DESC LIMIT ? OFFSET ?
+    `;
+
+    db.query(
+        holidayQuery,
+        [decodedUserData.company_id, limit, offset],
+        (err, results) => {
+            if (err) {
+                console.error("Error fetching branches records:", err);
+                return res.status(500).json({ status: false, error: "Server error" });
+            }
+            const countQuery = `
+            SELECT COUNT(id) as total FROM branches WHERE company_id=?
+        `;
+            db.query(
+                countQuery,
+                [decodedUserData.company_id],
+                (countErr, countResults) => {
+                    if (countErr) {
+                        console.error("Error fetching total branches records:", countErr);
+                        return res
+                            .status(500)
+                            .json({ status: false, error: "Server error" });
+                    }
+                    const total = countResults[0].total;
+                    const recordsWithSrnu = results.map((record, index) => ({
+                        srnu: offset + index + 1,
+                        ...record
+                    }));
+                    res.json({
+                        status: true,
+                        records: recordsWithSrnu,
+                        total,
+                        page,
+                        limit
+                    });
+                }
+            );
+        }
+    );
+});
+
+
+router.post("/BranchUpdate", (req, res) => {
+    const { id, userData, name, latitude, longitude, radius, ip, ip_status, location_status } = req.body;
+
+    // Validate input
+    if (!id) {
+        return res.status(400).json({ status: false, message: "ID is required to update holiday." });
+    }
+    let decodedUserData = null;
+
+    if (userData) {
+        try {
+            const decodedString = Buffer.from(userData, "base64").toString("utf-8");
+            decodedUserData = JSON.parse(decodedString);
+        } catch (error) {
+            return res.status(400).json({ status: false, error: "Invalid userData" });
+        }
+    }
+
+    if (!decodedUserData.company_id) {
+        return res.status(400).json({ status: false, error: "Company ID is missing or invalid" });
+    }
+
+    db.query(
+        "UPDATE branches SET name=?,location_status=?, latitude=?, longitude=?, radius=? ,ip=?,ip_status=? WHERE id = ? AND company_id=?",
+        [name, location_status, latitude, longitude, radius, ip, ip_status, id, decodedUserData.company_id],
+        (err, results) => {
+            if (err) {
+                console.error("Database error:", err);
+                return res.status(500).json({
+                    status: false,
+                    message: "Error updating branch.",
+                    error: err.message
+                });
+            }
+            if (results.affectedRows === 0) {
+                return res.status(404).json({
+                    status: false,
+                    message: "branch not found or no changes made."
+                });
+            }
+            res
+                .status(200)
+                .json({ status: true, message: "branch updated successfully." });
+        }
+    );
+
+
+});
+
+router.post("/BranchAdd", (req, res) => {
+    const { name, latitude, longitude, radius, userData, ip, ip_status, location_status } = req.body;
+
+    let decodedUserData = null;
+    if (userData) {
+        try {
+            const decodedString = Buffer.from(userData, "base64").toString("utf-8");
+            decodedUserData = JSON.parse(decodedString);
+        } catch (error) {
+            return res.status(400).json({ status: false, message: "Invalid userData format." });
+        }
+    }
+    if (!decodedUserData || !decodedUserData.company_id) {
+        return res.status(400).json({ status: false, message: "Company ID is missing or invalid." });
+    }
+
+    const companyId = decodedUserData.company_id;
+    db.query(
+        "INSERT INTO branches (name,location_status, latitude, longitude, radius , company_id,ip,ip_status) VALUES (?,?,?, ?, ?,?,?,?)",
+        [name, location_status, latitude, longitude, radius, companyId, ip, ip_status],
+        (err, insertResult) => {
+            if (err) {
+                console.error("Error inserting branch:", err);
+                return res.status(200).json({
+                    status: false,
+                    message: "Error creating branch record.",
+                    error: err.message,
+                });
+            }
+
+            res.status(200).json({
+                status: true,
+                message: "branch inserted successfully.",
+                id: insertResult.insertId,
+            });
+        }
+    );
+
+
+
+});
+
+
+
+// Export the router
+module.exports = router;

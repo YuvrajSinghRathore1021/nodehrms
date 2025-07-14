@@ -1,0 +1,300 @@
+// // Working Code 
+
+// const express = require('express');
+// const multer = require('multer');
+// const path = require('path');
+// const router = express.Router();
+
+// // Configure multer storage
+
+// const storage = multer.diskStorage({
+//     destination: (req, file, cb) => {
+//         cb(null, 'uploads/');
+//     },
+//     filename: (req, file, cb) => {
+//         cb(null, Date.now() + path.extname(file.originalname));
+//     }
+// });
+
+// const upload = multer({ storage });
+
+// router.post('/upload', upload.single('file'), (req, res) => {
+
+//     if (!req.file) {
+//         return res.status(400).json({ message: 'No file uploaded' });
+//     }
+//     const name = req.body.name;
+//     res.status(200).json({
+
+//         status: true,
+//         message: 'File uploaded successfully',
+//         file: req.file,
+//         name: name,
+//     });
+// });
+
+// module.exports = router;
+
+
+// Example route for file upload
+// router.post('/upload', (req, res) => {
+//     uploadFile('uploads')
+//     res.json(req.uploadedFile);
+// });
+
+
+
+
+
+
+
+
+
+// working for one 
+
+// const express = require('express');
+// const multer = require('multer');
+// const path = require('path');
+// const fs = require('fs');
+// const router = express.Router();
+// const db = require('../../DB/ConnectionSql');
+
+// // Configure multer for dynamic folder storage
+// const configureMulter = (folderName) => {
+//     const uploadPath = path.join(__dirname, folderName);
+//     if (!fs.existsSync(uploadPath)) {
+//         fs.mkdirSync(uploadPath, { recursive: true });
+//     }
+//     const storage = multer.diskStorage({
+//         destination: (req, file, cb) => {
+//             cb(null, uploadPath);
+//         },
+//         filename: (req, file, cb) => {
+//             cb(null, `${Date.now()}-${file.originalname}`);
+//         },
+//     });
+//     return multer({ storage });
+// };
+
+// // Middleware to handle file upload
+// const uploadFile = (folderName) => (req, res, next) => {
+//     const upload = configureMulter(folderName).single('file');
+//     upload(req, res, (err) => {
+//         if (err) {
+//             return res.status(500).json({
+//                 status: false,
+//                 message: 'File upload failed',
+//                 error: err.message,
+//             });
+//         }
+//         if (!req.file) {
+//             return res.status(400).json({
+//                 status: false,
+//                 message: 'No file uploaded',
+//             });
+//         }
+//         req.uploadedFile = {
+//             status: true,
+//             message: 'File uploaded successfully',
+//             url: path.join(folderName, req.file.filename),
+//             file: req.file,
+//             extraData: req.body,
+//         };
+//         next();
+//     });
+// };
+
+
+
+// router.post('/upload', (req, res) => {
+
+//     const uploadMiddleware = uploadFile('uploads');
+
+//     uploadMiddleware(req, res, (err) => {
+//         if (err) {
+//             return res.status(500).json({
+//                 status: false,
+//                 message: 'File upload failed',
+//                 error: err.message,
+//             });
+//         }
+//         if (!req.uploadedFile) {
+//             return res.status(400).json({
+//                 status: false,
+//                 message: 'No file uploaded',
+//             });
+//         }
+//         res.json(req.uploadedFile);
+//     });
+// });
+
+// module.exports = router;
+
+
+
+
+// const express = require('express');
+// const multer = require('multer');
+// const path = require('path');
+// const fs = require('fs');
+// const router = express.Router();
+
+// const configureMulter = (folderName) => {
+//     const uploadPath = path.join(__dirname, folderName);
+//     if (!fs.existsSync(uploadPath)) {
+//         fs.mkdirSync(uploadPath, { recursive: true });
+//     }
+//     const storage = multer.diskStorage({
+//         destination: (req, file, cb) => {
+//             cb(null, uploadPath);
+//         },
+//         filename: (req, file, cb) => {
+//             cb(null, `${Date.now()}-${file.originalname}`);
+//         }
+//     });
+//     return multer({ storage });
+// };
+
+// // Common upload function
+// const uploadFile = (folderName, req, res) => {
+//     const upload = configureMulter(folderName).single('file');
+
+//     upload(req, res, (err) => {
+//         if (err) {
+//             return { status: false, message: 'Upload failed', error: err.message };
+//         }
+//         if (!req.file) {
+//             return { status: false, message: 'No file uploaded' };
+//         }
+//         // File details and status
+//         return {
+//             status: true,
+//             message: 'File uploaded successfully',
+//             url: path.join(folderName, req.file.filename),
+//             file: req.file,
+//             extraData: req.body
+//         };
+//     });
+// };
+
+// // Example route
+// router.post('/upload', (req, res) => {
+//     const folderName = req.body.folderName || 'uploads';
+//     console.log(uploadFile(folderName, req, res));
+
+// });
+
+// module.exports = router;
+
+
+
+
+
+
+
+
+// dynamic
+
+
+const express = require('express');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const router = express.Router();
+const db = require('../../DB/ConnectionSql');
+
+// Configure multer for dynamic folder storage
+const configureMulter = (folderName) => {
+    const uploadPath = path.join(__dirname, folderName);
+    if (!fs.existsSync(uploadPath)) {
+        fs.mkdirSync(uploadPath, { recursive: true });
+    }
+    const storage = multer.diskStorage({
+        destination: (req, file, cb) => {
+            cb(null, uploadPath);
+        },
+        filename: (req, file, cb) => {
+            cb(null, `${Date.now()}-${file.originalname}`);
+        },
+    });
+    return multer({ storage });
+};
+
+// Middleware to handle multiple file uploads
+const uploadFiles = (folderName) => (req, res, next) => {
+
+    const upload = configureMulter(folderName).fields([
+        { name: 'profileImage', maxCount: 1 },
+        { name: 'panCard', maxCount: 1 },
+        { name: 'addressProof', maxCount: 1 },
+        { name: 'logo', maxCount: 1 }
+    ]);
+
+    upload(req, res, (err) => {
+        if (err) {
+            return res.status(500).json({
+                status: false,
+                message: 'File upload failed',
+                error: err.message,
+            });
+        }
+        if (!req.files || !req.files.profileImage || !req.files.panCard || !req.files.addressProof || !req.files.logo) {
+            return res.status(400).json({
+                status: false,
+                message: 'Missing required files',
+            });
+        }
+
+        req.uploadedFiles = {
+            status: true,
+            message: 'Files uploaded successfully',
+            files: {
+                profileImage: path.join(folderName, req.files.profileImage[0].filename),
+                panCard: path.join(folderName, req.files.panCard[0].filename),
+                addressProof: path.join(folderName, req.files.addressProof[0].filename),
+                logo: path.join(folderName, req.files.logo[0].filename)
+            },
+            extraData: req.body,
+        };
+        next();
+    });
+};
+
+// Handle form data and file upload
+router.post('/upload', (req, res) => {
+    const uploadMiddleware = uploadFiles('uploads');
+
+    uploadMiddleware(req, res, (err) => {
+        if (err) {
+            return res.status(500).json({
+                status: false,
+                message: 'File upload failed',
+                error: err.message,
+            });
+        }
+        if (!req.uploadedFiles) {
+            return res.status(400).json({
+                status: false,
+                message: 'No files uploaded',
+            });
+        }
+
+        // Insert the uploaded file information and form data into the database (example)
+        const { name, number } = req.body; // Extract name and number from the body
+
+        // Example SQL query (adjust according to your DB schema)
+        const query = `INSERT INTO users (name, number, profileImage, panCard, addressProof, logo) VALUES (?, ?, ?, ?, ?, ?)`;
+        const values = [
+            name,
+            number,
+            req.uploadedFiles.files.profileImage,
+            req.uploadedFiles.files.panCard,
+            req.uploadedFiles.files.addressProof,
+            req.uploadedFiles.files.logo
+        ];
+
+        console.log(values);
+    });
+});
+
+module.exports = router;
