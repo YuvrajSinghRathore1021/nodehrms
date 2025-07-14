@@ -1,13 +1,14 @@
 const express = require('express');
+require('dotenv').config();
 const router = express.Router();
 const mysql = require('mysql2');
 
 // DB Connection
 const db = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "hrmsnewlive"
+   host: process.env.host || 'localhost',
+    user: process.env.user || 'root',
+    password: process.env.password || '',
+    database: process.env.database || 'hrmsnewlive'
   //  host: 'localhost',
   // user: 'hrmsnewyuvraj',
   // password: 'hrms@india',

@@ -1,4 +1,5 @@
 const mysql = require('mysql2');
+require('dotenv').config();
 // Create a MySQL connection
 
 ////live Time
@@ -12,10 +13,10 @@ const mysql = require('mysql2');
 ////localhost Time
 
 const db = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: '',
-    database: 'hrmsnewlive'
+    host: process.env.host || 'localhost',
+    user: process.env.user || 'root',
+    password: process.env.password || '',
+    database: process.env.database || 'hrmsnewlive'
 });
 
 
