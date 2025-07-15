@@ -13,10 +13,15 @@ require('dotenv').config();
 ////localhost Time
 
 const db = mysql.createConnection({
-    host: process.env.host || 'localhost',
-    user: process.env.user || 'root',
-    password: process.env.password || '',
-    database: process.env.database || 'hrmsnewlive'
+    // host: process.env.host || 'localhost',
+    // user: process.env.user || 'root',
+    // password: process.env.password || '',
+    // database: process.env.database || 'hrmsnewlive'
+       host: process.env.host || '13.51.174.101',
+    user: process.env.user || 'hrmsadmin',
+    password: process.env.password || 'hrms@admin',
+    database: process.env.database || 'hrmsnew',
+    port:3306
 });
 
 
