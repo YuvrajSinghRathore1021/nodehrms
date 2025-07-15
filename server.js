@@ -195,8 +195,11 @@ const PORT = process.env.PORT || 2100;
 //     console.log(`Server is running on port ${PORT}`);
 // });
 
-server.listen(PORT, () => {
-    console.log(`Server is running at http://localhost:${PORT}`);
+// server.listen(PORT, () => {
+//     console.log(`Server is running at http://localhost:${PORT}`);
+// });
+app.listen(2100, '0.0.0.0', () => {
+  console.log('✅ Server is running on http://0.0.0.0:2100');
 });
 
 
