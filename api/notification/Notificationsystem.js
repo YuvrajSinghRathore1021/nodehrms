@@ -5,9 +5,9 @@ const mysql = require('mysql2');
 
 // DB Connection
 const db = mysql.createConnection({
-   host: process.env.host || '13.51.174.101',
+   host: process.env.host || 'localhost',
     user: process.env.user || 'hrmsadmin',
-    password: process.env.password || 'hrms@admin',
+    password: process.env.password || 'Hrms@Admin123!',
     database: process.env.database || 'hrmsnew',
     port:3306
   //  host: 'localhost',
