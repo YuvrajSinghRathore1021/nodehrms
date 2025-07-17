@@ -24,10 +24,10 @@ const nodemailer = require('nodemailer');
 
 //         const user = results[0];
 //         if (user.password == password) {
-//             if (!process.env.JWT_SECRET) {
+//             if (!JWTSECRET) {
 //                 return res.status(200).json({ status: false, message: 'Server configuration error: JWT_SECRET not set.' });
 //             }
-//             const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET, {
+//             const token = jwt.sign({ id: user.id, username: user.username }, JWTSECRET, {
 //                 expiresIn: '24h'
 //             });
 
@@ -80,23 +80,23 @@ router.post('/login', (req, res) => {
             if (!isMatch) {
                 return res.status(401).json({ status: false, message: 'Invalid username or password' });
             }
-
+let JWTSECRET=JWTSECRET|| 'yuvi';
             // Generate JWT token
-            if (!process.env.JWT_SECRET) {
+            if (!JWTSECRET) {
                 return res.status(500).json({ status: false, message: 'Server configuration error: JWT_SECRET not set' });
             }
 
-            // const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET, {
+            // const token = jwt.sign({ id: user.id, username: user.username }, JWTSECRET, {
             //     expiresIn: '24h'
             // });
             // const token = jwt.sign(
             //     { id: user.id, username: user.username },
-            //     process.env.JWT_SECRET,
+            //     JWTSECRET,
             //     { expiresIn: 60 * 60 * 24 * 30 * 6 } // 6 months ≈ 6 * 30 days
             //   );
             const token = jwt.sign(
                 { id: user.id, username: user.username },
-                process.env.JWT_SECRET,
+                JWTSECRET,
                 { expiresIn: '180d' } // 180 days = 6 months approx.
               );
               
@@ -518,10 +518,10 @@ module.exports = router;
 //         const user = results[0];
 //         // Compare hashed password
 //         if (bcrypt.compareSync(password, user.password)) {
-//             if (!process.env.JWT_SECRET) {
+//             if (!JWTSECRET) {
 //                 return res.status(200).json({ status: false, message: 'Server configuration error: JWT_SECRET not set.' });
 //             }
-//             const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET, {
+//             const token = jwt.sign({ id: user.id, username: user.username }, JWTSECRET, {
 //                 expiresIn: '1h'
 //             });
 //             res.json({ status: true, token });
