@@ -80,7 +80,7 @@ router.post('/login', (req, res) => {
             if (!isMatch) {
                 return res.status(401).json({ status: false, message: 'Invalid username or password' });
             }
-let JWTSECRET=JWTSECRET|| 'yuvi';
+let JWTSECRET=process.env.JWT_SECRET|| 'yuvi';
             // Generate JWT token
             if (!JWTSECRET) {
                 return res.status(500).json({ status: false, message: 'Server configuration error: JWT_SECRET not set' });
