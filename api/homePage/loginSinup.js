@@ -478,7 +478,7 @@ router.post("/api/verify-otp", (req, res) => {
             return res.status(200).json({ status: true, message: "OTP verified successfully" });
     });
 });
-app.get('/server-time', (req, res) => {
+router.get('/server-time', (req, res) => {
   res.send(new Date().toString()); // or .toLocaleString(), .toISOString()
 });
 // Export the router
