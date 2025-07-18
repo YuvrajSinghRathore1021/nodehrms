@@ -11,18 +11,12 @@ const { Server } = require('socket.io');
 // const db = require('../../DB/ConnectionSql');
 const db = require('./DB/ConnectionSql');
 
-// const io = new Server(server, {
-//     cors: {
-//         origin: "*",
-//         methods: ["GET", "POST"]
-//     }
-// });
-
-app.use(cors({
-    origin: ['http://localhost:3000', 'https://hrmsdemosite.indiadealsonlinemedia.com'],
-    methods: ['GET', 'POST'],
-    credentials: true
-}));
+const io = new Server(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
+});
 
 // Middleware
 app.use(cors());
