@@ -260,5 +260,62 @@ router.get('/api/FetchLocationPermissions', async (req, res) => {
   });
 });
 
+
+// get loaction 
+router.post('/Get', async (req, res) => {
+    const { userData, type = 'in', startDate, endDate, employeeId } = req.body;
+    let decodedUserData = null;
+    if (userData) {
+        try {
+            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+            decodedUserData = JSON.parse(decodedString);
+        } catch (error) {
+            return res.status(400).json({ status: false, error: 'Invalid userData' });
+        }
+    }
+
+    if (!decodedUserData || !decodedUserData.company_id || !decodedUserData.id) {
+        return res.status(400).json({ status: false, error: 'company_id and id are required' });
+    }
+
+    try {
+        const companyId = decodedUserData.company_id;
+
+        // Validate type
+        const locationField = type === 'out' ? 
+            '`out_latitude`, `out_longitude`, `check_out_time`, `attendance_date`' : 
+            '`in_latitude`, `in_longitude`, `check_in_time`, `attendance_date`';
+
+        let whereClause = `WHERE company_id = ?`;
+        const params = [companyId];
+
+        if (employeeId) {
+            whereClause += ` AND employee_id = ?`;
+            params.push(employeeId);
+        }
+
+        if (startDate && endDate) {
+            whereClause += ` AND DATE(attendance_date) BETWEEN ? AND ?`;
+            params.push(startDate, endDate);
+        }
+
+        const [dataGet] = await db.promise().query(
+            `SELECT attendance_id, employee_id, ${locationField} FROM attendance ${whereClause}`,
+            params
+        );
+
+        res.json({
+            status: true,
+            message: 'Data fetched successfully',
+            data: dataGet
+        });
+
+    } catch (error) {
+        console.error('Error fetching location:', error);
+        res.status(500).json({ status: false, error: 'Server error' });
+    }
+});
+
+
 // Export the router
 module.exports = router;

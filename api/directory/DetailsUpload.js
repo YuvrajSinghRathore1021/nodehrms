@@ -4,8 +4,6 @@ const router = express.Router();
 const db = require('../../DB/ConnectionSql');
 const { AdminCheck } = require('../../model/functlity/AdminCheck');
 
-
-
 router.post('/FamilyDoc/submit', async (req, res) => {
     try {
         const { data, type, CheckId } = req.body;
@@ -31,6 +29,7 @@ router.post('/FamilyDoc/submit', async (req, res) => {
                 error: 'Employee ID and Company ID are required',
             });
         }
+
         const id = CheckId || decodedUserData.id;
         const insertQuery = `
             INSERT INTO details_upload (company_id, employee_id, type,name, relation, dob, contact) 

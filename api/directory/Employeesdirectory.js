@@ -44,10 +44,12 @@ const upload = multer({
 // router.post('/api/Add', upload.single('logo'), async (req, res) => {
 
 router.post('/api/Add', async (req, res) => {
+
     const { employee_id, userData, ctc, first_name, last_name, email, date_of_joining, phone_number, dob, gender, reporting_manager, platformType,
-        official_email_id, date_of_Joining, marital_status, blood_group, email_id, contact_number, current_address, permanent_address, probation_status, experience, job_title, work_location, department, sub_department, designation, employee_type, probation_period, emergency_contact_name, emergency_contact_number, alternate_phone, bank, branch, city, ifsc, account_number
-    } = req.body;
+        official_email_id, date_of_Joining, marital_status, blood_group, email_id, contact_number, current_address, permanent_address, probation_status, experience, job_title, work_location, department, sub_department, designation, employee_type, probation_period, emergency_contact_name, emergency_contact_number, alternate_phone, bank, branch, city, ifsc, account_number } = req.body;
+
     let decodedUserData = null;
+
     if (userData) {
         try {
             const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
@@ -182,7 +184,7 @@ router.post('/api/Employeesdirectory', async (req, res) => {
     if ((platformType == 'ios' || platformType == 'android') && id == '') {
         query = `
             SELECT 
-                a.id, a.employee_id, a.first_name, a.last_name, a.designation, a.employee_status,
+                a.id, a.employee_id, a.first_name, a.last_name, a.designation, a.employee_status,a.email_id,
                 CONCAT(a.first_name, " ", a.last_name) AS reporting_manager_name
             FROM employees AS a
             WHERE a.company_id = ? AND a.employee_status = 1 AND a.delete_status = 0
@@ -214,7 +216,7 @@ router.post('/api/Employeesdirectory', async (req, res) => {
     else {
         query = `
             SELECT 
-                a.id, a.employee_id, a.first_name,a.login_status, a.last_name, a.official_email_id, a.date_of_Joining,
+                a.id, a.employee_id, a.first_name,a.login_status, a.last_name, a.official_email_id,a.email_id, a.date_of_Joining,
                 a.contact_number, a.password, a.old_password, a.dob, a.gender, a.work_location,
                 a.department, a.sub_department, a.designation, a.employee_status, a.employee_type,
                 a.probation_period, a.grade, a.reporting_manager, a.ctc, a.aadhaar_card, a.pan_card,
@@ -429,18 +431,18 @@ WHERE e.id = ?`;
 //                     return res.status(400).json({ status: false, message: 'Invalid activeSection provided' });
 //             }
 //         } else if (type == 'Work') {
-            // switch (activeSection) {
-            //     case 'BasicInfo':
-            //         query = 'UPDATE employees SET probation_period=?,status=?,probation_status=?,date_of_Joining=?, work_location=?, employee_type=?, employee_id=?, experience=?,reporting_manager=? WHERE id=?';
-            //         values = [probation_period, status, probation_status, date_of_Joining, work_location, employee_type, employee_id, experience, reporting_manager, id];
-            //         break;
-            //     case 'WorkInfo':
-            //         query = 'UPDATE employees SET job_title=?,designation=?,sub_department=?, department=? WHERE id=?';
-            //         values = [job_title, designation, sub_department, department, id];
-            //         break;
-            //     default:
-            //         return res.status(400).json({ status: false, message: 'Invalid activeSection provided ok' });
-            // }
+// switch (activeSection) {
+//     case 'BasicInfo':
+//         query = 'UPDATE employees SET probation_period=?,status=?,probation_status=?,date_of_Joining=?, work_location=?, employee_type=?, employee_id=?, experience=?,reporting_manager=? WHERE id=?';
+//         values = [probation_period, status, probation_status, date_of_Joining, work_location, employee_type, employee_id, experience, reporting_manager, id];
+//         break;
+//     case 'WorkInfo':
+//         query = 'UPDATE employees SET job_title=?,designation=?,sub_department=?, department=? WHERE id=?';
+//         values = [job_title, designation, sub_department, department, id];
+//         break;
+//     default:
+//         return res.status(400).json({ status: false, message: 'Invalid activeSection provided ok' });
+// }
 //         }
 //     }
 
@@ -460,7 +462,7 @@ router.post('/api/Update', (req, res) => {
     const { type, id, first_name, last_name, reporting_manager, blood_group, dob, marital_status, gender, official_email_id, email_id, contact_number, alternate_phone, current_address, permanent_address, activeSection,
         date_of_Joining, work_location, employee_type, employee_id, status,
         experience, probation_period, probation_status, sub_department, department, job_title, designation
-        , ctc, emergency_contact_name, emergency_contact_number, bank, branch, city, ifsc, account_number, platformType,login_status
+        , ctc, emergency_contact_name, emergency_contact_number, bank, branch, city, ifsc, account_number, platformType, login_status
     } = req.body;
     let query;
     let values;
@@ -485,7 +487,7 @@ router.post('/api/Update', (req, res) => {
             switch (activeSection) {
                 case 'BasicInfo':
                     query = 'UPDATE employees SET login_status=?,probation_period=?,status=?,probation_status=?,date_of_Joining=?, work_location=?, employee_type=?, employee_id=?, experience=?,reporting_manager=? WHERE id=?';
-                    values = [login_status,probation_period, status, probation_status, date_of_Joining, work_location, employee_type, employee_id, experience, reporting_manager, id];
+                    values = [login_status, probation_period, status, probation_status, date_of_Joining, work_location, employee_type, employee_id, experience, reporting_manager, id];
                     break;
                 case 'WorkInfo':
                     query = 'UPDATE employees SET job_title=?,designation=?,sub_department=?, department=? WHERE id=?';

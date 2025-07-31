@@ -63,7 +63,7 @@ router.post('/api/Add', async (req, res) => {
             db.query(
                 'INSERT INTO companies (member,company_name, owner_name, industry, headquarters, website, phone_number, email, address, logo) VALUES (?,?, ?, ?, ?, ?, ?, ?, ?, ?)',
                 [member, company_name, owner_name, industry, headquarters, website, phone_number, email, address, logo],
-                (err) => {
+                (err,result) => {
                     if (err) {
                         return res.status(500).json({
                             status: false,
@@ -71,10 +71,15 @@ router.post('/api/Add', async (req, res) => {
                             error: err
                         });
                     }
+                    const companyId = result.insertId;
                     db.query('SELECT * FROM employees WHERE contact_number = ?', [phone_number], (err, results) => {
                         if (results.length == 0) {
-                            db.query('INSERT INTO employees (contact_number,email_id,first_name,type) VALUES (?,?,?,?)',
-                                [phone_number, email, owner_name, 'Company_Admin'])
+                            db.query('INSERT INTO employees (company_id,contact_number,email_id,first_name,type) VALUES (?,?,?,?,?)',
+                                [companyId, phone_number, email, owner_name, 'Company_Admin'])
+                            return res.status(200).json({
+                                status: true,
+                                message: 'Company Add'
+                            });
                         } else {
                             return res.status(200).json({
                                 status: true,
@@ -574,7 +579,7 @@ router.post('/api/AddDepartment', (req, res) => {
 
 // Endpoint to add a new department
 router.post('/api/EditDepartment', (req, res) => {
-    const { name, userData, type, Id ,parent_id=0} = req.body;
+    const { name, userData, type, Id, parent_id = 0 } = req.body;
     let decodedUserData = null;
 
     // Decode userData
@@ -595,7 +600,7 @@ router.post('/api/EditDepartment', (req, res) => {
 
     db.query(
         'UPDATE departments SET name=?, type=?,parent_id=? Where id =? And company_id=?',
-        [name, type,parent_id, Id, company_id],
+        [name, type, parent_id, Id, company_id],
         (err, result) => {
             if (err) {
                 console.error('Database error:', err);

@@ -1,6 +1,19 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../../DB/ConnectionSql');
+function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
+    const R = 6371000; // Earth's radius in meters
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * (Math.PI / 180)) *
+        Math.cos(lat2 * (Math.PI / 180)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distance = R * c; // in meters
+    return distance;
+}
 
 router.post('/Attendancemark', async (req, res) => {
     const { type, userData, latitude, longitude } = req.body;
@@ -23,16 +36,51 @@ router.post('/Attendancemark', async (req, res) => {
         return res.status(400).json({ status: false, error: 'company_id, id, and type are required' });
     }
     try {
-        const employeeResults = await queryDb('SELECT attendance_rules_id FROM employees WHERE employee_status=1 and status=1 and delete_status=0 and  id = ? AND company_id = ?', [decodedUserData.id, decodedUserData.company_id]);
+        const employeeResults = await queryDb('SELECT attendance_rules_id,branch_id FROM employees WHERE employee_status=1 and status=1 and delete_status=0 and  id = ? AND company_id = ?', [decodedUserData.id, decodedUserData.company_id]);
         if (employeeResults.length === 0) {
             return res.status(500).json({ status: false, message: 'Employee not found' });
         }
-        const CompanyiPResults = await queryDb('SELECT ip FROM companies WHERE id = ?', [decodedUserData.company_id]);
-        if (CompanyiPResults[0].ip != '') {
-            if (CompanyiPResults[0].ip != IpHandal) {
-                return res.status(200).json({ status: false, message: `IP does not match for your company IP pls connect company Ip` });
+        // const CompanyiPResults = await queryDb('SELECT ip FROM companies WHERE id = ?', [decodedUserData.company_id]);
+        // if (CompanyiPResults[0].ip != '') {
+        //     if (CompanyiPResults[0].ip != IpHandal) {
+        //         return res.status(200).json({ status: false, message: `IP does not match for your company IP pls connect company Ip` });
+        //     }
+        // }
+
+        if (decodedUserData.id == 10) {
+            const branchResults = await queryDb('SELECT id, company_id, name, location_status, latitude, longitude, radius, ip, ip_status,status FROM branches WHERE id = ? AND company_id = ?', [employeeResults[0].branch_id, decodedUserData.company_id]);
+            if (branchResults.length === 0) {
+                return res.status(403).json({ status: false, message: 'Branch not found' });
+            } else {
+                if (branchResults[0].status === 0) {
+                    return res.status(403).json({ status: false, message: 'Branch is currently inactive. Please contact HR or Admin.' });
+                } else {
+                    if (branchResults[0].ip_status == 1 && branchResults[0].ip != IpHandal) {
+                        return res.status(403).json({ status: false, message: 'You are not allowed to mark attendance from this IP address.' });
+                    }
+                    // if (branchResults[0].location_status === 1) {
+                    //     // branchResults[0].radius value in miters 
+                    //     const distance = Math.sqrt(Math.pow(latitude - branchResults[0].latitude, 2) + Math.pow(longitude - branchResults[0].longitude, 2));
+                    //     if (distance > branchResults[0].radius) {
+                    //         return res.status(403).json({ status: false, message: `You are outside the allowed attendance radius. distance-${branchResults[0].radius}km` });
+                    //     }
+                    // }
+
+                    if (branchResults[0].location_status === 1) {
+                        const distance = getDistanceFromLatLonInMeters(latitude, longitude, branchResults[0].latitude, branchResults[0].longitude);
+                        if (distance > branchResults[0].radius) {
+                            return res.status(403).json({
+                                status: false,
+                                message: `You are outside the allowed attendance radius. Allowed: ${branchResults[0].radius} meters, Your Distance: ${Math.round(distance)} meters.`
+                            });
+                        }
+                    }
+
+                }
             }
         }
+
+
         const rulesResults = await queryDb('SELECT * FROM attendance_rules WHERE rule_id = ? AND company_id = ?', [employeeResults[0].attendance_rules_id, decodedUserData.company_id]);
         const rule = rulesResults.length > 0 ? rulesResults[0] : { in_time: '09:30', out_time: '18:30' };
 

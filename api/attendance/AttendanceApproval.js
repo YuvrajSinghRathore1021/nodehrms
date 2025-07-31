@@ -116,8 +116,8 @@ router.get('/api/AttendanceApproval', async (req, res) => {
                 const ApprovalRequests_id = ApprovalRequests ? ApprovalRequests.id : '';
 
                 let status = isHoliday ? 'H' : isWeeklyOff ? 'WO' : attendance ? attendance.status : 'A';
-                let attendance_statusCheck=attendance ? attendance.attendance_status:0;
-                if (status != 'WO' && status != 'H' &&  attendance_statusCheck!= 1) {
+                let attendance_statusCheck = attendance ? attendance.attendance_status : 0;
+                if (status != 'WO' && status != 'H' && attendance_statusCheck != 1) {
                     monthlyAttendanceLogs.push({
                         name: employee.first_name,
                         userId: employee.employee_id,
@@ -262,10 +262,10 @@ router.post('/api/companyEmployeeName', async (req, res) => {
 
     const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
     if (isAdmin === true) {
-        query = `SELECT id, CONCAT(first_name, ' - ', employee_id) AS name FROM employees WHERE employee_status=1 and status=1 and delete_status=0 and company_id = ?`;
+        query = `SELECT id, CONCAT(first_name, ' ',last_name' - ', employee_id) AS name FROM employees WHERE employee_status=1 and status=1 and delete_status=0 and company_id = ?`;
         dataArray.push(company_id);
     } else {
-        query = `SELECT id, CONCAT(first_name, ' - ', employee_id) AS name FROM employees WHERE employee_status=1 and status=1 and delete_status=0 and company_id = ? and reporting_manager=?`;
+        query = `SELECT id, CONCAT(first_name, '',last_name,' - ', employee_id) AS name FROM employees WHERE employee_status=1 and status=1 and delete_status=0 and company_id = ? and reporting_manager=?`;
         dataArray.push(company_id, decodedUserData.id);
     }
     db.query(query, dataArray, (err, results) => {

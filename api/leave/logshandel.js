@@ -5,7 +5,7 @@ const { json } = require("body-parser");
 
 
 router.post("/FetchLeaveCount", (req, res) => {
-  const { userData ,employee_Id=0} = req.body;
+  const { userData, employee_Id = 0 } = req.body;
 
   if (!userData) {
     return res.status(400).json({ status: false, message: "UserData is required." });
@@ -20,7 +20,7 @@ router.post("/FetchLeaveCount", (req, res) => {
   }
 
   const companyId = decodedUserData?.company_id;
-    const employeeId = employee_Id || decodedUserData?.id;
+  const employeeId = employee_Id || decodedUserData?.id;
 
   if (!companyId || !employeeId) {
     return res.status(400).json({ status: false, message: "Company ID and Employee ID are required." });
@@ -118,8 +118,8 @@ GROUP BY
 ORDER BY 
     e.first_name, lr.leave_type;
 `;
- 
-//   const sql = `SELECT 
+
+  //   const sql = `SELECT 
   //   e.id AS employee_id,
   //   e.leave_rule_id AS employee_leave_rules,
   //   lr.id AS leave_rule_id,
@@ -232,7 +232,7 @@ ORDER BY
 
   // And l.admin_status !=2
   // And l.rm_status !=2
-  
+
   db.execute(sql, [companyId, employeeId], (err, results) => {
     if (err) {
       console.error("Query execution error:", err);
@@ -250,103 +250,6 @@ ORDER BY
     });
   });
 });
-
-// router.post("/FetchLeaveCount", (req, res) => {
-//   const { userData } = req.body;
-
-//   if (!userData) {
-//     return res.status(400).json({ status: false, message: "UserData is required." });
-//   }
-
-//   let decodedUserData;
-//   try {
-//     const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-//     decodedUserData = JSON.parse(decodedString);
-//   } catch (error) {
-//     return res.status(400).json({ status: false, message: "Invalid UserData format." });
-//   }
-
-//   const companyId = decodedUserData?.company_id;
-//   const employeeId = decodedUserData?.id;
-
-//   if (!companyId || !employeeId) {
-//     return res.status(400).json({ status: false, message: "Company ID and Employee ID are required." });
-//   }
-
-//   const sql = `SELECT 
-//           e.id AS employee_id,                     
-//           e.leave_rule_id AS employee_leave_rules, 
-//           lr.id AS leave_rule_id,                
-//           lr.leave_type,                         
-//           l.admin_status,
-//           SUM(
-//               CASE
-//                   WHEN l.leave_rule_id = lr.id 
-//                        AND YEAR(l.start_date) = YEAR(CURDATE()) 
-//                        AND MONTH(l.start_date) = MONTH(CURDATE())
-//                   THEN 
-//                       (DATEDIFF(l.end_date, l.start_date) + 1) 
-//                       - IF(l.start_half = 'Second Half', 0.5, 0) 
-//                       - IF(l.end_half = 'First Half', 0.5, 0)
-//                   ELSE 0
-
-//               END
-//           ) AS used_leaves,
-//           lr.max_leaves_month - 
-//           COALESCE(
-//               SUM(
-//                   CASE
-//                       WHEN l.leave_rule_id = lr.id 
-//                            AND YEAR(l.start_date) = YEAR(CURDATE()) 
-//                            AND MONTH(l.start_date) = MONTH(CURDATE())
-//                       THEN 
-//                           (DATEDIFF(l.end_date, l.start_date) + 1) 
-//                           - IF(l.start_half = 'Second Half', 0.5, 0) 
-//                           - IF(l.end_half = 'First Half', 0.5, 0)
-//                       ELSE 0
-//                   END
-//               ), 0
-//           ) AS monthly_balance_leave
-//       FROM 
-//           employees e
-//       JOIN 
-//           leave_rules lr 
-//           ON FIND_IN_SET(lr.id, e.leave_rule_id) > 0
-//       LEFT JOIN 
-//           leaves l 
-//           ON e.id = l.employee_id
-//       WHERE 
-//           e.employee_status = 1 
-//           AND e.status = 1 
-//           AND e.delete_status = 0 
-//           AND e.company_id = ?  
-//           AND e.id = ?  
-
-//       GROUP BY 
-//           e.id, lr.id, lr.leave_type
-//       ORDER BY 
-//           e.first_name, lr.leave_type`;
-
-//   // And l.admin_status !=2
-//   // And l.rm_status !=2
-//   db.execute(sql, [companyId, employeeId], (err, results) => {
-//     if (err) {
-//       console.error("Query execution error:", err);
-//       return res.status(500).json({ error: "Internal server error" });
-//     }
-
-//     const processedResults = results.map((record) => ({
-//       ...record,
-//       Available: Number(record.monthly_balance_leave) != 0
-//     }));
-
-//     res.json({
-//       status: true,
-//       records: processedResults
-//     });
-//   });
-// });
-
 
 router.post("/FetchRules", (req, res) => {
   const { userData, id } = req.body;
@@ -395,25 +298,7 @@ router.post("/FetchRules", (req, res) => {
 });
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// get 
-
-// leaveBalanceRoute.js
-
+// get   // leaveBalanceRoute.js
 router.post('/leave-balance', async (req, res) => {
   const { userData } = req.body;
   if (!userData) {
@@ -493,6 +378,5 @@ router.post('/leave-balance', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
-
 
 module.exports = router;

@@ -18,21 +18,17 @@ const db = mysql.createConnection({
     // password: process.env.password || '',
     // database: process.env.database || 'hrmsnewlive'
 
+    host: 'localhost',
+    user: 'root',
+    password: '',
+    database: 'hrmsnewlive',
+
+
     // host: process.env.host || 'localhost',
-    // user: process.env.user || 'hrmsadmin',
-    // password: process.env.password || 'Hrms@Admin123!',
-    // database: process.env.database || 'hrmsnew',
-
-
-    host: process.env.host || 'localhost',
-    user: process.env.user || 'hrmsadminnew',
-    password: process.env.password || '!Hrms@Admin!123@Latest!',
-    database: process.env.database || 'hrmsnewlatest',
-
-
-    port: 3306
-
-
+    // user: process.env.user || 'hrmsadminnew',
+    // password: process.env.password || '!Hrms@Admin!123@Latest!',
+    // database: process.env.database || 'hrmsnewlatest',
+    // port: 3306
 });
 
 
