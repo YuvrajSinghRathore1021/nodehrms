@@ -20,7 +20,9 @@ const db = mysql.createConnection({
   host: 'localhost',
   user: 'root',
   password: '',
-  database: 'hrmsnewlive',
+  // database: 'hrmsnewlive',
+  database: 'hrmslatest',
+  
 });
 
 // Send Notification
@@ -92,8 +94,8 @@ router.post('/send', (req, res) => {
   const receiverIdStr = receiver_id.toString();
 
   const sql = `INSERT INTO notifications 
-    (company_id, sender_id, receiver_id, page_url, img_url, title, message, notification_type)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+        (company_id, sender_id, receiver_id, page_url, img_url, title, message, notification_type)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
 
   db.query(sql, [
     decodedUserData.company_id,

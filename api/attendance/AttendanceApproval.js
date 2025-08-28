@@ -193,13 +193,49 @@ router.get('/api/companyEmployeeName', async (req, res) => {
     let dataArray = [];
 
     const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
-    if (isAdmin === true) {
-        query = `SELECT id, CONCAT(first_name, ' - ', employee_id) AS name FROM employees WHERE employee_status=1 and status=1 and delete_status=0 and company_id = ?`;
+    if (isAdmin == true) {
+        // query = `SELECT id,CONCAT(IFNULL(first_name, ''), ' ', IFNULL(last_name, ''),' - ',IFNULL(employee_id, '')) AS name FROM employees WHERE employee_status=1 and status=1 and delete_status=0 and company_id = ?`;
+        // dataArray.push(company_id);
+        query = `
+  SELECT 
+    id,
+    CONCAT_WS(' - ',
+      CONCAT_WS(' ', IFNULL(first_name, ''), IFNULL(last_name, '')),
+      IFNULL(employee_id, '')
+    ) AS name
+  FROM employees 
+  WHERE employee_status = 1 
+    AND status = 1 
+    AND delete_status = 0 
+    AND company_id = ?
+    ORDER BY first_name ASC
+`;
         dataArray.push(company_id);
+
     } else {
-        query = `SELECT id, CONCAT(first_name, ' - ', employee_id) AS name FROM employees WHERE employee_status=1 and status=1 and delete_status=0 and company_id = ? and reporting_manager=?`;
+        // query = `SELECT id, CONCAT(IFNULL(first_name, ''), ' ', IFNULL(last_name, ''),' - ',IFNULL(employee_id, '')) AS name FROM employees WHERE employee_status=1 and status=1 and delete_status=0 and company_id = ? and reporting_manager=?`;
+        // dataArray.push(company_id, decodedUserData.id);
+        query = `
+  SELECT 
+    id,
+    CONCAT_WS(' - ',
+      CONCAT_WS(' ', IFNULL(first_name, ''), IFNULL(last_name, '')),
+      IFNULL(employee_id, '')
+    ) AS name
+  FROM employees 
+  WHERE employee_status = 1 
+    AND status = 1 
+    AND delete_status = 0 
+    AND company_id = ? 
+    AND reporting_manager = ?
+    ORDER BY first_name ASC
+`;
         dataArray.push(company_id, decodedUserData.id);
+
     }
+
+
+
     db.query(query, dataArray, (err, results) => {
         if (err) {
             return res.status(500).json({
@@ -261,12 +297,45 @@ router.post('/api/companyEmployeeName', async (req, res) => {
     let dataArray = [];
 
     const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
-    if (isAdmin === true) {
-        query = `SELECT id, CONCAT(first_name, ' ',last_name' - ', employee_id) AS name FROM employees WHERE employee_status=1 and status=1 and delete_status=0 and company_id = ?`;
+    if (isAdmin == true) {
+        // query = `SELECT id,CONCAT(IFNULL(first_name, ''), ' ', IFNULL(last_name, ''),' - ',IFNULL(employee_id, '')) AS name FROM employees WHERE employee_status=1 and status=1 and delete_status=0 and company_id = ?`;
+        // dataArray.push(company_id);
+        query = `
+  SELECT 
+    id,
+    CONCAT_WS(' - ',
+      CONCAT_WS(' ', IFNULL(first_name, ''), IFNULL(last_name, '')),
+      IFNULL(employee_id, '')
+    ) AS name
+  FROM employees 
+  WHERE employee_status = 1 
+    AND status = 1 
+    AND delete_status = 0 
+    AND company_id = ?
+    ORDER BY first_name ASC
+`;
         dataArray.push(company_id);
+
     } else {
-        query = `SELECT id, CONCAT(first_name, '',last_name,' - ', employee_id) AS name FROM employees WHERE employee_status=1 and status=1 and delete_status=0 and company_id = ? and reporting_manager=?`;
+        // query = `SELECT id, CONCAT(IFNULL(first_name, ''), ' ', IFNULL(last_name, ''),' - ',IFNULL(employee_id, '')) AS name FROM employees WHERE employee_status=1 and status=1 and delete_status=0 and company_id = ? and reporting_manager=?`;
+        // dataArray.push(company_id, decodedUserData.id);
+        query = `
+  SELECT 
+    id,
+    CONCAT_WS(' - ',
+      CONCAT_WS(' ', IFNULL(first_name, ''), IFNULL(last_name, '')),
+      IFNULL(employee_id, '')
+    ) AS name
+  FROM employees 
+  WHERE employee_status = 1 
+    AND status = 1 
+    AND delete_status = 0 
+    AND company_id = ? 
+    AND reporting_manager = ?
+    ORDER BY first_name ASC
+`;
         dataArray.push(company_id, decodedUserData.id);
+
     }
     db.query(query, dataArray, (err, results) => {
         if (err) {

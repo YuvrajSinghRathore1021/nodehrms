@@ -21,7 +21,8 @@ const db = mysql.createConnection({
     host: 'localhost',
     user: 'root',
     password: '',
-    database: 'hrmsnewlive',
+    // database: 'hrmsnewlive',
+    database: 'hrmslatest',
 
 
     // host: process.env.host || 'localhost',

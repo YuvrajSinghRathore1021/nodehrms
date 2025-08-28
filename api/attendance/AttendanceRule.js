@@ -73,7 +73,7 @@ router.post('/api/attendancerulesEdit', async (req, res) => {
     const values = [
         rule_name, rule_description, in_time, out_time, max_working_hours,
         in_grace_period_minutes, out_grace_period_minutes, half_day, total_break_duration,
-        overtime_rate, max_overtime_hours, leave_approval_required, penalty_rule_applied,sandwich_leave_applied,
+        overtime_rate, max_overtime_hours, leave_approval_required, penalty_rule_applied, sandwich_leave_applied,
         late_coming_penalty,
         late_coming_allowed_days,
         late_coming_penalty_type,
@@ -158,7 +158,7 @@ router.post('/api/attendancerules', async (req, res) => {
 
 router.get('/api/fetchDetails', async (req, res) => {
 
-    const { userData } = req.query;
+    const { userData, search = "" } = req.query;
     let decodedUserData = null;
 
     if (userData) {
@@ -423,8 +423,8 @@ router.get('/api/data', async (req, res) => {
     const queryParams = [decodedUserData.company_id];
     // Add Search filter if provided
     if (Search) {
-        query += ' AND a.first_name LIKE ?';
-        queryParams.push(`%${Search}%`); // Wildcard search
+        query += ' AND (a.first_name LIKE ? or a.last_name LIKE ? OR a.employee_id=?)';
+        queryParams.push(`%${Search}%`, `%${Search}%`, `%${Search}%`);
     }
 
     // Add pagination

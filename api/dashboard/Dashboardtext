@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const db = require('../../DB/ConnectionSql');
 
-
 router.post('/api/Birthday', async (req, res) => {
     const { userData, startDate, endDate } = req.body;
     let decodedUserData = null;
@@ -187,8 +186,8 @@ router.post('/api/newJoiners', async (req, res) => {
         const queryParams = [decodedUserData.company_id];
         let query = `
             SELECT id, profile_image, CONCAT(first_name, ' ', last_name) AS name, date_of_Joining
-            FROM employees
-            WHERE company_id = ? AND employee_status = 1 AND status = 1 AND delete_status = 0 
+            FROM employees AND employee_status = 1 AND status = 1 AND delete_status = 0 
+            WHERE company_id = ?
         `;
 
         if (useCustomRange) {
@@ -356,10 +355,10 @@ router.post('/api/employeeStatusSummary', async (req, res) => {
     }
 });
 
+
+
 router.post('/api/topArrivals', async (req, res) => {
     const { userData, limit, data } = req.body;
-    // data = { month: 6, year: 2025 }
-
     let decodedUserData = null;
     if (userData) {
         try {
@@ -455,6 +454,8 @@ router.post('/api/topArrivals', async (req, res) => {
     }
 });
 
+
+
 router.post('/api/teamsStrength', async (req, res) => {
     const { userData } = req.body;
     let decodedUserData = null;
@@ -501,6 +502,8 @@ router.post('/api/teamsStrength', async (req, res) => {
         res.status(500).json({ status: false, error: 'Server error' });
     }
 })
+
+
 
 const moment = require('moment');
 router.post('/api/TotalEmployees', async (req, res) => {
@@ -591,6 +594,7 @@ router.post('/api/TotalEmployees', async (req, res) => {
         res.status(500).json({ status: false, error: 'Server error' });
     }
 });
+
 
 router.post('/api/NewEmployees', async (req, res) => {
     const { userData, filter } = req.body;
@@ -688,6 +692,8 @@ router.post('/api/NewEmployees', async (req, res) => {
     }
 });
 
+
+
 router.post('/api/LeaveStats', async (req, res) => {
     const { userData, filter } = req.body;
     let decodedUserData = null;
@@ -733,13 +739,11 @@ router.post('/api/LeaveStats', async (req, res) => {
 
     try {
         const companyId = decodedUserData.company_id;
-
         // Current leave count
         const [current] = await db.promise().query(`
             SELECT COUNT(leave_id) AS total 
             FROM leaves 
-            WHERE company_id = ? 
-              AND deletestatus = 0 
+            WHERE company_id = ? AND deletestatus = 0 
               AND DATE(start_date) BETWEEN ? AND ?
         `, [companyId, currentFrom.format('YYYY-MM-DD'), currentTo.format('YYYY-MM-DD')]);
 
@@ -778,5 +782,4 @@ router.post('/api/LeaveStats', async (req, res) => {
         res.status(500).json({ status: false, error: 'Server error' });
     }
 });
-
 module.exports = router;

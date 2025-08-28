@@ -3,8 +3,10 @@ const router = express.Router();
 const db = require("../../DB/ConnectionSql");
 const { json } = require("body-parser");
 
+////// working code 
+/////////show all 
 
-router.post("/FetchLeaveCount", (req, res) => {
+router.post("/FetchLeaveCount", async (req, res) => {
   const { userData, employee_Id = 0 } = req.body;
 
   if (!userData) {
@@ -23,233 +25,353 @@ router.post("/FetchLeaveCount", (req, res) => {
   const employeeId = employee_Id || decodedUserData?.id;
 
   if (!companyId || !employeeId) {
-    return res.status(400).json({ status: false, message: "Company ID and Employee ID are required." });
+    return res.status(400).json({
+      status: false,
+      message: "Company ID and Employee ID are required."
+    });
   }
 
-  const sql = `SELECT 
-    e.id AS employee_id,                     
-    e.leave_rule_id AS employee_leave_rules, 
-    lr.id AS leave_rule_id,                
-    lr.leave_type,                         
-    l.admin_status,
-    
-    -- Used Leaves This Year
-    SUM(
-        CASE
-            WHEN l.leave_rule_id = lr.id 
-                 AND YEAR(l.start_date) = YEAR(CURDATE()) 
-                 AND MONTH(l.start_date) = MONTH(CURDATE())
-            THEN 
-                (DATEDIFF(l.end_date, l.start_date) + 1) 
-                - IF(l.start_half = 'Second Half', 0.5, 0) 
-                - IF(l.end_half = 'First Half', 0.5, 0)
-            ELSE 0
-        END
-    ) AS used_leaves,
-    
-    -- Unused Leaves Last Year (to carry forward if allowed)
-    CASE
-        WHEN lr.carry_forward = 1 THEN
-            GREATEST(
-                lr.max_leaves_month * 12 - COALESCE((
-                    SELECT SUM(
-                        (DATEDIFF(l2.end_date, l2.start_date) + 1) 
-                        - IF(l2.start_half = 'Second Half', 0.5, 0) 
-                        - IF(l2.end_half = 'First Half', 0.5, 0)
-                    )
-                    FROM leaves l2
-                    WHERE 
-                        l2.employee_id = e.id
-                        AND l2.leave_rule_id = lr.id
-                        AND YEAR(l2.start_date) = YEAR(CURDATE()) - 1
-                ), 0), 0)
-        ELSE 0
-    END AS carried_forward_leaves,
-    
-    -- Monthly Available Leaves
-    (lr.max_leaves_month - 
-    COALESCE(
-        SUM(
-            CASE
-                WHEN l.leave_rule_id = lr.id 
-                     AND YEAR(l.start_date) = YEAR(CURDATE()) 
-                     AND MONTH(l.start_date) = MONTH(CURDATE())
-                THEN 
-                    (DATEDIFF(l.end_date, l.start_date) + 1) 
-                    - IF(l.start_half = 'Second Half', 0.5, 0) 
-                    - IF(l.end_half = 'First Half', 0.5, 0)
-                ELSE 0
-            END
-        ), 0)
-    ) + 
-    -- Add carried forward leaves only if we are in the assine_month
-    CASE 
-        WHEN lr.carry_forward = 1 AND MONTH(CURDATE()) = lr.apply_leaves_next_year THEN
-            GREATEST(
-                lr.max_leaves_month * 12 - COALESCE((
-                    SELECT SUM(
-                        (DATEDIFF(l3.end_date, l3.start_date) + 1) 
-                        - IF(l3.start_half = 'Second Half', 0.5, 0) 
-                        - IF(l3.end_half = 'First Half', 0.5, 0)
-                    )
-                    FROM leaves l3
-                    WHERE 
-                        l3.employee_id = e.id
-                        AND l3.leave_rule_id = lr.id
-                        AND YEAR(l3.start_date) = YEAR(CURDATE()) - 1
-                ), 0), 0)
-        ELSE 0
-    END AS monthly_balance_leave
+  try {
+    // fetch balances for current year
+    const sql = `
+      SELECT 
+        lb.employee_id,
+        lb.leave_rules_id AS leave_rule_id,
+        lr.leave_type,
+        lb.used_leaves,
+        lb.remaining_leaves AS monthly_balance_leave
+      FROM leave_balance lb
+      JOIN leave_rules lr ON lr.id = lb.leave_rules_id
+      WHERE lb.company_id = ?
+        AND lb.employee_id = ?
+        AND lb.year = YEAR(CURDATE())
+    `;
 
-FROM 
-    employees e
-JOIN 
-    leave_rules lr ON FIND_IN_SET(lr.id, e.leave_rule_id) > 0
-LEFT JOIN 
-    leaves l ON e.id = l.employee_id AND l.leave_rule_id = lr.id
-WHERE 
-    e.employee_status = 1 
-    AND e.status = 1 
-    AND e.delete_status = 0 
-    AND e.company_id = ?  
-    AND e.id = ?  
-GROUP BY 
-    e.id, lr.id, lr.leave_type
-ORDER BY 
-    e.first_name, lr.leave_type;
-`;
+    db.execute(sql, [companyId, employeeId], (err, results) => {
+      if (err) {
+        console.error("Query execution error:", err);
+        return res.status(500).json({ error: "Internal server error" });
+      }
 
-  //   const sql = `SELECT 
-  //   e.id AS employee_id,
-  //   e.leave_rule_id AS employee_leave_rules,
-  //   lr.id AS leave_rule_id,
-  //   lr.leave_type,
-  //   lr.max_leaves_month,
-  //   lr.carry_forward,
-  //   lr.apply_leaves_next_year,
-  //   l.admin_status,
+      const processedResults = results.map((record) => ({
+        employee_id: record.employee_id,
+        leave_rule_id: record.leave_rule_id,
+        leave_type: record.leave_type,
+        used_leaves: record.used_leaves.toString(),
+        monthly_balance_leave: record.monthly_balance_leave.toString(),
+        Available: Number(record.monthly_balance_leave) > 0
+      }));
 
-  //   -- Calculate used leaves this month
-  //   SUM(
-  //     CASE
-  //       WHEN l.leave_rule_id = lr.id 
-  //            AND YEAR(l.start_date) = YEAR(CURDATE()) 
-  //            AND MONTH(l.start_date) = MONTH(CURDATE())
-  //       THEN 
-  //           (DATEDIFF(l.end_date, l.start_date) + 1) 
-  //           - IF(l.start_half = 'Second Half', 0.5, 0) 
-  //           - IF(l.end_half = 'First Half', 0.5, 0)
-  //       ELSE 0
-  //     END
-  //   ) AS used_leaves,
+      res.json({
+        status: true,
+        records: processedResults
+      });
 
-  //   -- Calculate carry forward leaves from previous year
-  //   CASE 
-  //     WHEN lr.carry_forward = 1 
-  //          AND MONTH(CURDATE()) = 1
-  //     THEN (
-  //       lr.max_leaves_month * 12
-  //       -
-  //       COALESCE((
-  //         SELECT SUM(
-  //           (DATEDIFF(l2.end_date, l2.start_date) + 1)
-  //           - IF(l2.start_half = 'Second Half', 0.5, 0)
-  //           - IF(l2.end_half = 'First Half', 0.5, 0)
-  //         )
-  //         FROM leaves l2
-  //         WHERE l2.leave_rule_id = lr.id
-  //           AND l2.employee_id = e.id
-  //           AND YEAR(l2.start_date) = YEAR(CURDATE()) - 1
-  //           AND l2.admin_status != 2
-  //       ), 0)
-  //     )
-  //     ELSE 0
-  //   END AS carried_forward_leaves,
-
-  //   -- Calculate available leaves this month (new + carry - used)
-  //   (
-  //     CASE 
-  //       WHEN MONTH(CURDATE()) = lr.apply_leaves_next_year THEN lr.max_leaves_month
-  //       ELSE 0
-  //     END
-  //     +
-  //     CASE 
-  //       WHEN lr.carry_forward = 1 
-  //            AND MONTH(CURDATE()) = 1
-  //       THEN (
-  //         lr.max_leaves_month * 12
-  //         -
-  //         COALESCE((
-  //           SELECT SUM(
-  //             (DATEDIFF(l2.end_date, l2.start_date) + 1)
-  //             - IF(l2.start_half = 'Second Half', 0.5, 0)
-  //             - IF(l2.end_half = 'First Half', 0.5, 0)
-  //           )
-  //           FROM leaves l2
-  //           WHERE l2.leave_rule_id = lr.id
-  //             AND l2.employee_id = e.id
-  //             AND YEAR(l2.start_date) = YEAR(CURDATE()) - 1
-  //             AND l2.admin_status != 2
-  //         ), 0)
-  //       )
-  //       ELSE 0
-  //     END
-  //     -
-  //     SUM(
-  //       CASE
-  //         WHEN l.leave_rule_id = lr.id 
-  //              AND YEAR(l.start_date) = YEAR(CURDATE()) 
-  //              AND MONTH(l.start_date) = MONTH(CURDATE())
-  //         THEN 
-  //             (DATEDIFF(l.end_date, l.start_date) + 1) 
-  //             - IF(l.start_half = 'Second Half', 0.5, 0) 
-  //             - IF(l.end_half = 'First Half', 0.5, 0)
-  //         ELSE 0
-  //       END
-  //     )
-  //   ) AS monthly_balance_leave
-
-  // FROM 
-  //   employees e
-  // JOIN 
-  //   leave_rules lr 
-  //   ON FIND_IN_SET(lr.id, e.leave_rule_id) > 0
-  // LEFT JOIN 
-  //   leaves l 
-  //   ON e.id = l.employee_id
-  // WHERE 
-  //   e.employee_status = 1 
-  //   AND e.status = 1 
-  //   AND e.delete_status = 0 
-  //   AND e.company_id = 6  
-  //   AND e.id = 12  
-  // GROUP BY 
-  //   e.id, lr.id, lr.leave_type
-  // ORDER BY 
-  //   e.first_name, lr.leave_type
-
-  //   `;
-
-  // And l.admin_status !=2
-  // And l.rm_status !=2
-
-  db.execute(sql, [companyId, employeeId], (err, results) => {
-    if (err) {
-      console.error("Query execution error:", err);
-      return res.status(500).json({ error: "Internal server error" });
-    }
-
-    const processedResults = results.map((record) => ({
-      ...record,
-      Available: Number(record.monthly_balance_leave) != 0
-    }));
-
-    res.json({
-      status: true,
-      records: processedResults
     });
-  });
+  } catch (err) {
+    return res.status(500).json({
+      status: false,
+      message: "An error occurred while fetching leave balances",
+      error: err.message
+    });
+  }
 });
+/////test 
+// router.post("/FetchLeaveCount", async (req, res) => {
+//   const { userData, employee_Id = 0 } = req.body;
+
+//   if (!userData) {
+//     return res.status(400).json({ status: false, message: "UserData is required." });
+//   }
+
+//   let decodedUserData;
+//   try {
+//     const decodedString = Buffer.from(userData, "base64").toString("utf-8");
+//     decodedUserData = JSON.parse(decodedString);
+//   } catch (error) {
+//     return res.status(400).json({ status: false, message: "Invalid UserData format." });
+//   }
+
+//   const companyId = decodedUserData?.company_id;
+//   const employeeId = employee_Id || decodedUserData?.id;
+
+//   if (!companyId || !employeeId) {
+//     return res.status(400).json({
+//       status: false,
+//       message: "Company ID and Employee ID are required."
+//     });
+//   }
+
+//   try {
+//     // ---- Step 1: Fetch employee details (joining date etc.)
+//     const [employee] = await db
+//       .promise()
+//       .query("SELECT date_of_Joining FROM employees WHERE id = ?", [employeeId]);
+
+//     if (!employee.length) {
+//       return res.status(404).json({ status: false, message: "Employee not found" });
+//     }
+//     const joiningDate = new Date(employee[0].date_of_Joining);
+
+//     // ---- Step 2: Fetch leave rules linked to employee
+//     const [rules] = await db.promise().query(
+//       `SELECT lr.*, lb.id as balance_id, lb.total_leaves, lb.used_leaves, lb.remaining_leaves, lb.assign_date 
+//        FROM leave_rules lr
+//        LEFT JOIN leave_balance lb 
+//          ON lr.id = lb.leave_rules_id 
+//         AND lb.employee_id = ? 
+//         AND lb.company_id = ? 
+//         AND lb.year = YEAR(CURDATE())
+//        WHERE lr.company_id = ?`,
+//       [employeeId, companyId, companyId]
+//     );
+
+//     const today = new Date();
+//     const results = [];
+
+//     for (const rule of rules) {
+//       // --- Eligibility Check ---
+//       const eligibleDate = new Date(joiningDate);
+//       eligibleDate.setDate(eligibleDate.getDate() + (rule.eligible_after_days || 0));
+//       if (today < eligibleDate) {
+//         results.push({
+//           employee_id: employeeId,
+//           leave_rule_id: rule.id,
+//           leave_type: rule.leave_type,
+//           used_leaves: "0",
+//           monthly_balance_leave: "0",
+//           Available: false,
+//           note: "Not eligible yet"
+//         });
+//         continue;
+//       }
+
+//       // --- Determine accrual frequency ---
+//       let periodsPerYear = 1;
+//       switch (rule.accrual_frequency) {
+//         case "monthly":
+//           periodsPerYear = 12;
+//           break;
+//         case "quarterly":
+//           periodsPerYear = 4;
+//           break;
+//         case "half-yearly":
+//           periodsPerYear = 2;
+//           break;
+//         case "yearly":
+//         default:
+//           periodsPerYear = 1;
+//           break;
+//       }
+
+//       const leavesPerPeriod = rule.leaves_allowed_year / periodsPerYear;
+
+//       // --- Calculate credited till today ---
+//       const monthDiff =
+//         (today.getFullYear() - joiningDate.getFullYear()) * 12 +
+//         (today.getMonth() - joiningDate.getMonth());
+
+//       let creditedPeriods = 0;
+//       if (rule.accrual_frequency === "monthly") {
+//         creditedPeriods = monthDiff + 1;
+//       } else if (rule.accrual_frequency === "quarterly") {
+//         creditedPeriods = Math.floor(monthDiff / 3) + 1;
+//       } else if (rule.accrual_frequency === "half-yearly") {
+//         creditedPeriods = Math.floor(monthDiff / 6) + 1;
+//       } else {
+//         creditedPeriods = today.getFullYear() > joiningDate.getFullYear() ? 1 : 0;
+//       }
+
+//       if (creditedPeriods > periodsPerYear) creditedPeriods = periodsPerYear;
+
+//       const totalCreditedLeaves = Math.round(leavesPerPeriod * creditedPeriods);
+
+//       // --- Update leave_balance if needed ---
+//       if (!rule.balance_id) {
+//         // Insert new balance record
+//         await db.promise().query(
+//           `INSERT INTO leave_balance 
+//            (company_id, employee_id, leave_rules_id, year, total_leaves, used_leaves, remaining_leaves, assign_date, add_stamp, last_updated) 
+//            VALUES (?, ?, ?, YEAR(CURDATE()), ?, 0, ?, NOW(), NOW(), NOW())`,
+//           [
+//             companyId,
+//             employeeId,
+//             rule.id,
+//             totalCreditedLeaves,
+//             totalCreditedLeaves
+//           ]
+//         );
+//       } else {
+//         // Update existing balance
+//         let newRemaining = totalCreditedLeaves - rule.used_leaves;
+//         if (newRemaining < 0) newRemaining = 0;
+
+//         await db.promise().query(
+//           `UPDATE leave_balance 
+//            SET total_leaves=?, remaining_leaves=?, last_updated=NOW() 
+//            WHERE id=?`,
+//           [totalCreditedLeaves, newRemaining, rule.balance_id]
+//         );
+//       }
+
+//       results.push({
+//         employee_id: employeeId,
+//         leave_rule_id: rule.id,
+//         leave_type: rule.leave_type,
+//         used_leaves: rule.used_leaves ? rule.used_leaves.toString() : "0",
+//         monthly_balance_leave: (totalCreditedLeaves - (rule.used_leaves || 0)).toString(),
+//         Available: totalCreditedLeaves - (rule.used_leaves || 0) > 0
+//       });
+//     }
+
+//     res.json({ status: true, records: results });
+//   } catch (err) {
+//     console.error("FetchLeaveCount error:", err);
+//     res.status(500).json({
+//       status: false,
+//       message: "Error while fetching leave balances",
+//       error: err.message
+//     });
+//   }
+// });
+ 
+
+////net test
+// router.post("/FetchLeaveCount", async (req, res) => {
+//   const { userData, employee_Id = 0 } = req.body;
+
+//   if (!userData) {
+//     return res.status(400).json({ status: false, message: "UserData is required." });
+//   }
+
+//   let decodedUserData;
+//   try {
+//     const decodedString = Buffer.from(userData, "base64").toString("utf-8");
+//     decodedUserData = JSON.parse(decodedString);
+//   } catch (error) {
+//     return res.status(400).json({ status: false, message: "Invalid UserData format." });
+//   }
+
+//   const companyId = decodedUserData?.company_id;
+//   const employeeId = employee_Id || decodedUserData?.id;
+
+//   if (!companyId || !employeeId) {
+//     return res.status(400).json({
+//       status: false,
+//       message: "Company ID and Employee ID are required."
+//     });
+//   }
+
+//   try {
+//     // ---- Step 1: Fetch employee (for joining date, eligibility)
+//     const [empRows] = await db
+//       .promise()
+//       .query("SELECT date_of_Joining FROM employees WHERE id=? AND company_id=?", [
+//         employeeId,
+//         companyId
+//       ]);
+//     if (!empRows.length) {
+//       return res.status(404).json({ status: false, message: "Employee not found" });
+//     }
+//     const joiningDate = new Date(empRows[0].date_of_Joining);
+
+//     // ---- Step 2: Fetch rules + balance for employee
+//     const [rules] = await db.promise().query(
+//       `SELECT lr.*, lb.used_leaves, lb.remaining_leaves, lb.total_leaves, lb.assign_date 
+//        FROM leave_rules lr
+//        LEFT JOIN leave_balance lb 
+//          ON lr.id = lb.leave_rules_id 
+//         AND lb.employee_id = ? 
+//         AND lb.company_id = ? 
+//         AND lb.year = YEAR(CURDATE())
+//        WHERE lr.company_id = ?`,
+//       [employeeId, companyId, companyId]
+//     );
+
+//     const today = new Date();
+//     const results = [];
+
+//     for (const rule of rules) {
+//       // --- Eligibility Check ---
+//       const eligibleDate = new Date(joiningDate);
+//       eligibleDate.setDate(eligibleDate.getDate() + (rule.eligible_after_days || 0));
+
+//       if (today < eligibleDate) {
+//         results.push({
+//           employee_id: employeeId,
+//           leave_rule_id: rule.id,
+//           leave_type: rule.leave_type,
+//           used_leaves: "0",
+//           available_leaves: "0",
+//           Available: false,
+//           note: "Not eligible yet"
+//         });
+//         continue;
+//       }
+
+//       // --- Accrual frequency handling ---
+//       let periodsPerYear = 1;
+//       switch (rule.accrual_frequency) {
+//         case "monthly":
+//           periodsPerYear = 12;
+//           break;
+//         case "quarterly":
+//           periodsPerYear = 4;
+//           break;
+//         case "half-yearly":
+//           periodsPerYear = 2;
+//           break;
+//         case "yearly":
+//         default:
+//           periodsPerYear = 1;
+//       }
+
+//       const leavesPerPeriod = rule.leaves_allowed_year / periodsPerYear;
+
+//       // How many periods completed till today since joining
+//       const monthDiff =
+//         (today.getFullYear() - joiningDate.getFullYear()) * 12 +
+//         (today.getMonth() - joiningDate.getMonth());
+
+//       let creditedPeriods = 0;
+//       if (rule.accrual_frequency === "monthly") {
+//         creditedPeriods = monthDiff + 1;
+//       } else if (rule.accrual_frequency === "quarterly") {
+//         creditedPeriods = Math.floor(monthDiff / 3) + 1;
+//       } else if (rule.accrual_frequency === "half-yearly") {
+//         creditedPeriods = Math.floor(monthDiff / 6) + 1;
+//       } else {
+//         creditedPeriods = today.getFullYear() > joiningDate.getFullYear() ? 1 : 0;
+//       }
+//       if (creditedPeriods > periodsPerYear) creditedPeriods = periodsPerYear;
+
+//       const totalCredited = Math.round(leavesPerPeriod * creditedPeriods);
+
+//       // --- Use leave_balance if exists, otherwise assume 0 used ---
+//       const used = rule.used_leaves || 0;
+//       let available = totalCredited - used;
+//       if (available < 0) available = 0;
+
+//       results.push({
+//         employee_id: employeeId,
+//         leave_rule_id: rule.id,
+//         leave_type: rule.leave_type,
+//         used_leaves: used.toString(),
+//         available_leaves: available.toString(),
+//         Available: available > 0
+//       });
+//     }
+
+//     res.json({ status: true, records: results });
+//   } catch (err) {
+//     console.error("FetchLeaveCount error:", err);
+//     res.status(500).json({
+//       status: false,
+//       message: "Error while fetching leave balances",
+//       error: err.message
+//     });
+//   }
+// });
 
 router.post("/FetchRules", (req, res) => {
   const { userData, id } = req.body;
@@ -296,7 +418,6 @@ router.post("/FetchRules", (req, res) => {
     }
   });
 });
-
 
 // get   // leaveBalanceRoute.js
 router.post('/leave-balance', async (req, res) => {

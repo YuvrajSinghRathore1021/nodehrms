@@ -46,40 +46,43 @@ router.post('/Attendancemark', async (req, res) => {
         //         return res.status(200).json({ status: false, message: `IP does not match for your company IP pls connect company Ip` });
         //     }
         // }
+        let empbranch_id = employeeResults[0].branch_id;
+        if (empbranch_id != 0) {
 
-        if (decodedUserData.id == 10) {
-            const branchResults = await queryDb('SELECT id, company_id, name, location_status, latitude, longitude, radius, ip, ip_status,status FROM branches WHERE id = ? AND company_id = ?', [employeeResults[0].branch_id, decodedUserData.company_id]);
+
+            // if (decodedUserData.id == 10) {
+            const branchResults = await queryDb('SELECT id, company_id, name, location_status, latitude, longitude, radius, ip, ip_status,status FROM branches WHERE id = ? AND company_id = ? AND status=1', [employeeResults[0].branch_id, decodedUserData.company_id]);
             if (branchResults.length === 0) {
-                return res.status(403).json({ status: false, message: 'Branch not found' });
+
             } else {
-                if (branchResults[0].status === 0) {
-                    return res.status(403).json({ status: false, message: 'Branch is currently inactive. Please contact HR or Admin.' });
-                } else {
-                    if (branchResults[0].ip_status == 1 && branchResults[0].ip != IpHandal) {
-                        return res.status(403).json({ status: false, message: 'You are not allowed to mark attendance from this IP address.' });
-                    }
-                    // if (branchResults[0].location_status === 1) {
-                    //     // branchResults[0].radius value in miters 
-                    //     const distance = Math.sqrt(Math.pow(latitude - branchResults[0].latitude, 2) + Math.pow(longitude - branchResults[0].longitude, 2));
-                    //     if (distance > branchResults[0].radius) {
-                    //         return res.status(403).json({ status: false, message: `You are outside the allowed attendance radius. distance-${branchResults[0].radius}km` });
-                    //     }
-                    // }
-
-                    if (branchResults[0].location_status === 1) {
-                        const distance = getDistanceFromLatLonInMeters(latitude, longitude, branchResults[0].latitude, branchResults[0].longitude);
-                        if (distance > branchResults[0].radius) {
-                            return res.status(403).json({
-                                status: false,
-                                message: `You are outside the allowed attendance radius. Allowed: ${branchResults[0].radius} meters, Your Distance: ${Math.round(distance)} meters.`
-                            });
-                        }
-                    }
-
+                // if (branchResults[0].status === 0) {
+                //     return res.status(403).json({ status: false, message: 'Branch is currently inactive. Please contact HR or Admin.' });
+                // } else {
+                if (branchResults[0].ip_status == 1 && branchResults[0].ip != IpHandal) {
+                    return res.status(403).json({ status: false, message: 'You are not allowed to mark attendance from this IP address.' });
                 }
-            }
-        }
+                // if (branchResults[0].location_status === 1) {
+                //     // branchResults[0].radius value in miters 
+                //     const distance = Math.sqrt(Math.pow(latitude - branchResults[0].latitude, 2) + Math.pow(longitude - branchResults[0].longitude, 2));
+                //     if (distance > branchResults[0].radius) {
+                //         return res.status(403).json({ status: false, message: `You are outside the allowed attendance radius. distance-${branchResults[0].radius}km` });
+                //     }
+                // }
 
+                if (branchResults[0].location_status === 1) {
+                    const distance = getDistanceFromLatLonInMeters(latitude, longitude, branchResults[0].latitude, branchResults[0].longitude);
+                    if (distance > branchResults[0].radius) {
+                        return res.status(403).json({
+                            status: false,
+                            message: `You are outside the allowed attendance radius. Allowed: ${branchResults[0].radius} meters, Your Distance: ${Math.round(distance)} meters.`
+                        });
+                    }
+                }
+
+                // }
+            }
+            // }
+        }
 
         const rulesResults = await queryDb('SELECT * FROM attendance_rules WHERE rule_id = ? AND company_id = ?', [employeeResults[0].attendance_rules_id, decodedUserData.company_id]);
         const rule = rulesResults.length > 0 ? rulesResults[0] : { in_time: '09:30', out_time: '18:30' };

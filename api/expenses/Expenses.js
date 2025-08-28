@@ -150,7 +150,6 @@ function actionFound(action) {
     // admin 
     // 0 =pending, 1=approved, 2=rejected
 
-    console.log('Action = :', action.rm_id, action.rm_status, action.admin_id, action.admin_status);
     if (action.rm_id == 0 && action.admin_id == 0) {
         return `admin`;
     } else if (action.rm_id > 0 && action.rm_status == 1 && action.admin_status == 0) {
@@ -164,7 +163,7 @@ function actionFound(action) {
         return `rm`;
     }
     // view 
-    else if (action.rm_id > 0 && action.rm_status == 1 && action.admin_id == 1) {
+    else if (action.rm_id > 0 && action.rm_status == 1 && action.admin_status == 1) {
         return `view`;
     }
     else if (action.rm_status == 2 || action.admin_status == 2) {
@@ -172,8 +171,6 @@ function actionFound(action) {
     } else if (action.admin_status == 1 || action.admin_status == 2) {
         return `view`;
     }
-
-
 
     return ' ';
 }
@@ -194,7 +191,8 @@ const upload = multer({ storage });
 
 router.post('/expensesAdd', upload.single('document'), async (req, res) => {
     // 'advance_payment', 'expense', 'deduction'
-    const { userData, expense_type, amount, reason, expense_date, employee_id } = req.body;
+    const { userData, expense_type, amount, reason, expense_date } = req.body;
+
     // rm_id, admin_id
     let decodedUserData = null;
     if (userData) {
@@ -210,8 +208,11 @@ router.post('/expensesAdd', upload.single('document'), async (req, res) => {
     if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and company ID are required' });
     }
-
-    const document = req.file ? req.file.filename : null;
+    // uploads/expenses/
+    // const document = req.file ? req.file.filename : null;
+    const document = 'uploads/expenses/' + (req.file ? req.file.filename : null);
+    let { employee_id } = req.body;
+    employee_id = employee_id || decodedUserData.id;
     // Basic validations
     if (!employee_id || !expense_type || !amount || !expense_date) {
         return res.status(400).json({ status: false, message: 'Missing required fields.' });
@@ -271,7 +272,7 @@ router.post('/expensesAdd', upload.single('document'), async (req, res) => {
 
 
 
-router.post('/api/expenses/RequestApprove', async (req, res) => {
+router.post('/RequestApprove', async (req, res) => {
     const { userData, expense_type, amount, reason, employee_id, action_type, id, status } = req.body;
     let decodedUserData = null;
 
@@ -290,16 +291,16 @@ router.post('/api/expenses/RequestApprove', async (req, res) => {
     }
 
     // Basic validations
-    if (!employee_id || !expense_type || !amount || !expense_date) {
+    if (!employee_id || !expense_type || !amount ) {
         return res.status(400).json({ status: false, message: 'Missing required fields.' });
     }
 
     try {
+        let EmployeeId = decodedUserData.id;
         if (action_type == "rm") {
-
             const [Results] = await db.promise().query(
                 'UPDATE expenses SET rm_status = ?, rm_remark = ?, rm_id = ? WHERE id = ? AND company_id = ?',
-                [status, reason, decodedUserData.id, id, decodedUserData.company_id]
+                [status, reason, EmployeeId, id, decodedUserData.company_id]
             );
             if (Results.affectedRows === 0) {
                 return res.status(404).json({ status: false, message: 'Expense request not found or already processed' });
@@ -309,7 +310,7 @@ router.post('/api/expenses/RequestApprove', async (req, res) => {
         } else {
             const [Results] = await db.promise().query(
                 'UPDATE expenses SET admin_status = ?, admin_remark = ?, admin_id = ? WHERE id = ? AND company_id = ?',
-                [status, reason, decodedUserData.id, id, decodedUserData.company_id]
+                [status, reason, EmployeeId, id, decodedUserData.company_id]
             );
             if (Results.affectedRows === 0) {
                 return res.status(404).json({ status: false, message: 'Expense request not found or already processed' });
@@ -323,7 +324,7 @@ router.post('/api/expenses/RequestApprove', async (req, res) => {
 });
 
 //amount count =total, totalpaid,totalunpaid,totalrejected,totalreturned        
-router.post('/api/expenses/amountCount', async (req, res) => {
+router.post('/amountCount', async (req, res) => {
     const { userData, employee_id } = req.body;
     let decodedUserData = null;
 
@@ -371,7 +372,71 @@ router.post('/api/expenses/amountCount', async (req, res) => {
 
 
 
+// expenses edit 
+router.post('/expensesEdit', upload.single('document'), async (req, res) => {
+    const { userData, id, expense_type, amount, reason, expense_date, employee_id } = req.body;
+    let decodedUserData = null;
 
+    if (userData) {
+        try {
+            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+            decodedUserData = JSON.parse(decodedString);
+        } catch (error) {
+            return res.status(400).json({ status: false, error: 'Invalid userData' });
+        }
+    }
+
+    // Validate decoded userData
+    if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+        return res.status(400).json({ status: false, error: 'Employee ID and company ID are required' });
+    }
+
+    // Basic validations
+    if (!id || !expense_type || !amount || !expense_date) {
+        return res.status(400).json({ status: false, message: 'Missing required fields.' });
+    }
+
+    const document = 'uploads/expenses/' + (req.file ? req.file.filename : null);
+    try {
+        // Check if the expense exists
+        const [expenseResults] = await db.promise().query(
+            'SELECT * FROM expenses WHERE id = ? AND company_id = ?',
+            [id, decodedUserData.company_id]
+        );
+
+        if (expenseResults.length === 0) {
+            return res.status(404).json({ status: false, message: 'Expense not found' });
+        }
+
+        // Update the expense
+        const updateQuery = `
+            UPDATE expenses 
+            SET 
+                expense_type = ?, 
+                amount = ?, 
+                reason = ?, 
+                expense_date = ?, 
+                document = ?, 
+                updated_at = NOW() 
+            WHERE id = ? AND company_id = ?
+        `;
+
+        await db.promise().query(updateQuery, [
+            expense_type,
+            amount,
+            reason || '',
+            expense_date,
+            document,
+            id,
+            decodedUserData.company_id
+        ]);
+
+        return res.status(200).json({ status: true, message: 'Expense updated successfully' });
+
+    } catch (err) {
+        res.status(500).json({ status: false, message: 'Database error', error: err.message });
+    }
+});
 
 
 // Export the router

@@ -63,7 +63,7 @@ router.post('/api/Add', async (req, res) => {
             db.query(
                 'INSERT INTO companies (member,company_name, owner_name, industry, headquarters, website, phone_number, email, address, logo) VALUES (?,?, ?, ?, ?, ?, ?, ?, ?, ?)',
                 [member, company_name, owner_name, industry, headquarters, website, phone_number, email, address, logo],
-                (err,result) => {
+                (err, result) => {
                     if (err) {
                         return res.status(500).json({
                             status: false,
@@ -1083,6 +1083,84 @@ router.post('/employee-hierarchyTeam', (req, res) => {
 
 
 // Branch code 
+
+// router.get("/Branchfetch", (req, res) => {
+//     const limit = parseInt(req.query.limit, 10) || 10;
+//     const page = parseInt(req.query.page, 10) || 1;
+//     const offset = (page - 1) * limit;
+
+//     const { userData } = req.query;
+//     let decodedUserData = null;
+
+//     if (userData) {
+//         try {
+//             const decodedString = Buffer.from(userData, "base64").toString("utf-8");
+//             decodedUserData = JSON.parse(decodedString);
+//         } catch (error) {
+//             return res.status(400).json({ status: false, error: "Invalid userData" });
+//         }
+//     }
+
+//     if (!decodedUserData.company_id) {
+//         return res
+//             .status(400)
+//             .json({ status: false, error: "Company ID is missing or invalid" });
+//     }
+//     // const branchesQuery = ` SELECT * FROM branches WHERE company_id=? ORDER BY id DESC LIMIT ? OFFSET ? `;
+//     const branchesQuery = `
+//     SELECT 
+//       b.*,
+//       COALESCE(GROUP_CONCAT(e.id ORDER BY e.id SEPARATOR ','), '') AS branch_employee
+//     FROM branches b
+//     LEFT JOIN employees e 
+//       ON e.branch_id = b.id 
+//       AND e.company_id = b.company_id 
+//       AND e.status = 1 
+//       AND e.delete_status = 0
+//     WHERE b.company_id = ?
+//     GROUP BY b.id
+//     ORDER BY b.id DESC
+//     LIMIT ? OFFSET ?;
+//   `;
+
+//     db.query(
+//         branchesQuery,
+//         [decodedUserData.company_id, limit, offset],
+//         (err, results) => {
+//             if (err) {
+//                 console.error("Error fetching branches records:", err);
+//                 return res.status(500).json({ status: false, error: "Server error" });
+//             }
+//             const countQuery = `
+//             SELECT COUNT(id) as total FROM branches WHERE company_id=?
+//         `;
+//             db.query(
+//                 countQuery,
+//                 [decodedUserData.company_id],
+//                 (countErr, countResults) => {
+//                     if (countErr) {
+//                         console.error("Error fetching total branches records:", countErr);
+//                         return res
+//                             .status(500)
+//                             .json({ status: false, error: "Server error" });
+//                     }
+//                     const total = countResults[0].total;
+//                     const recordsWithSrnu = results.map((record, index) => ({
+//                         srnu: offset + index + 1,
+//                         ...record
+//                     }));
+//                     res.json({
+//                         status: true,
+//                         records: recordsWithSrnu,
+//                         total,
+//                         page,
+//                         limit
+//                     });
+//                 }
+//             );
+//         }
+//     );
+// });
 router.get("/Branchfetch", (req, res) => {
     const limit = parseInt(req.query.limit, 10) || 10;
     const page = parseInt(req.query.page, 10) || 1;
@@ -1105,98 +1183,242 @@ router.get("/Branchfetch", (req, res) => {
             .status(400)
             .json({ status: false, error: "Company ID is missing or invalid" });
     }
-    const holidayQuery = `
-        SELECT * FROM branches WHERE company_id=? ORDER BY id DESC LIMIT ? OFFSET ?
-    `;
+
+    // Fetch branches with pagination
+    const branchesQuery = `
+    SELECT * FROM branches 
+    WHERE company_id = ? 
+    ORDER BY id DESC 
+    LIMIT ? OFFSET ?;
+  `;
 
     db.query(
-        holidayQuery,
+        branchesQuery,
         [decodedUserData.company_id, limit, offset],
-        (err, results) => {
+        (err, branches) => {
             if (err) {
-                console.error("Error fetching branches records:", err);
+                console.error("Error fetching branches:", err);
                 return res.status(500).json({ status: false, error: "Server error" });
             }
-            const countQuery = `
-            SELECT COUNT(id) as total FROM branches WHERE company_id=?
-        `;
-            db.query(
-                countQuery,
-                [decodedUserData.company_id],
-                (countErr, countResults) => {
+
+            if (branches.length === 0) {
+                return res.json({ status: true, records: [], total: 0, page, limit });
+            }
+
+            const branchIds = branches.map((b) => b.id);
+
+            // Fetch employees for all these branches
+            const empQuery = `
+        SELECT 
+          id AS value,
+          CONCAT(first_name, ' ', last_name) AS label,
+          branch_id
+        FROM employees
+        WHERE company_id = ? 
+          AND branch_id IN (${branchIds.map(() => "?").join(",")})
+          AND status = 1 
+          AND delete_status = 0;
+      `;
+
+            db.query(empQuery, [decodedUserData.company_id, ...branchIds], (empErr, employees) => {
+                // console.log(employees)
+                if (empErr) {
+                    console.error("Error fetching employees:", empErr);
+                    return res.status(500).json({ status: false, error: "Server error" });
+                }
+
+                // Group employees by branch_id
+                const empMap = {};
+                employees.forEach((emp) => {
+                    if (!empMap[emp.branch_id]) empMap[emp.branch_id] = [];
+                    empMap[emp.branch_id].push({ label: emp.label, value: emp.value });
+                });
+
+                // Attach employees to branches
+                const recordsWithEmployees = branches.map((branch, index) => ({
+                    srnu: offset + index + 1,
+                    ...branch,
+                    branch_employee: empMap[branch.id] || []
+                }));
+
+                // Count total branches
+                const countQuery = `SELECT COUNT(id) as total FROM branches WHERE company_id=?`;
+                db.query(countQuery, [decodedUserData.company_id], (countErr, countResults) => {
                     if (countErr) {
-                        console.error("Error fetching total branches records:", countErr);
-                        return res
-                            .status(500)
-                            .json({ status: false, error: "Server error" });
+                        console.error("Error fetching total branches:", countErr);
+                        return res.status(500).json({ status: false, error: "Server error" });
                     }
+
                     const total = countResults[0].total;
-                    const recordsWithSrnu = results.map((record, index) => ({
-                        srnu: offset + index + 1,
-                        ...record
-                    }));
+
                     res.json({
                         status: true,
-                        records: recordsWithSrnu,
+                        records: recordsWithEmployees,
                         total,
                         page,
                         limit
                     });
-                }
-            );
+                });
+            });
         }
     );
 });
 
 
-router.post("/BranchUpdate", (req, res) => {
-    const { id, userData, name, latitude, longitude, radius, ip, ip_status, location_status } = req.body;
 
-    // Validate input
+// router.get("/Branchfetch", (req, res) => {
+//     const limit = parseInt(req.query.limit, 10) || 10;
+//     const page = parseInt(req.query.page, 10) || 1;
+//     const offset = (page - 1) * limit;
+//     const { userData } = req.query;
+
+//     let decodedUserData = null;
+
+//     if (userData) {
+//         try {
+//             const decodedString = Buffer.from(userData, "base64").toString("utf-8");
+//             decodedUserData = JSON.parse(decodedString);
+//         } catch (error) {
+//             return res.status(400).json({ status: false, error: "Invalid userData" });
+//         }
+//     }
+
+//     if (!decodedUserData.company_id) {
+//         return res.status(400).json({ status: false, error: "Company ID is missing or invalid" });
+//     }
+
+//     const branchesQuery = `
+//         SELECT * FROM branches 
+//         WHERE company_id = ? 
+//         ORDER BY id DESC 
+//         LIMIT ? OFFSET ?
+//     `;
+
+//     db.query(branchesQuery, [decodedUserData.company_id, limit, offset], (err, branches) => {
+//         if (err) {
+//             console.error("Error fetching branches:", err);
+//             return res.status(500).json({ status: false, error: "Server error" });
+//         }
+
+//         const countQuery = `SELECT COUNT(id) as total FROM branches WHERE company_id = ?`;
+//         db.query(countQuery, [decodedUserData.company_id], (countErr, countResult) => {
+//             if (countErr) {
+//                 console.error("Error fetching total count:", countErr);
+//                 return res.status(500).json({ status: false, error: "Server error" });
+//             }
+
+//             const total = countResult[0].total;
+
+//             if (branches.length === 0) {
+//                 return res.json({ status: true, records: [], total, page, limit });
+//             }
+
+//             const branchIds = branches.map(b => b.id);
+//             const placeholders = branchIds.map(() => '?').join(',');
+
+//             const empQuery = `
+//                 SELECT  e.id, e.first_name,e.last_name  
+//                 FROM employees AS e
+//                 WHERE e.branch_id IN (${placeholders})
+//             `;
+
+//             db.query(empQuery, branchIds, (empErr, empResults) => {
+//                 if (empErr) {
+//                     console.error("Error fetching employee data:", empErr);
+//                     return res.status(500).json({ status: false, error: "Server error" });
+//                 }
+
+//                 const empMap = {};
+
+//                 empResults.forEach(row => {
+
+//                     empMap[row].names.push(row.name);
+//                     empMap[row].ids.push(row.id);
+//                 });
+
+//                 const finalRecords = branches.map((branch, index) => ({
+//                     srnu: offset + index + 1,
+//                     ...branch,
+//                     employee_name: empMap[branch.id]?.names.join(",") || "",
+//                     employee_id: empMap[branch.id]?.ids.join(",") || ""
+//                 }));
+
+//                 res.json({ status: true, records: finalRecords, total, page, limit });
+//             });
+//         });
+//     });
+// });
+
+
+
+router.post("/BranchUpdate", async (req, res) => {
+    const { id, userData, name, latitude, longitude, radius, ip, ip_status, location_status, branch_employee } = req.body;
+
     if (!id) {
-        return res.status(400).json({ status: false, message: "ID is required to update holiday." });
+        return res.status(400).json({ status: false, message: "ID is required to update branch." });
     }
-    let decodedUserData = null;
 
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: "Invalid userData" });
-        }
+    let decodedUserData = null;
+    try {
+        const decodedString = Buffer.from(userData, "base64").toString("utf-8");
+        decodedUserData = JSON.parse(decodedString);
+    } catch (error) {
+        return res.status(400).json({ status: false, error: "Invalid userData" });
     }
 
     if (!decodedUserData.company_id) {
         return res.status(400).json({ status: false, error: "Company ID is missing or invalid" });
     }
 
-    db.query(
-        "UPDATE branches SET name=?,location_status=?, latitude=?, longitude=?, radius=? ,ip=?,ip_status=? WHERE id = ? AND company_id=?",
-        [name, location_status, latitude, longitude, radius, ip, ip_status, id, decodedUserData.company_id],
-        (err, results) => {
-            if (err) {
-                console.error("Database error:", err);
-                return res.status(500).json({
-                    status: false,
-                    message: "Error updating branch.",
-                    error: err.message
-                });
-            }
-            if (results.affectedRows === 0) {
-                return res.status(404).json({
-                    status: false,
-                    message: "branch not found or no changes made."
-                });
-            }
-            res
-                .status(200)
-                .json({ status: true, message: "branch updated successfully." });
+    try {
+        // Update branch data
+        const [updateResult] = await db.promise().query(
+            "UPDATE branches SET name=?, location_status=?, latitude=?, longitude=?, radius=?, ip=?, ip_status=? WHERE id = ? AND company_id=?",
+            [name, location_status, latitude, longitude, radius, ip, ip_status, id, decodedUserData.company_id]
+        );
+
+        if (updateResult.affectedRows === 0) {
+            return res.status(404).json({ status: false, message: "Branch not found or no changes made." });
         }
-    );
+
+        // Update employees assigned to this branch
+        if (branch_employee && branch_employee.length > 0) {
+            let employeeIds = JSON.parse(branch_employee);
+
+            // Get old employee IDs currently assigned to this branch
+            const [oldEmpResults] = await db.promise().query(
+                'SELECT GROUP_CONCAT(id) as employee_ids FROM employees WHERE branch_id = ? AND company_id = ?',
+                [id, decodedUserData.company_id]
+            );
+
+            const oldEmployeeIds = oldEmpResults[0].employee_ids
+                ? oldEmpResults[0].employee_ids.split(',').map(empId => empId.trim()) : [];
 
 
+            if (typeof employeeIds === 'string') {
+                employeeIds = employeeIds.split(',').map(id => id.trim());
+            }
+            const newEmployeeIds = employeeIds.filter(empId => !oldEmployeeIds.includes(empId.toString()));
+
+
+            if (newEmployeeIds.length > 0) {
+                const updateEmployeeQuery = `UPDATE employees SET branch_id = ? WHERE id IN (?) AND company_id = ?`;
+                await db.promise().query(updateEmployeeQuery, [id, newEmployeeIds, decodedUserData.company_id]);
+            }
+        }
+
+        return res.status(200).json({ status: true, message: "Branch updated successfully." });
+
+    } catch (error) {
+        console.error("Error in BranchUpdate:", error);
+        return res.status(500).json({
+            status: false,
+            message: "Error updating branch.",
+            error: error.message
+        });
+    }
 });
+
 
 router.post("/BranchAdd", (req, res) => {
     const { name, latitude, longitude, radius, userData, ip, ip_status, location_status } = req.body;
@@ -1240,6 +1462,51 @@ router.post("/BranchAdd", (req, res) => {
 
 });
 
+
+router.post('/assign-manager', async (req, res) => {
+    const {
+        employeeId,
+        userData,
+        managerId
+    } = req.body;
+    let decodedUserData = null;
+    if (userData) {
+        try {
+            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+            decodedUserData = JSON.parse(decodedString);
+        } catch (error) {
+            return res.status(400).json({ status: false, error: 'Invalid userData' });
+        }
+    }
+    if (!decodedUserData || !decodedUserData.id) {
+        return res.status(400).json({ status: false, error: 'Employee ID is required' });
+    }
+    // Check for required fields
+    if (!employeeId || !managerId) {
+        return res.status(400).json({ status: false, message: 'All fields are required.' });
+    }
+
+
+    // Fetch the current logo from the database
+    db.query(
+        'UPDATE employees SET reporting_manager = ? WHERE id = ? and company_id=?',
+        [managerId, employeeId, decodedUserData.company_id],
+        (err) => {
+            if (err) {
+                console.error(err);
+                return res.status(500).json({
+                    status: false,
+                    message: 'Failed to edit company.',
+                    error: err.message
+                });
+            }
+            return res.status(200).json({
+                status: true,
+                message: 'Manager Update successfully.'
+            });
+        }
+    );
+});
 
 
 // Export the router

@@ -133,25 +133,25 @@ function getDaysInMonth(month, year) {
 
 
 router.post('/api/GenerateSalary', (req, res) => {
-    const { employeeId, presentCount, HF, leaveCount, holidayCount, WO, month, year, PenaltyData,userData } = req.body;
+    const { employeeId, presentCount, HF, leaveCount, holidayCount, WO, month, year, PenaltyData, userData } = req.body;
 
-        let decodedUserData = null;
-        if (userData) {
-            try {
-                const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-                decodedUserData = JSON.parse(decodedString);
-            } catch (error) {
-                return res.status(400).json({ status: false, error: 'Invalid userData format' });
-            }
+    let decodedUserData = null;
+    if (userData) {
+        try {
+            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+            decodedUserData = JSON.parse(decodedString);
+        } catch (error) {
+            return res.status(400).json({ status: false, error: 'Invalid userData format' });
         }
+    }
 
-        if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
-            return res.status(400).json({
-                status: false,
-                error: 'Employee ID and Company ID are required',
-            });
-        }
-        
+    if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+        return res.status(400).json({
+            status: false,
+            error: 'Employee ID and Company ID are required',
+        });
+    }
+
     // Validate required fields
     if (!employeeId || !presentCount || !HF || !leaveCount || !holidayCount || !WO) {
         return res.status(200).json({
@@ -164,7 +164,7 @@ router.post('/api/GenerateSalary', (req, res) => {
     let PenaltieLeave = 0;
     let PenaltieAbsent = 0;
     let PenaltieFixAmount = 0;
-    let PenaltieSandwichLeave= 0;
+    let PenaltieSandwichLeave = 0;
     let PenaltyDatas = JSON.parse(PenaltyData);
 
     if (PenaltyDatas) {
@@ -182,7 +182,7 @@ router.post('/api/GenerateSalary', (req, res) => {
             }
             else if (penalty_type == "Sandwich Leave") {
                 PenaltieSandwichLeave += penalty_count;
-                
+
             }
         });
     }
@@ -313,6 +313,7 @@ router.get('/api/PayEmployeeSalaryDetails', async (req, res) => {
     const { userData, data } = req.query;
     let month = data.month;
     let year = data.year;
+    let search = data.search || "";
 
 
     let decodedUserData = null;
@@ -336,7 +337,7 @@ router.get('/api/PayEmployeeSalaryDetails', async (req, res) => {
     }
 
     const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
-
+    const searchQuery = `%${search}%`;
     try {
         let query = `SELECT esd.id AS salary_detail_id,
                 esd.employee_id,
@@ -368,6 +369,11 @@ router.get('/api/PayEmployeeSalaryDetails', async (req, res) => {
         if (isAdmin == false) {
             query += ` AND esd.employee_id=?`;
             values.push(decodedUserData.id);
+
+        }
+        if (search) {
+            query += ` AND esd.employee_name LIKE ?`;
+            values.push(searchQuery);
         }
 
         db.query(query, values, (err, results) => {
@@ -675,7 +681,7 @@ const calculatePenalties = (employeeId, attendanceRulesId, dateRange) => {
             if (err) {
                 return reject(err);
             }
-
+            let penaltyEvening = "";
             const penalties = results.map((row) => {
                 // Prepare rowData for morning penalty calculation
                 const rowData = { in_time: row.in_time, in_grace_period_minutes: row.in_grace_period_minutes };
@@ -714,7 +720,7 @@ const calculatePenalties = (employeeId, attendanceRulesId, dateRange) => {
                 return {
                     attendance_id: row.attendance_id,
                     penalty_morning: penaltyMorning,
-                    penalty_evening: penaltyEvening,
+                    penalty_evening: penaltyEvening
                 };
 
             });
@@ -869,8 +875,8 @@ router.post('/calculate-Sandwichpenalties', async (req, res) => {
             //         continue;
             //     }
             // }
-                const currentMonth = String(month).padStart(2, '0');
-   if ((isHolidayToday || isWeeklyOff) && i > 0 && i < dates.length - 1) {
+            const currentMonth = String(month).padStart(2, '0');
+            if ((isHolidayToday || isWeeklyOff) && i > 0 && i < dates.length - 1) {
                 const prev = dates[i - 1];
                 const next = dates[i + 1];
 

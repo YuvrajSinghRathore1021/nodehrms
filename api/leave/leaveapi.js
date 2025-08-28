@@ -4,88 +4,6 @@ const db = require("../../DB/ConnectionSql");
 
 ///////// leaveapi.js///////////////
 
-
-// Calculate the total leave days
-
-
-
-// router.post("/leave", async (req, res) => {
-
-//   const { leave_type, userData, start_date, end_date, reason, start_half, end_half } = req.body;
-
-//   // Basic validation to ensure required fields are provided
-//   if (!leave_type || !userData || !start_date || !end_date || !reason) {
-//     return res.status(400).json({
-//       status: false,
-//       message: "Missing required fields: leave_type, userData, start_date, end_date, or reason."
-//     });
-//   }
-
-//   // Parse dates and calculate leave days
-//   const startDate = new Date(start_date);
-//   const endDate = new Date(end_date);
-
-//   // Validate that start_date is before end_date
-//   if (startDate > endDate) {
-//     return res.status(400).json({
-//       status: false,
-//       message: "Start date cannot be after end date."
-//     });
-//   }
-
-//   let leaveDays = calculateLeaveDays(startDate, endDate, start_half, end_half);
-
-//   // Get leave type settings from the database
-//   const [leave_typeGet] = await db.promise().query("SELECT id,leave_type,max_leaves_month, continuous_leaves,  future_dated_leaves, future_dated_leaves_after,negative_leaves, backdated_leaves, backdated_leaves_up_to, apply_leaves_next_year FROM leave_rules WHERE id = ?", [leave_type]);
-
-
-//   // Check if leave type exists
-//   if (!leave_typeGet || leave_typeGet.length === 0) {
-//     return res.status(400).json({
-//       status: false,
-//       message: "Invalid leave type."
-//     });
-//   }
-//   let Date = Date();
-//   if (startDate >= Date && endDate >= Date) {
-//     if (leave_typeGet[0].future_dated_leaves_after > 0) {
-//       if (leave_typeGet[0].future_dated_leaves < Date + leave_typeGet[0].future_dated_leaves_after) {
-//         return res.status(200).json({
-//           status: false,
-//           message: `You take only Leve   leaves after ${Date + leave_typeGet[0].future_dated_leaves_after}.`
-//         });
-//       }
-//     }
-//     else if (leave_typeGet[0].continuous_leaves < leaveDays) {
-//       return res.status(200).json({
-//         status: false,
-//         message: `You do not take continuous leaves ${leaveDays}. ONLY ALLOW ${leave_typeGet[0].continuous_leaves}`
-//       });
-//     }
-
-
-//   } else if (startDate <= Date && endDate <= Date) {
-//     if (leave_typeGet[0].negative_leaves == 0) {
-//       return res.status(400).json({
-//         status: false,
-//         message: "You do not Take Backdated Leaves."
-//       });
-//     }
-
-//     if (startDate <= Date - backdated_leaves_up_to[0].backdated_leaves_up_to) {
-//       return res.status(200).json({
-//         status: false,
-//         message: `You take only Leve   leaves after ${Date - leave_typeGet[0].future_dated_leaves_after}.`
-//       });
-//     }
-//     if (leave_typeGet[0].backdated_leaves <= leaveDays) {
-//       return res.status(200).json({
-//         status: false,
-//         message: `You do not take continuous leaves ${leaveDays}. ONLY ALLOW ${leave_typeGet[0].backdated_leaves}`
-//       });
-//     }
-
-//   }
 router.post("/leave", async (req, res) => {
   //   // leave_type in this come leave_rule_id
   const { leave_type, userData, start_date, end_date, reason, start_half, end_half } = req.body;
@@ -200,16 +118,16 @@ router.post("/leave", async (req, res) => {
     }
     let currentDateValue = new Date(currentDate.getTime());
 
-// Convert the backdated limit into a Date by subtracting days
-const backdatedDays = leave_typeGet[0].backdated_leaves_up_to || 0; // fallback in case it's undefined
-const backdatedLimit = new Date(currentDateValue.getTime() - (backdatedDays * 24 * 60 * 60 * 1000));
+    // Convert the backdated limit into a Date by subtracting days
+    const backdatedDays = leave_typeGet[0].backdated_leaves_up_to || 0; // fallback in case it's undefined
+    const backdatedLimit = new Date(currentDateValue.getTime() - (backdatedDays * 24 * 60 * 60 * 1000));
 
-if (new Date(startDate) < backdatedLimit) {
-  return res.status(400).json({
-    status: false,
-    message: `You can only take backdated leaves up to ${backdatedLimit.toLocaleDateString()}.`
-  });
-}
+    if (new Date(startDate) < backdatedLimit) {
+      return res.status(400).json({
+        status: false,
+        message: `You can only take backdated leaves up to ${backdatedLimit.toLocaleDateString()}.`
+      });
+    }
     if (leave_typeGet[0].backdated_leaves < leaveDays) {
       return res.status(400).json({
         status: false,
@@ -905,6 +823,51 @@ router.post("/api/ApprovalSubmit", async (req, res) => {
 
   try {
     const updateResult = await queryDb(query, queryArray);
+    if (Type != "Rm" && ApprovalStatus == "1") {
+      // 1. Fetch leave request details
+      const leaveDetails = await queryDb(
+        `SELECT leave_id, employee_id, leave_rule_id, start_date, end_date, start_half, end_half 
+         FROM leaves WHERE leave_id = ? AND company_id = ?`,
+        [ApprovalRequests_id, company_id]
+      );
+      if (leaveDetails.length > 0) {
+
+        const leave = leaveDetails[0];
+
+        // 2. Calculate leave days
+        let leaveDays = calculateLeaveDays(
+          leave.start_date,
+          leave.end_date,
+          leave.start_half,
+          leave.end_half
+        );
+
+        const currentYear = new Date(leave.start_date).getFullYear();
+
+        // 3. Get employee leave balance
+        const balanceResults = await queryDb(
+          `SELECT * FROM leave_balance 
+           WHERE employee_id = ? AND leave_rules_id = ? AND year = ? AND company_id = ?`,
+          [leave.employee_id, leave.leave_rule_id, currentYear, company_id]
+        );
+
+        if (balanceResults.length > 0) {
+          const balance = balanceResults[0];
+
+          let used = balance.used_leaves + leaveDays;
+          let remaining = balance.total_leaves - used;
+          // if (remaining < 0) remaining = 0; // handle negative leaves
+
+          // 4. Update leave balance
+          await queryDb(
+            `UPDATE leave_balance 
+             SET used_leaves = ?, remaining_leaves = ?, last_updated = NOW() 
+             WHERE id = ?`,
+            [used, remaining, balance.id]
+          );
+        }
+      }
+    }
     return res.status(200).json({
       status: true,
       message: "Approval updated successfully"

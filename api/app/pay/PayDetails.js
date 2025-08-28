@@ -5,9 +5,9 @@ const { AdminCheck } = require('../../../model/functlity/AdminCheck');
 
 
 router.post('/api/PayEmployeeSalaryDetails', async (req, res) => {
-    const { userData, month, year ,Search} = req.body;
+    const { userData, month, year, Search } = req.body;
     let decodedUserData = null;
-    
+
     if (!month || !year) {
         return res.status(400).json({ status: false, error: 'Month and Year are required' });
     }

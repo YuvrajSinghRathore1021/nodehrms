@@ -153,8 +153,180 @@ router.post('/api/Add', async (req, res) => {
 
 
 
+// router.post('/api/Employeesdirectory', async (req, res) => {
+//     const { userData, id, platformType, type, limit = 10, page = 1, search = "" } = req.body;
+
+//     let decodedUserData = null;
+
+//     // Decode base64 userData
+//     if (userData) {
+//         try {
+//             const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+//             decodedUserData = JSON.parse(decodedString);
+//         } catch (error) {
+//             return res.status(400).json({ status: false, error: 'Invalid userData format' });
+//         }
+//     }
+
+//     // Validate required userData fields
+//     if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+//         return res.status(400).json({ status: false, error: 'Invalid or missing employee credentials' });
+//     }
+
+//     const parsedLimit = parseInt(limit, 10);
+//     const parsedPage = parseInt(page, 10);
+//     const offset = (parsedPage - 1) * parsedLimit;
+
+//     let query = '';
+//     let queryParams = [decodedUserData.company_id];
+//     if(search)
+
+//     // Case 1: Mobile (iOS/Android) directory list
+//     if ((platformType == 'ios' || platformType == 'android') && id == '') {
+//         query = `
+//             SELECT 
+//                 a.id, a.employee_id, a.first_name, a.last_name, a.designation, a.employee_status,a.email_id,
+//                 CONCAT(a.first_name, " ", a.last_name) AS reporting_manager_name
+//             FROM employees AS a
+//             WHERE a.company_id = ? AND a.employee_status = 1 AND a.delete_status = 0
+//             ORDER BY a.first_name asc LIMIT ? OFFSET ?`;
+//         queryParams.push(parsedLimit, offset);
+//     }
+//     // Case 2: Mobile (iOS/Android) view employee details
+//     else if ((platformType == 'ios' || platformType == 'android') && id && type == 'view') {
+//         query = `
+//             SELECT 
+//                 a.id, a.employee_id,a.login_status, a.first_name, a.last_name, a.official_email_id, a.date_of_Joining,a.marital_status,a.blood_group,a.email_id,a.contact_number,a.current_address,a.permanent_address,a.social_profile_link,a.probation_status,a.experience,a.job_title,
+//                 a.contact_number, a.password, a.old_password, a.dob, a.gender, a.work_location,
+//                 a.department, a.sub_department, a.designation, a.employee_status, a.employee_type,
+//                 a.probation_period, a.grade, a.reporting_manager, a.ctc, a.aadhaar_card, a.pan_card,
+//                 a.emergency_contact_name, a.alternate_phone, a.emergency_contact_number, a.otp,
+//                 a.last_login, a.profile_image,  a.bank, a.branch, a.city, a.ifsc,
+//                 a.account_number, a.status,
+//                 meenD.name AS departmentName, subD.name AS sub_departmentName,
+//                 CONCAT(e.first_name, " ", e.last_name) AS reporting_manager_name
+//             FROM employees AS a
+//             LEFT JOIN employees AS e ON e.id = a.reporting_manager
+//             LEFT JOIN departments AS meenD ON meenD.id = a.department
+//             LEFT JOIN departments AS subD ON subD.id = a.sub_department
+//             WHERE a.company_id = ? AND a.id = ? AND a.employee_status = 1 AND a.status = 1 AND a.delete_status = 0
+//             ORDER BY a.first_name asc LIMIT ? OFFSET ?`;
+//         queryParams.push(id, parsedLimit, offset);
+//     }
+//     // Case 3: Default full employee list (web)
+//     else {
+//         query = `
+//             SELECT 
+//                 a.id, a.employee_id, a.first_name,a.login_status, a.last_name, a.official_email_id,a.email_id, a.date_of_Joining,
+//                 a.contact_number, a.password, a.old_password, a.dob, a.gender, a.work_location,
+//                 a.department, a.sub_department, a.designation, a.employee_status, a.employee_type,
+//                 a.probation_period, a.grade, a.reporting_manager, a.ctc, a.aadhaar_card, a.pan_card,
+//                 a.emergency_contact_name, a.alternate_phone, a.emergency_contact_number, a.otp,
+//                 a.last_login, a.profile_image,  a.bank, a.branch, a.city, a.ifsc,
+//                 a.account_number, a.status,
+//                 meenD.name AS departmentName, subD.name AS sub_departmentName,
+//                 CONCAT(e.first_name, " ", e.last_name) AS reporting_manager_name
+//             FROM employees AS a
+//             LEFT JOIN employees AS e ON e.id = a.reporting_manager
+//             LEFT JOIN departments AS meenD ON meenD.id = a.department
+//             LEFT JOIN departments AS subD ON subD.id = a.sub_department
+//             WHERE a.company_id = ? AND a.employee_status = 1 AND a.status = 1 AND a.delete_status = 0
+//             ORDER BY a.first_name asc LIMIT ? OFFSET ?`;
+//         queryParams.push(parsedLimit, offset);
+//     }
+
+//     // Execute main query
+//     // db.query(query, queryParams, (err, results) => {
+//     //     if (err) {
+//     //         console.error('Error fetching employees:', err);
+//     //         return res.status(500).json({ status: false, error: 'Database query error' });
+//     //     }
+
+//     //     // Count total employees
+//     //     const countQuery = `
+//     //         SELECT COUNT(id) AS total
+//     //         FROM employees
+//     //         WHERE company_id = ? AND employee_status = 1 AND status = 1 AND delete_status = 0`;
+//     //     let socialProfile = [];
+
+//     //     if ((platformType == 'ios' || platformType == 'android') && id && type == 'view') {
+//     //         socialProfile = db.promise().query(
+//     //             `SELECT instagram, facebook, linkedin FROM social_profile WHERE employee_id=? AND company_id=? And type='Employee_Profile'`,
+//     //             [id, decodedUserData.company_id]
+//     //         );
+//     //     }
+
+//     //     db.query(countQuery, [decodedUserData.company_id], (countErr, countResults) => {
+//     //         if (countErr) {
+//     //             console.error('Error counting employees:', countErr);
+//     //             return res.status(500).json({ status: false, error: 'Database count error' });
+//     //         }
+
+//     //         const total = countResults[0]?.total || 0;
+
+//     //         const employeesWithSrnu = results.map((employee, index) => ({
+//     //             srnu: offset + index + 1,
+//     //             socialProfile: socialProfile,
+//     //             ...employee
+//     //         }));
+
+//     //         return res.json({
+//     //             status: true,
+//     //             employees: employeesWithSrnu,
+//     //             total,
+//     //             page: parsedPage,
+//     //             limit: parsedLimit
+//     //         });
+//     //     });
+//     // });
+
+//     try {
+//         // Fetch main employee(s)
+//         const [results] = await db.promise().query(query, queryParams);
+
+//         // Get total count
+//         const [countResults] = await db.promise().query(
+//             `SELECT COUNT(id) AS total FROM employees WHERE company_id = ? AND employee_status = 1 AND status = 1 AND delete_status = 0`,
+//             [decodedUserData.company_id]
+//         );
+
+//         const total = countResults[0]?.total || 0;
+
+//         let employeesWithSrnu = results.map((employee, index) => ({
+//             srnu: offset + index + 1,
+//             ...employee
+//         }));
+
+//         // If viewing a single employee, add socialProfile
+//         if ((platformType == 'ios' || platformType == 'android') && id && type == 'view') {
+//             const [socialProfileRows] = await db.promise().query(
+//                 `SELECT instagram, facebook, linkedin FROM social_profile WHERE employee_id=? AND company_id=? AND type='Employee_Profile'`,
+//                 [id, decodedUserData.company_id]
+//             );
+
+//             employeesWithSrnu[0].socialProfile = socialProfileRows.length > 0 ? socialProfileRows[0] : {};
+//         }
+
+//         return res.json({
+//             status: true,
+//             employees: employeesWithSrnu,
+//             total,
+//             page: parsedPage,
+//             limit: parsedLimit
+//         });
+
+//     } catch (error) {
+//         console.error('Error:', error);
+//         return res.status(500).json({ status: false, error: 'Server error' });
+//     }
+
+// });
+
+
+
 router.post('/api/Employeesdirectory', async (req, res) => {
-    const { userData, id, platformType, type, limit = 10, page = 1 } = req.body;
+    const { userData, id, platformType, type, limit = 10, page = 1, searchData = "", company_id } = req.body;
+    let search = searchData;
 
     let decodedUserData = null;
 
@@ -176,9 +348,15 @@ router.post('/api/Employeesdirectory', async (req, res) => {
     const parsedLimit = parseInt(limit, 10);
     const parsedPage = parseInt(page, 10);
     const offset = (parsedPage - 1) * parsedLimit;
-
+    let company_idMeen = company_id || decodedUserData.company_id;
     let query = '';
-    let queryParams = [decodedUserData.company_id];
+    let queryParams = [company_idMeen];
+    let searchClause = '';
+    if (search && search.trim() != '') {
+        searchClause = ` AND (a.first_name LIKE ? OR a.last_name LIKE ? OR a.employee_id LIKE ? OR a.email_id LIKE ? OR a.contact_number LIKE ?)`;
+        const searchValue = `%${search}%`;
+        queryParams.push(searchValue, searchValue, searchValue, searchValue, searchValue);
+    }
 
     // Case 1: Mobile (iOS/Android) directory list
     if ((platformType == 'ios' || platformType == 'android') && id == '') {
@@ -187,8 +365,8 @@ router.post('/api/Employeesdirectory', async (req, res) => {
                 a.id, a.employee_id, a.first_name, a.last_name, a.designation, a.employee_status,a.email_id,
                 CONCAT(a.first_name, " ", a.last_name) AS reporting_manager_name
             FROM employees AS a
-            WHERE a.company_id = ? AND a.employee_status = 1 AND a.delete_status = 0
-            ORDER BY a.id DESC LIMIT ? OFFSET ?`;
+            WHERE a.company_id = ? AND a.employee_status = 1 AND a.delete_status = 0${searchClause}
+            ORDER BY a.first_name asc LIMIT ? OFFSET ?`;
         queryParams.push(parsedLimit, offset);
     }
     // Case 2: Mobile (iOS/Android) view employee details
@@ -209,7 +387,7 @@ router.post('/api/Employeesdirectory', async (req, res) => {
             LEFT JOIN departments AS meenD ON meenD.id = a.department
             LEFT JOIN departments AS subD ON subD.id = a.sub_department
             WHERE a.company_id = ? AND a.id = ? AND a.employee_status = 1 AND a.status = 1 AND a.delete_status = 0
-            ORDER BY a.id DESC LIMIT ? OFFSET ?`;
+            ORDER BY a.first_name asc LIMIT ? OFFSET ?`;
         queryParams.push(id, parsedLimit, offset);
     }
     // Case 3: Default full employee list (web)
@@ -229,65 +407,23 @@ router.post('/api/Employeesdirectory', async (req, res) => {
             LEFT JOIN employees AS e ON e.id = a.reporting_manager
             LEFT JOIN departments AS meenD ON meenD.id = a.department
             LEFT JOIN departments AS subD ON subD.id = a.sub_department
-            WHERE a.company_id = ? AND a.employee_status = 1 AND a.status = 1 AND a.delete_status = 0
-            ORDER BY a.id DESC LIMIT ? OFFSET ?`;
+            WHERE a.company_id = ? AND a.employee_status = 1 AND a.status = 1 AND a.delete_status = 0${searchClause}
+            ORDER BY a.first_name asc LIMIT ? OFFSET ?`;
         queryParams.push(parsedLimit, offset);
     }
-
-    // Execute main query
-    // db.query(query, queryParams, (err, results) => {
-    //     if (err) {
-    //         console.error('Error fetching employees:', err);
-    //         return res.status(500).json({ status: false, error: 'Database query error' });
-    //     }
-
-    //     // Count total employees
-    //     const countQuery = `
-    //         SELECT COUNT(id) AS total
-    //         FROM employees
-    //         WHERE company_id = ? AND employee_status = 1 AND status = 1 AND delete_status = 0`;
-    //     let socialProfile = [];
-
-    //     if ((platformType == 'ios' || platformType == 'android') && id && type == 'view') {
-    //         socialProfile = db.promise().query(
-    //             `SELECT instagram, facebook, linkedin FROM social_profile WHERE employee_id=? AND company_id=? And type='Employee_Profile'`,
-    //             [id, decodedUserData.company_id]
-    //         );
-    //     }
-
-    //     db.query(countQuery, [decodedUserData.company_id], (countErr, countResults) => {
-    //         if (countErr) {
-    //             console.error('Error counting employees:', countErr);
-    //             return res.status(500).json({ status: false, error: 'Database count error' });
-    //         }
-
-    //         const total = countResults[0]?.total || 0;
-
-    //         const employeesWithSrnu = results.map((employee, index) => ({
-    //             srnu: offset + index + 1,
-    //             socialProfile: socialProfile,
-    //             ...employee
-    //         }));
-
-    //         return res.json({
-    //             status: true,
-    //             employees: employeesWithSrnu,
-    //             total,
-    //             page: parsedPage,
-    //             limit: parsedLimit
-    //         });
-    //     });
-    // });
 
     try {
         // Fetch main employee(s)
         const [results] = await db.promise().query(query, queryParams);
 
-        // Get total count
-        const [countResults] = await db.promise().query(
-            `SELECT COUNT(id) AS total FROM employees WHERE company_id = ? AND employee_status = 1 AND status = 1 AND delete_status = 0`,
-            [decodedUserData.company_id]
-        );
+        // Get total count with search
+        let countQuery = `SELECT COUNT(id) AS total FROM employees a WHERE a.company_id = ? AND a.employee_status = 1 AND a.status = 1 AND a.delete_status = 0${searchClause}`;
+        let countParams = [decodedUserData.company_id];
+        if (search && search.trim() !== '') {
+            const searchValue = `%${search}%`;
+            countParams.push(searchValue, searchValue, searchValue, searchValue, searchValue);
+        }
+        const [countResults] = await db.promise().query(countQuery, countParams);
 
         const total = countResults[0]?.total || 0;
 
@@ -318,7 +454,6 @@ router.post('/api/Employeesdirectory', async (req, res) => {
         console.error('Error:', error);
         return res.status(500).json({ status: false, error: 'Server error' });
     }
-
 });
 
 router.get('/api/fetchDetails', (req, res) => {

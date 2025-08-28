@@ -20,19 +20,8 @@ function getWorkWeekStatus(workWeekResults, date) {
     const workWeek = workWeekResults[0];
     const workWeekStatusMap = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
     const statusKey = `${workWeekStatusMap[dayOfWeek]}1`;
-    return workWeek && workWeek[statusKey] ? workWeek[statusKey] : null;
+    return workWeek && workWeek[statusKey] === 3 ? 'WO' : null;
 }
-
-// function getWorkWeekStatus(workWeekResults, date) {
-//     if (!workWeekResults || workWeekResults.length === 0) {
-//         return null;
-//     }
-//     const dayOfWeek = new Date(date).getDay(); // 0 (Sunday) - 6 (Saturday)
-//     const workWeek = workWeekResults[0];
-//     const workWeekStatusMap = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-//     const statusKey = `${workWeekStatusMap[dayOfWeek]}1`;
-//     return workWeek && workWeek[statusKey] === 3 ? 'WO' : null;
-// }
 
 const PendingForFunction = async (ReqId) => {
     if (ReqId === '') {
@@ -858,8 +847,363 @@ router.post('/api/AttendanceApprovalLog', async (req, res) => {
     }
 });
 
+
+// get for one day Att 
 // router.post('/api/Attendancedirectory', async (req, res) => {
-//     const { userData, date, filter = 'all', search = '' } = req.body;
+//     const { userData, date,filter } = req.body;
+//     //   filter value =all, absent, present,leave active, inactive(delete and in-active emp )
+//     let SearchDate = null;
+
+//     if (date) {
+//         SearchDate = date ? date : null;
+//     }
+//     let decodedUserData = null;
+//     if (userData) {
+//         try {
+//             const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+//             decodedUserData = JSON.parse(decodedString);
+//         } catch (error) {
+//             return res.status(400).json({ status: false, error: 'Invalid userData format' });
+//         }
+//     }
+//     if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+//         return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
+//     }
+//     const limit = parseInt(req.body.limit, 10) || 10;
+//     const page = parseInt(req.body.page, 10) || 1;
+//     const offset = (page - 1) * limit;
+//     try {
+//         // Main query to fetch attendance
+//         const attendanceResults = await new Promise((resolve, reject) => {
+//             const query = `
+//                 SELECT b.id AS employee_id, b.first_name,b.profile_image, b.work_week_id, a.attendance_date, a.status, a.daily_status_in, a.daily_status_out, a.daily_status_intime, a.daily_status_outtime, a.check_in_time, a.check_out_time, a.duration,a.attendance_id
+//                 , a.in_latitude, a.in_longitude, a.out_latitude, a.out_longitude
+//                 FROM employees AS b
+//                 LEFT JOIN attendance AS a 
+//                 ON a.employee_id = b.id 
+//                    AND a.attendance_date = ?
+//                 WHERE  b.employee_status=1 and b.status=1 and b.delete_status=0 And b.company_id = ?
+//                 ORDER BY b.first_name ASC
+//                 LIMIT ? OFFSET ?
+//             `;
+//             const queryParams = [SearchDate || null, decodedUserData.company_id, limit, offset];
+//             db.query(query, queryParams, (err, results) => (err ? reject(err) : resolve(results)));
+//         });
+
+
+//         // Query to fetch leaves
+//         const leaveResults = await new Promise((resolve, reject) => {
+//             const query = `
+//                 SELECT leave_id, employee_id, leave_type, start_date, end_date FROM leaves 
+//                 WHERE ? BETWEEN start_date AND end_date
+//             `;
+//             db.query(query, [SearchDate], (err, results) => (err ? reject(err) : resolve(results)));
+//         });
+
+//         // Query to fetch holidays
+//         const holidayResults = await new Promise((resolve, reject) => {
+//             const query = `
+//                 SELECT id, date, holiday 
+//                 FROM holiday 
+//                 WHERE company_id=? And date = ?
+//             `;
+//             db.query(query, [decodedUserData.company_id, SearchDate], (err, results) => (err ? reject(err) : resolve(results)));
+//         });
+
+//         // Process and combine data
+//         const employeesWithDetails = await Promise.all(
+//             attendanceResults.map(async (attendance) => {
+//                 const leave = leaveResults.find(l => l.employee_id === attendance.employee_id);
+//                 const holiday = holidayResults.length > 0 ? holidayResults[0] : null;
+//                 let status = 'A'; // Default to 'Absent'
+
+//                 if (attendance.check_in_time) {
+//                     if (attendance.status == 'absent') {
+//                         status = 'A'; // Present
+//                     }
+//                     else if (attendance.status == 'half-day') {
+//                         status = 'HF'; // Present
+//                     }
+//                     else if (attendance.status == 'Present') {
+//                         status = 'P'; // Present
+//                     } else {
+//                         status = 'P'; // Present
+//                     }
+
+//                 } else if (holiday) {
+//                     status = 'H'; // Holiday
+//                 } else if (leave) {
+//                     status = 'L'; // Leave
+//                 } else if (status === 'A' && attendance.work_week_id) {
+//                     try {
+//                         const workWeekResults = await new Promise((resolve, reject) => {
+//                             db.query(
+//                                 `SELECT * FROM work_week WHERE company_id = ? AND id = ?`,
+//                                 [decodedUserData.company_id, attendance.work_week_id],
+//                                 (err, results) => (err ? reject(err) : resolve(results))
+//                             );
+//                         });
+//                         const workWeekStatus = getWorkWeekStatus(workWeekResults, SearchDate);
+//                         if (workWeekStatus) {
+//                             status = 'WO';
+//                         }
+//                     } catch (err) {
+//                         console.error('Error fetching work week records:', err);
+//                     }
+//                 }
+
+//                 return {
+//                     srnu: offset + attendanceResults.indexOf(attendance) + 1,
+//                     attendance_date: attendance.attendance_date || SearchDate,
+//                     check_in_time: attendance.check_in_time || null,
+//                     check_out_time: attendance.check_out_time || null,
+//                     daily_status_in: attendance.daily_status_in || null,
+//                     daily_status_intime: attendance.daily_status_intime || null,
+//                     daily_status_out: attendance.daily_status_out || null,
+//                     daily_status_outtime: attendance.daily_status_outtime || null,
+//                     duration: attendance.duration || null,
+//                     attendance_id: attendance.attendance_id || 0,
+//                     employee_id: attendance.employee_id,
+//                     first_name: attendance.first_name,
+//                     profile_image: attendance.profile_image,
+//                     id: attendance.employee_id,
+//                     in_latitude: attendance.in_latitude || null,
+//                     in_longitude: attendance.in_longitude || null,
+//                     out_latitude: attendance.out_latitude || null,
+//                     out_longitude: attendance.out_longitude || null,
+//                     status: status,
+//                 };
+//             })
+//         );
+
+//         const totalEmployees = await new Promise((resolve, reject) => {
+//             const query = `
+//                 SELECT COUNT(id) AS total FROM employees
+//                 WHERE employee_status=1 and status=1 and delete_status=0 and company_id = ?
+//             `;
+//             db.query(query, [decodedUserData.company_id], (err, results) => (err ? reject(err) : resolve(results[0].total)));
+//         });
+
+//         // Query to count the attendance records for the given date
+//         const attendanceCount = await new Promise((resolve, reject) => {
+//             const query = `
+//                 SELECT COUNT(DISTINCT employee_id) AS total FROM attendance
+//                 WHERE attendance_date = ? AND company_id = ?
+//             `;
+//             db.query(query, [SearchDate || null, decodedUserData.company_id], (err, results) => (err ? reject(err) : resolve(results[0].total)));
+//         });
+
+//         // Query to count the leave records for the given date
+//         const leaveCount = await new Promise((resolve, reject) => {
+//             const query = `SELECT COUNT(DISTINCT employee_id) AS total FROM leaves
+//                 WHERE ? BETWEEN start_date AND end_date AND company_id = ?`;
+//             db.query(query, [SearchDate || null, decodedUserData.company_id], (err, results) => (err ? reject(err) : resolve(results[0].total)));
+//         });
+
+//         // Calculate the number of absentees
+//         const absentees = totalEmployees - attendanceCount - leaveCount;
+//         // Respond with results
+//         res.json({
+//             status: true,
+//             Attendanceemployees: employeesWithDetails,
+//             // total: attendanceResults.length,
+//             total: totalEmployees,
+//             summary: {
+//                 totalEmployees: totalEmployees,
+//                 attendanceCount: attendanceCount,
+//                 leaveCount: leaveCount,
+//                 absentees: absentees
+//             },
+//             page,
+//             limit,
+//         });
+
+//     } catch (error) {
+//         console.error('Error processing attendance directory:', error);
+//         res.status(500).json({ status: false, error: 'Server error' });
+//     }
+// });
+
+
+// router.post('/api/Attendancedirectory', async (req, res) => {
+//     const { userData, date, filter = 'all' } = req.body;
+//     let SearchDate = date || null;
+
+//     let decodedUserData = null;
+//     if (userData) {
+//         try {
+//             const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+//             decodedUserData = JSON.parse(decodedString);
+//         } catch (error) {
+//             return res.status(400).json({ status: false, error: 'Invalid userData format' });
+//         }
+//     }
+//     if (!decodedUserData?.id || !decodedUserData?.company_id) {
+//         return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
+//     }
+
+//     const limit = parseInt(req.body.limit, 10) || 10;
+//     const page = parseInt(req.body.page, 10) || 1;
+//     const offset = (page - 1) * limit;
+
+//     try {
+//         // Dynamic WHERE clause based on filter
+//         let whereClause = `b.company_id = ?`;
+//         let whereParams = [decodedUserData.company_id];
+
+//         if (filter === 'inactive') {
+//             whereClause += ` AND (b.employee_status != 1 OR b.status != 1 OR b.delete_status != 0)`;
+//         } else {
+//             whereClause += ` AND b.employee_status = 1 AND b.status = 1 AND b.delete_status = 0`;
+//         }
+
+//         // Fetch attendance
+//         const attendanceResults = await new Promise((resolve, reject) => {
+//             const query = `
+//                 SELECT b.id AS employee_id, b.first_name,b.profile_image, b.work_week_id, a.attendance_date, a.status, a.daily_status_in, a.daily_status_out, a.daily_status_intime, a.daily_status_outtime, a.check_in_time, a.check_out_time, a.duration,a.attendance_id,
+//                 a.in_latitude, a.in_longitude, a.out_latitude, a.out_longitude
+//                 FROM employees AS b
+//                 LEFT JOIN attendance AS a 
+//                 ON a.employee_id = b.id AND a.attendance_date = ?
+//                 WHERE ${whereClause}
+//                 ORDER BY b.first_name ASC
+//                 LIMIT ? OFFSET ?
+//             `;
+//             db.query(query, [SearchDate, ...whereParams, limit, offset], (err, results) => (err ? reject(err) : resolve(results)));
+//         });
+
+//         const leaveResults = await new Promise((resolve, reject) => {
+//             const query = `SELECT leave_id, employee_id, leave_type, start_date, end_date 
+//                            FROM leaves 
+//                            WHERE ? BETWEEN start_date AND end_date AND company_id = ?`;
+//             db.query(query, [SearchDate, decodedUserData.company_id], (err, results) => (err ? reject(err) : resolve(results)));
+//         });
+
+//         const holidayResults = await new Promise((resolve, reject) => {
+//             const query = `SELECT id, date, holiday 
+//                            FROM holiday 
+//                            WHERE company_id = ? AND date = ?`;
+//             db.query(query, [decodedUserData.company_id, SearchDate], (err, results) => (err ? reject(err) : resolve(results)));
+//         });
+
+//         const employeesWithDetails = await Promise.all(
+//             attendanceResults.map(async (attendance, index) => {
+//                 const leave = leaveResults.find(l => l.employee_id === attendance.employee_id);
+//                 const holiday = holidayResults[0] || null;
+//                 let status = 'A';
+
+//                 if (attendance.check_in_time) {
+//                     if (attendance.status === 'half-day') {
+//                         status = 'HF';
+//                     } else if (attendance.status?.toLowerCase() === 'present') {
+//                         status = 'P';
+//                     } else {
+//                         status = 'P';
+//                     }
+//                 } else if (holiday) {
+//                     status = 'H';
+//                 } else if (leave) {
+//                     status = 'L';
+//                 } else if (status === 'A' && attendance.work_week_id) {
+//                     try {
+//                         const workWeekResults = await new Promise((resolve, reject) => {
+//                             db.query(`SELECT * FROM work_week WHERE company_id = ? AND id = ?`, 
+//                             [decodedUserData.company_id, attendance.work_week_id], 
+//                             (err, results) => (err ? reject(err) : resolve(results)));
+//                         });
+//                         const workWeekStatus = getWorkWeekStatus(workWeekResults, SearchDate);
+//                         if (workWeekStatus) status = 'WO';
+//                     } catch (err) {
+//                         console.error('Work week error:', err);
+//                     }
+//                 }
+
+//                 return {
+//                     srnu: offset + index + 1,
+//                     attendance_date: attendance.attendance_date || SearchDate,
+//                     check_in_time: attendance.check_in_time || null,
+//                     check_out_time: attendance.check_out_time || null,
+//                     daily_status_in: attendance.daily_status_in || null,
+//                     daily_status_intime: attendance.daily_status_intime || null,
+//                     daily_status_out: attendance.daily_status_out || null,
+//                     daily_status_outtime: attendance.daily_status_outtime || null,
+//                     duration: attendance.duration || null,
+//                     attendance_id: attendance.attendance_id || 0,
+//                     employee_id: attendance.employee_id,
+//                     first_name: attendance.first_name,
+//                     profile_image: attendance.profile_image,
+//                     id: attendance.employee_id,
+//                     in_latitude: attendance.in_latitude || null,
+//                     in_longitude: attendance.in_longitude || null,
+//                     out_latitude: attendance.out_latitude || null,
+//                     out_longitude: attendance.out_longitude || null,
+//                     status: status,
+//                 };
+//             })
+//         );
+
+//         // Now filter employees by status (if needed)
+//         let filteredEmployees = employeesWithDetails;
+//         if (['present', 'absent', 'leave'].includes(filter)) {
+//             const statusMap = {
+//                 present: ['P', 'HF'],
+//                 absent: ['A'],
+//                 leave: ['L'],
+//             };
+//             filteredEmployees = employeesWithDetails.filter(e => statusMap[filter].includes(e.status));
+//         }
+
+//         // Count employees
+//         const totalEmployees = await new Promise((resolve, reject) => {
+//             const query = `
+//                 SELECT COUNT(id) AS total FROM employees
+//                 WHERE ${whereClause}
+//             `;
+//             db.query(query, whereParams, (err, results) => (err ? reject(err) : resolve(results[0].total)));
+//         });
+
+//         const attendanceCount = await new Promise((resolve, reject) => {
+//             db.query(
+//                 `SELECT COUNT(DISTINCT employee_id) AS total FROM attendance WHERE attendance_date = ? AND company_id = ?`,
+//                 [SearchDate, decodedUserData.company_id],
+//                 (err, results) => (err ? reject(err) : resolve(results[0].total))
+//             );
+//         });
+
+//         const leaveCount = await new Promise((resolve, reject) => {
+//             db.query(
+//                 `SELECT COUNT(DISTINCT employee_id) AS total FROM leaves 
+//                  WHERE ? BETWEEN start_date AND end_date AND company_id = ?`,
+//                 [SearchDate, decodedUserData.company_id],
+//                 (err, results) => (err ? reject(err) : resolve(results[0].total))
+//             );
+//         });
+
+//         const absentees = totalEmployees - attendanceCount - leaveCount;
+
+//         res.json({
+//             status: true,
+//             Attendanceemployees: filteredEmployees,
+//             total: totalEmployees,
+//             summary: {
+//                 totalEmployees,
+//                 attendanceCount,
+//                 leaveCount,
+//                 absentees,
+//             },
+//             page,
+//             limit,
+//         });
+
+//     } catch (error) {
+//         console.error('Error processing attendance directory:', error);
+//         res.status(500).json({ status: false, error: 'Server error' });
+//     }
+// });
+
+
+// router.post('/api/Attendancedirectory', async (req, res) => {
+//     const { userData, date, filter = 'all' ,search=''} = req.body;
 
 //     let SearchDate = date || null;
 //     let decodedUserData = null;
@@ -893,11 +1237,9 @@ router.post('/api/AttendanceApprovalLog', async (req, res) => {
 //         } else {
 //             employeeFilter += ` AND b.status = 1 AND b.delete_status = 0`; // default only active employees
 //         }
+//         // search
+//         if(search){
 
-//         // Add search filter if provided
-//         if (search && search.trim() !== '') {
-//             employeeFilter += ` AND (b.first_name LIKE ? OR b.employee_id LIKE ?)`;
-//             filterParams.push(`%${search}%`, `%${search}%`);
 //         }
 
 //         // Fetch employees + attendance
@@ -928,91 +1270,49 @@ router.post('/api/AttendanceApprovalLog', async (req, res) => {
 //         });
 
 //         const holidayResults = await new Promise((resolve, reject) => {
-//             const query = `SELECT id, date, holiday FROM holiday WHERE company_id = ? AND date = ?`;
+//             const query = `
+//                 SELECT id, date, holiday
+//                 FROM holiday
+//                 WHERE company_id = ? AND date = ?
+//             `;
 //             db.query(query, [decodedUserData.company_id, SearchDate], (err, results) => (err ? reject(err) : resolve(results)));
 //         });
-//         let workWeekStatus = "";
 
 //         const employeesWithDetails = await Promise.all(
 //             attendanceResults.map(async (attendance) => {
 //                 const leave = leaveResults.find(l => l.employee_id === attendance.employee_id);
 //                 const holiday = holidayResults.length > 0 ? holidayResults[0] : null;
-//                 ///////
-
-//                 try {
-//                     const workWeekResults = await new Promise((resolve, reject) => {
-//                         db.query(
-//                             `SELECT * FROM work_week WHERE company_id = ? AND id = ?`,
-//                             [decodedUserData.company_id, attendance.work_week_id],
-//                             (err, results) => (err ? reject(err) : resolve(results))
-//                         );
-//                     });
-//                     workWeekStatus = getWorkWeekStatus(workWeekResults, SearchDate);
-//                     // if (workWeekStatus) status = 'WO';
-//                 } catch (err) {
-//                     console.error('Error fetching work week:', err);
-//                 }
-
-//                 ////////
-
-
-
 //                 let status = 'A'; // Default Absent
 
 //                 if (attendance.check_in_time) {
 //                     if (attendance.status === 'Present') {
-//                         if (workWeekStatus == 1) {
-//                             status = 'P';
-//                         } else if (workWeekStatus == 2) {
-//                             status = 'P/(WO HF)';
-//                         } else if (workWeekStatus == 3) {
-//                             status = 'WO';
-//                         } else {
-//                             status = 'P';
-//                         }
-
+//                         status = 'P';
 //                     } else if (attendance.status === 'half-day') {
-//                         // status = 'HF';
-
-//                         if (workWeekStatus == 1) {
-//                             status = 'HF';
-//                         } else if (workWeekStatus == 2) {
-//                             status = 'HF/(WO HF)';
-//                         } else if (workWeekStatus == 3) {
-//                             status = 'WO';
-//                         } else {
-//                             status = 'P';
-//                         }
-
+//                         status = 'HF';
 //                     } else if (attendance.status === 'absent') {
-//                         // status = 'A';
-//                         if (workWeekStatus == 1) {
-//                             status = 'A';
-//                         } else if (workWeekStatus == 2) {
-//                             status = 'A/(WO HF)';
-//                         } else if (workWeekStatus == 3) {
-//                             status = 'WO';
-//                         } else {
-//                             status = 'A';
-//                         }
+//                         status = 'A';
 //                     } else {
-//                         // status = 'P';
-//                         if (workWeekStatus == 1) {
-//                             status = 'P';
-//                         } else if (workWeekStatus == 2) {
-//                             status = 'P/(WO HF)';
-//                         } else if (workWeekStatus == 3) {
-//                             status = 'WO';
-//                         } else {
-//                             status = 'P';
-//                         }
+//                         status = 'P';
 //                     }
 //                 } else if (holiday) {
 //                     status = 'H';
 //                 } else if (leave) {
 //                     status = 'L';
+//                 } else if (status === 'A' && attendance.work_week_id) {
+//                     try {
+//                         const workWeekResults = await new Promise((resolve, reject) => {
+//                             db.query(
+//                                 `SELECT * FROM work_week WHERE company_id = ? AND id = ?`,
+//                                 [decodedUserData.company_id, attendance.work_week_id],
+//                                 (err, results) => (err ? reject(err) : resolve(results))
+//                             );
+//                         });
+//                         const workWeekStatus = getWorkWeekStatus(workWeekResults, SearchDate);
+//                         if (workWeekStatus) status = 'WO';
+//                     } catch (err) {
+//                         console.error('Error fetching work week:', err);
+//                     }
 //                 }
-//                 // else if (status === 'A' && attendance.work_week_id) {}
 
 //                 return {
 //                     srnu: offset + attendanceResults.indexOf(attendance) + 1,
@@ -1048,22 +1348,9 @@ router.post('/api/AttendanceApprovalLog', async (req, res) => {
 //             return true;
 //         });
 
-//         // Count total employees with search and filter applied
 //         const totalEmployees = await new Promise((resolve, reject) => {
-//             let countQuery = `SELECT COUNT(id) AS total FROM employees WHERE company_id = ?`;
-//             const countParams = [decodedUserData.company_id];
-//             if (filter === 'active') {
-//                 countQuery += ` AND status = 1 AND delete_status = 0`;
-//             } else if (filter === 'inactive') {
-//                 countQuery += ` AND (status = 0 OR delete_status = 1)`;
-//             } else {
-//                 countQuery += ` AND status = 1 AND delete_status = 0`;
-//             }
-//             if (search && search.trim() !== '') {
-//                 countQuery += ` AND (first_name LIKE ? OR employee_id LIKE ?)`;
-//                 countParams.push(`%${search}%`, `%${search}%`);
-//             }
-//             db.query(countQuery, countParams, (err, results) => (err ? reject(err) : resolve(results[0].total)));
+//             const query = `SELECT COUNT(id) AS total FROM employees WHERE company_id = ? AND status = 1 AND delete_status = 0`;
+//             db.query(query, [decodedUserData.company_id], (err, results) => (err ? reject(err) : resolve(results[0].total)));
 //         });
 
 //         const attendanceCount = await new Promise((resolve, reject) => {
@@ -1097,10 +1384,6 @@ router.post('/api/AttendanceApprovalLog', async (req, res) => {
 //         res.status(500).json({ status: false, error: 'Server error' });
 //     }
 // });
-
-
-// employee Get UnderOne Employee
-
 
 router.post('/api/Attendancedirectory', async (req, res) => {
     const { userData, date, filter = 'all', search = '' } = req.body;
@@ -1144,31 +1427,7 @@ router.post('/api/Attendancedirectory', async (req, res) => {
             filterParams.push(`%${search}%`, `%${search}%`);
         }
 
-        let joinClause = '';
-        let filterCondition = '';
-
-        if (filter == "present") {
-            joinClause = ` INNER JOIN attendance AS a 
-                   ON a.employee_id = b.id 
-                   AND a.attendance_date = ?`;
-            filterCondition = ` AND a.status IN ('Present','half-day')`;
-
-        } else if (filter == "absent") {
-            joinClause = ` LEFT JOIN attendance AS a 
-                   ON a.employee_id = b.id 
-                   AND a.attendance_date = ?`;
-            filterCondition = ` AND a.attendance_id IS NULL`;
-
-        } else {
-            // Default = all employees with attendance info if exists
-            joinClause = ` LEFT JOIN attendance AS a 
-                   ON a.employee_id = b.id 
-                   AND a.attendance_date = ?`;
-        }
-
-
         // Fetch employees + attendance
-        //      LEFT JOIN attendance AS a ON a.employee_id = b.id AND a.attendance_date = ?
         const attendanceResults = await new Promise((resolve, reject) => {
             const query = `
                 SELECT b.id AS employee_id, b.first_name, b.profile_image, b.work_week_id,
@@ -1176,8 +1435,8 @@ router.post('/api/Attendancedirectory', async (req, res) => {
                        a.daily_status_outtime, a.check_in_time, a.check_out_time, a.duration, a.attendance_id,
                        a.in_latitude, a.in_longitude, a.out_latitude, a.out_longitude
                 FROM employees AS b
-                   ${joinClause}
-        WHERE ${employeeFilter} ${filterCondition} 
+                LEFT JOIN attendance AS a ON a.employee_id = b.id AND a.attendance_date = ?
+                WHERE ${employeeFilter}
                 ORDER BY b.first_name ASC
                 LIMIT ? OFFSET ?
             `;
@@ -1196,91 +1455,49 @@ router.post('/api/Attendancedirectory', async (req, res) => {
         });
 
         const holidayResults = await new Promise((resolve, reject) => {
-            const query = `SELECT id, date, holiday FROM holiday WHERE company_id = ? AND date = ?`;
+            const query = `
+                SELECT id, date, holiday
+                FROM holiday
+                WHERE company_id = ? AND date = ?
+            `;
             db.query(query, [decodedUserData.company_id, SearchDate], (err, results) => (err ? reject(err) : resolve(results)));
         });
-        let workWeekStatus = "";
 
         const employeesWithDetails = await Promise.all(
             attendanceResults.map(async (attendance) => {
                 const leave = leaveResults.find(l => l.employee_id === attendance.employee_id);
                 const holiday = holidayResults.length > 0 ? holidayResults[0] : null;
-                ///////
-
-                try {
-                    const workWeekResults = await new Promise((resolve, reject) => {
-                        db.query(
-                            `SELECT * FROM work_week WHERE company_id = ? AND id = ?`,
-                            [decodedUserData.company_id, attendance.work_week_id],
-                            (err, results) => (err ? reject(err) : resolve(results))
-                        );
-                    });
-                    workWeekStatus = getWorkWeekStatus(workWeekResults, SearchDate);
-                    // if (workWeekStatus) status = 'WO';
-                } catch (err) {
-                    console.error('Error fetching work week:', err);
-                }
-
-                ////////
-
-
-
                 let status = 'A'; // Default Absent
 
                 if (attendance.check_in_time) {
                     if (attendance.status === 'Present') {
-                        if (workWeekStatus == 1) {
-                            status = 'P';
-                        } else if (workWeekStatus == 2) {
-                            status = 'P/(WO HF)';
-                        } else if (workWeekStatus == 3) {
-                            status = 'WO';
-                        } else {
-                            status = 'P';
-                        }
-
+                        status = 'P';
                     } else if (attendance.status === 'half-day') {
-                        // status = 'HF';
-
-                        if (workWeekStatus == 1) {
-                            status = 'HF';
-                        } else if (workWeekStatus == 2) {
-                            status = 'HF/(WO HF)';
-                        } else if (workWeekStatus == 3) {
-                            status = 'WO';
-                        } else {
-                            status = 'P';
-                        }
-
+                        status = 'HF';
                     } else if (attendance.status === 'absent') {
-                        // status = 'A';
-                        if (workWeekStatus == 1) {
-                            status = 'A';
-                        } else if (workWeekStatus == 2) {
-                            status = 'A/(WO HF)';
-                        } else if (workWeekStatus == 3) {
-                            status = 'WO';
-                        } else {
-                            status = 'A';
-                        }
+                        status = 'A';
                     } else {
-                        // status = 'P';
-                        if (workWeekStatus == 1) {
-                            status = 'P';
-                        } else if (workWeekStatus == 2) {
-                            status = 'P/(WO HF)';
-                        } else if (workWeekStatus == 3) {
-                            status = 'WO';
-                        } else {
-                            status = 'P';
-                        }
+                        status = 'P';
                     }
                 } else if (holiday) {
                     status = 'H';
                 } else if (leave) {
                     status = 'L';
+                } else if (status === 'A' && attendance.work_week_id) {
+                    try {
+                        const workWeekResults = await new Promise((resolve, reject) => {
+                            db.query(
+                                `SELECT * FROM work_week WHERE company_id = ? AND id = ?`,
+                                [decodedUserData.company_id, attendance.work_week_id],
+                                (err, results) => (err ? reject(err) : resolve(results))
+                            );
+                        });
+                        const workWeekStatus = getWorkWeekStatus(workWeekResults, SearchDate);
+                        if (workWeekStatus) status = 'WO';
+                    } catch (err) {
+                        console.error('Error fetching work week:', err);
+                    }
                 }
-                // else if (status === 'A' && attendance.work_week_id) {}
 
                 return {
                     srnu: offset + attendanceResults.indexOf(attendance) + 1,
@@ -1365,6 +1582,9 @@ router.post('/api/Attendancedirectory', async (req, res) => {
         res.status(500).json({ status: false, error: 'Server error' });
     }
 });
+
+
+// employee Get UnderOne Employee
 
 router.post('/api/EmployeesUnderRm', async (req, res) => {
     const { userData } = req.body;

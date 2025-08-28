@@ -350,7 +350,7 @@ router.post("/api/Review", async (req, res) => {
     INNER JOIN 
         employees AS Emp 
         ON Emp.id = l.employee_id
-    WHERE l.admin_status = 0 AND rm_status = 0 AND (
+    WHERE l.company_id=? and l.admin_status = 0 AND rm_status = 0 AND (
             -- Case 1: Manager's requests
             l.rm_id = ? 
             -- Case 2: admin/CEO/HR with no RM assigned
@@ -383,6 +383,7 @@ router.post("/api/Review", async (req, res) => {
   `;
 
         let queryParams = [
+            decodedUserData.company_id,
             decodedUserData.id,
             decodedUserData.id,
             decodedUserData.company_id,
@@ -423,7 +424,7 @@ router.post("/api/Review", async (req, res) => {
               INNER JOIN 
         employees AS Emp 
         ON Emp.id = l.employee_id
-            WHERE 1=1
+            WHERE l.company_id=?
             AND (
                 l.rm_id = ? And l.admin_status = 0 AND l.rm_status = 0
                 OR (
@@ -454,6 +455,7 @@ router.post("/api/Review", async (req, res) => {
         `;
 
         let countQueryParams = [
+            decodedUserData.company_id,
             decodedUserData.id,
             decodedUserData.id,
             decodedUserData.company_id,
@@ -573,7 +575,7 @@ router.post("/api/Approved", async (req, res) => {
     INNER JOIN 
         employees AS Emp 
         ON Emp.id = l.employee_id
-    WHERE 1=1 AND (
+    WHERE l.company_id=? AND (
             -- Case 1: Manager's requests
             l.rm_id = ?  And l.rm_status=1 
             -- Case 2: admin/CEO/HR with no RM assigned
@@ -606,6 +608,7 @@ router.post("/api/Approved", async (req, res) => {
   `;
 
         let queryParams = [
+            decodedUserData.company_id,
             decodedUserData.id,
             decodedUserData.id,
             decodedUserData.company_id,
@@ -646,7 +649,7 @@ router.post("/api/Approved", async (req, res) => {
               INNER JOIN 
         employees AS Emp 
         ON Emp.id = l.employee_id
-            WHERE 1=1
+            WHERE l.company_id=?
             AND (
                 l.rm_id = ? And l.rm_status=1 
                 OR (
@@ -678,6 +681,7 @@ router.post("/api/Approved", async (req, res) => {
         `;
 
         let countQueryParams = [
+            decodedUserData.company_id,
             decodedUserData.id,
             decodedUserData.id,
             decodedUserData.company_id,
@@ -798,7 +802,7 @@ router.post("/api/Rejected", async (req, res) => {
     INNER JOIN 
         employees AS Emp 
         ON Emp.id = l.employee_id
-    WHERE 1=1 AND (
+    WHERE l.company_id=? AND (
             -- Case 1: Manager's requests
             l.rm_id = ?  And l.rm_status=2 
             -- Case 2: admin/CEO/HR with no RM assigned
@@ -831,6 +835,7 @@ router.post("/api/Rejected", async (req, res) => {
   `;
 
         let queryParams = [
+            decodedUserData.company_id,
             decodedUserData.id,
             decodedUserData.id,
             decodedUserData.company_id,
@@ -871,7 +876,7 @@ router.post("/api/Rejected", async (req, res) => {
               INNER JOIN 
         employees AS Emp 
         ON Emp.id = l.employee_id
-            WHERE 1=1
+            WHERE l.company_id=?
             AND (
                 l.rm_id = ? And l.rm_status=2
                 OR (
@@ -902,6 +907,7 @@ router.post("/api/Rejected", async (req, res) => {
         `;
 
         let countQueryParams = [
+            decodedUserData.company_id,
             decodedUserData.id,
             decodedUserData.id,
             decodedUserData.company_id,

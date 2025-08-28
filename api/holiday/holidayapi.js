@@ -4,7 +4,7 @@ const db = require("../../DB/ConnectionSql");
 
 
 router.post("/holiday", (req, res) => {
-  const { date, holiday, userData } = req.body;
+  const { date, holiday, userData, holiday_type, half_day_type, status } = req.body;
 
   if (!date || !holiday) {
     return res
@@ -29,15 +29,10 @@ router.post("/holiday", (req, res) => {
 
   const selectedDate = new Date(date);
   const dayOfWeek = selectedDate.getDay();
-  // if (dayOfWeek === 0) {
-  //   return res.status(200).json({
-  //     status: false,
-  //     message: "Holidays cannot be applied on Sundays.",
-  //   });
-  // }
+
 
   const companyId = decodedUserData.company_id;
-
+  // holiday_type,half_day_type
   db.query(
     `SELECT mon1, tue1, wed1, thu1, fri1, sat1, sun1,
             mon2, tue2, wed2, thu2, fri2, sat2, sun2,
@@ -47,6 +42,7 @@ router.post("/holiday", (req, res) => {
      FROM work_week 
      WHERE company_id = ? LIMIT 1`,
     [companyId],
+
     (err, workWeekResults) => {
       if (err) {
         console.error("Error querying work_week:", err);
@@ -97,8 +93,8 @@ router.post("/holiday", (req, res) => {
           }
 
           db.query(
-            "INSERT INTO holiday (date, holiday, company_id) VALUES (?, ?, ?)",
-            [date, holiday, companyId],
+            "INSERT INTO holiday (employee_id,date, holiday, company_id,holiday_type,half_day_type,status) VALUES (?,?,?,?,?, ?, ?)",
+            [decodedUserData.id, date, holiday, companyId, holiday_type, half_day_type, status],
             (err, insertResult) => {
               if (err) {
                 console.error("Error inserting holiday:", err);
@@ -129,7 +125,7 @@ router.post("/holiday", (req, res) => {
 // Holiday Update
 
 router.post("/HolidayUpdate", (req, res) => {
-  const { id, holiday, date, userData } = req.body;
+  const { id, holiday, date, userData, holiday_type, half_day_type, status } = req.body;
 
   // Validate input
   if (!id) {
@@ -195,8 +191,8 @@ router.post("/HolidayUpdate", (req, res) => {
       }
 
       db.query(
-        "SELECT * FROM holiday WHERE date = ? AND company_id = ?",
-        [date, companyId],
+        "SELECT * FROM holiday WHERE date = ? AND company_id = ? and id !=?",
+        [date, companyId, id],
         (err, holidayResults) => {
           if (err) {
             console.error("Error querying holidays:", err);
@@ -214,9 +210,10 @@ router.post("/HolidayUpdate", (req, res) => {
             });
           }
 
+          // holiday_type, half_day_type
           db.query(
-            "UPDATE holiday SET holiday = ?, date = ? WHERE id = ? AND company_id=?",
-            [holiday, date, id, decodedUserData.company_id],
+            "UPDATE holiday SET holiday = ?, date = ?,holiday_type=?, half_day_type=?,status=? WHERE id = ? AND company_id=?",
+            [holiday, date, holiday_type, half_day_type, status, id, decodedUserData.company_id],
             (err, results) => {
               if (err) {
                 console.error("Database error:", err);
@@ -387,7 +384,7 @@ router.get("/HolidayCalender", (req, res) => {
   }
 
   let query =
-    "SELECT holiday, date FROM holiday WHERE company_id=? AND status=1";
+    "SELECT holiday, date, holiday_type, half_day_type FROM holiday WHERE company_id=? AND status=1";
   let queryData = [decodedUserData.company_id];
 
   if (currentMonth && currentYear) {
