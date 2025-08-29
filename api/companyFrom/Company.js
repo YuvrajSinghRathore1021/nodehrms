@@ -1282,7 +1282,7 @@ router.get("/Branchfetch", (req, res) => {
 //     } catch (error) {
 //         return res.status(400).json({ status: false, error: "Invalid userData" });
 //     }
-    
+
 //     if (!decodedUserData?.company_id) {
 //         return res.status(400).json({ status: false, error: "Company ID is missing or invalid" });
 //     }
@@ -1371,7 +1371,6 @@ router.get("/Branchfetch", (req, res) => {
 // });
 
 
-
 router.post("/BranchUpdate", async (req, res) => {
     const { id, userData, name, latitude, longitude, radius, ip, ip_status, location_status, branch_employee } = req.body;
 
@@ -1387,7 +1386,7 @@ router.post("/BranchUpdate", async (req, res) => {
     } catch (error) {
         return res.status(400).json({ status: false, error: "Invalid userData" });
     }
-    
+
     if (!decodedUserData?.company_id) {
         return res.status(400).json({ status: false, error: "Company ID is missing or invalid" });
     }
@@ -1411,31 +1410,41 @@ router.post("/BranchUpdate", async (req, res) => {
 
             try {
                 if (Array.isArray(branch_employee)) {
-                    // Already an array
+                    // Already an array [7,8,10]
                     employeeIds = branch_employee;
                 } else if (typeof branch_employee === "string") {
-                    // Clean string → remove brackets, quotes, spaces
-                    let cleaned = branch_employee.replace(/^\[|\]$/g, "").trim();
+                    let cleaned = branch_employee.trim();
+
+                    // Remove wrapping quotes if present
+                    if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
+                        cleaned = cleaned.slice(1, -1);
+                    }
+
+                    // Remove [ ] if present
+                    cleaned = cleaned.replace(/^\[|\]$/g, "");
+
+                    // Convert to array
                     employeeIds = cleaned.split(",").map(e => parseInt(e.trim(), 10));
                 }
 
-                // Filter out NaN
-                employeeIds = employeeIds.filter(e => Number.isInteger(e));
+                // Keep only valid numbers
+                employeeIds = employeeIds.filter(Number.isInteger);
+
             } catch (err) {
                 return res.status(400).json({ status: false, error: "Invalid branch_employee format" });
             }
 
-            // Get old employees assigned to this branch
+            console.log("Parsed employeeIds:", employeeIds);
+
+            // Fetch old employee IDs for this branch
             const [oldEmpResults] = await db.promise().query(
                 "SELECT id FROM employees WHERE branch_id = ? AND company_id = ?",
                 [id, decodedUserData.company_id]
             );
             const oldEmployeeIds = oldEmpResults.map(row => row.id);
 
-            // Employees to remove
+            // Find employees to remove and to add
             const toRemove = oldEmployeeIds.filter(empId => !employeeIds.includes(empId));
-
-            // Employees to add
             const toAdd = employeeIds.filter(empId => !oldEmployeeIds.includes(empId));
 
             if (toRemove.length > 0) {
@@ -1464,6 +1473,7 @@ router.post("/BranchUpdate", async (req, res) => {
         });
     }
 });
+
 
 
 router.post("/BranchAdd", (req, res) => {
