@@ -1455,7 +1455,7 @@ router.post("/BranchUpdate", async (req, res) => {
 
             if (toRemove.length > 0) {
                 await db.promise().query(
-                    "UPDATE employees SET branch_id = NULL WHERE id IN (?) AND company_id = ?",
+                    "UPDATE employees SET branch_id = 0 WHERE id IN (?) AND company_id = ?",
                     [toRemove, decodedUserData.company_id]
                 );
             }
