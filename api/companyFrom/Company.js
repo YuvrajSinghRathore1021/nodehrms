@@ -1482,68 +1482,21 @@ router.get("/Branchfetch", (req, res) => {
 
 
 
-// router.post("/BranchUpdate", async (req, res) => {
-//     const { id, userData, name, latitude, longitude, radius, ip, ip_status, location_status, branch_employee } = req.body;
-
-//     // Decode userData
-//     let decodedUserData = null;
-
-//     if (userData) {
-//         try {
-//             const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-//             decodedUserData = JSON.parse(decodedString);
-//         } catch (error) {
-//             return res.status(400).json({ status: false, error: "Invalid userData" });
-//         }
-//     }
-
-//     if (!decodedUserData?.company_id) {
-//         return res.status(400).json({ status: false, error: "Company ID is missing or invalid" });
-//     }
-
-//     if (!id) {
-//         return res.status(400).json({ status: false, message: "ID is required to update branch." });
-//     }
-
-//     try {
-//         // 1. Update branch details
-//         const [updateResult] = await db.promise().query(
-//             `UPDATE branches 
-//              SET name=?, location_status=?, latitude=?, longitude=?, radius=?, ip=?, ip_status=? 
-//              WHERE id = ? AND company_id=?`,
-//             [name, location_status, latitude, longitude, radius, ip, ip_status, id, decodedUserData.company_id]
-//         );
-
-//         if (updateResult.affectedRows === 0) {
-//             return res.status(404).json({ status: false, message: "Branch not found or no changes made." });
-//         }
-//         return res.status(200).json({ status: true, message: "Branch updated successfully." });
-
-//     } catch (error) {
-//         console.error("Error in BranchUpdate:", error);
-//         return res.status(500).json({
-//             status: false,
-//             message: "Error updating branch.",
-//             error: error.message
-//         });
-//     }
-// });
-
-
-
-router.post("/BranchUpdate", (req, res) => {
+router.post("/BranchUpdate", async (req, res) => {
     const { id, userData, name, latitude, longitude, radius, ip, ip_status, location_status, branch_employee } = req.body;
 
-
+    // Decode userData
     let decodedUserData = null;
+
     if (userData) {
         try {
             const decodedString = Buffer.from(userData, "base64").toString("utf-8");
             decodedUserData = JSON.parse(decodedString);
         } catch (error) {
-            return res.status(200).json({ status: false, error: "Invalid UserData" });
+            return res.status(400).json({ status: false, error: "Invalid userData" });
         }
     }
+
     if (!decodedUserData?.company_id) {
         return res.status(400).json({ status: false, error: "Company ID is missing or invalid" });
     }
@@ -1552,36 +1505,85 @@ router.post("/BranchUpdate", (req, res) => {
         return res.status(400).json({ status: false, message: "ID is required to update branch." });
     }
 
-    const companyId = decodedUserData.id || company_id;
-    // Check if record exists before updating
-    const query = `UPDATE branches 
+    try {
+        // 1. Update branch details
+        const [updateResult] = await db.promise().query(
+            `UPDATE branches 
              SET name=?, location_status=?, latitude=?, longitude=?, radius=?, ip=?, ip_status=? 
-             WHERE id = ? AND company_id=?
-    `;
-    const values = [name, location_status, latitude, longitude, radius, ip, ip_status, id, decodedUserData.company_id];
-    db.query(query, values, (err, results) => {
-        if (err) {
-            console.error("SQL Error:", err);
-            return res.status(200).json({
-                status: false,
-                message: "Error updating leave record.",
-                error: err.message
-            });
+             WHERE id = ? AND company_id=?`,
+            [name, location_status, latitude, longitude, radius, ip, ip_status, id, decodedUserData.company_id]
+        );
+
+        if (updateResult.affectedRows === 0) {
+            return res.status(404).json({ status: false, message: "Branch not found or no changes made." });
         }
-        if (results.affectedRows === 0) {
-            return res.status(200).json({
-                status: false,
-                message:
-                    "No changes made. The data might be identical to the existing record."
-            });
-        }
-        res.status(200).json({
-            status: true,
-            message: "Data updated successfully.",
-            affectedRows: results.affectedRows
+        return res.status(200).json({ status: true, message: "Branch updated successfully." });
+
+    } catch (error) {
+        console.error("Error in BranchUpdate:", error);
+        return res.status(500).json({
+            status: false,
+            message: "Error updating branch.",
+            error: error.message
         });
-    });
+    }
 });
+
+
+
+
+
+// router.post("/BranchUpdate", (req, res) => {
+//     const { id, userData, name, latitude, longitude, radius, ip, ip_status, location_status, branch_employee } = req.body;
+
+
+//     let decodedUserData = null;
+//     if (userData) {
+//         try {
+//             const decodedString = Buffer.from(userData, "base64").toString("utf-8");
+//             decodedUserData = JSON.parse(decodedString);
+//         } catch (error) {
+//             return res.status(200).json({ status: false, error: "Invalid UserData" });
+//         }
+//     }
+//     if (!decodedUserData?.company_id) {
+//         return res.status(400).json({ status: false, error: "Company ID is missing or invalid" });
+//     }
+
+//     if (!id) {
+//         return res.status(400).json({ status: false, message: "ID is required to update branch." });
+//     }
+
+//     const companyId = decodedUserData.id || company_id;
+//     // Check if record exists before updating
+//     const query = `UPDATE branches 
+//              SET name=?, location_status=?, latitude=?, longitude=?, radius=?, ip=?, ip_status=? 
+//              WHERE id = ? AND company_id=?
+//     `;
+//     const values = [name, location_status, latitude, longitude, radius, ip, ip_status, id, decodedUserData.company_id];
+//     db.query(query, values, (err, results) => {
+//         if (err) {
+//             console.error("SQL Error:", err);
+//             return res.status(200).json({
+//                 status: false,
+//                 message: "Error updating leave record.",
+//                 error: err.message
+//             });
+//         }
+//         if (results.affectedRows === 0) {
+//             return res.status(200).json({
+//                 status: false,
+//                 message:
+//                     "No changes made. The data might be identical to the existing record."
+//             });
+//         }
+//         res.status(200).json({
+//             status: true,
+//             message: "Data updated successfully.",
+//             affectedRows: results.affectedRows
+//         });
+//     });
+// });
 
 router.post("/BranchAdd", (req, res) => {
     const { name, latitude, longitude, radius, userData, ip, ip_status, location_status } = req.body;
