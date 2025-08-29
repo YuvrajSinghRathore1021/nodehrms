@@ -1380,12 +1380,17 @@ router.post("/BranchUpdate", async (req, res) => {
 
     // Decode userData
     let decodedUserData = null;
-    try {
-        const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-        decodedUserData = JSON.parse(decodedString);
-    } catch (error) {
-        return res.status(400).json({ status: false, error: "Invalid userData" });
+    console.log(" userData:", req.body);
+    if (userData) {
+        try {
+            const decodedString = Buffer.from(userData, "base64").toString("utf-8");
+            decodedUserData = JSON.parse(decodedString);
+        } catch (error) {
+            return res.status(400).json({ status: false, error: "Invalid userData" });
+        }
     }
+    console.log("Decoded userData:", decodedUserData);
+
 
     if (!decodedUserData?.company_id) {
         return res.status(400).json({ status: false, error: "Company ID is missing or invalid" });
