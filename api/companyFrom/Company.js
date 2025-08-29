@@ -1381,6 +1381,7 @@ router.post("/BranchUpdate", async (req, res) => {
     // Decode userData
     let decodedUserData = null;
     console.log(" userData:", req.body);
+
     if (userData) {
         try {
             const decodedString = Buffer.from(userData, "base64").toString("utf-8");
