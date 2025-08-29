@@ -1232,14 +1232,15 @@ router.get('/api/PayDetails', async (req, res) => {
         //      LIMIT ? OFFSET ?`,
         //     [decodedUserData.company_id, searchQuery, searchQuery, parseInt(limit), (parseInt(page) - 1) * parseInt(limit)]
         // );
+
         const [totalEmployees] = await db.promise().query(
-            `SELECT e.id, e.first_name,e.date_of_Joining, e.work_week_id, e.date_of_Joining, e.last_day 
+            `SELECT e.id, concat(e.first_name,'',e.last_name,'-',e.employee_id) as first_name,e.date_of_Joining, e.work_week_id, e.date_of_Joining, e.last_day 
      FROM employees e
      WHERE e.employee_status = 1 
        AND e.status = 1 
        AND e.delete_status = 0 
        AND e.company_id = ?
-       AND (CAST(e.id AS CHAR) LIKE ? OR e.first_name LIKE ?)
+       AND (CAST(e.id AS CHAR) LIKE ? OR e.first_name LIKE ? OR e.last_name LIKE ? OR e.employee_id LIKE ?)
        AND NOT EXISTS (
            SELECT 1 
            FROM employeesalarydetails s 
@@ -1251,6 +1252,8 @@ router.get('/api/PayDetails', async (req, res) => {
      LIMIT ? OFFSET ?`,
             [
                 decodedUserData.company_id,
+                searchQuery,
+                searchQuery,
                 searchQuery,
                 searchQuery,
                 month,

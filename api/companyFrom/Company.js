@@ -1377,8 +1377,6 @@ router.post("/BranchUpdate", async (req, res) => {
 
     // Decode userData
     let decodedUserData = null;
-    console.log(" userData:", req.body);
-
     if (userData) {
         try {
             const decodedString = Buffer.from(userData, "base64").toString("utf-8");
@@ -1387,7 +1385,6 @@ router.post("/BranchUpdate", async (req, res) => {
             return res.status(400).json({ status: false, error: "Invalid userData" });
         }
     }
-    console.log("Decoded userData:", decodedUserData);
     if (!id) {
         return res.status(400).json({ status: false, message: "ID is required to update branch." });
     }

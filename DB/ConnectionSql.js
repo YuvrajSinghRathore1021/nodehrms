@@ -21,17 +21,19 @@ const db = mysql.createConnection({
     // host: 'localhost',
     // user: 'root',
     // password: '',
-    // // database: 'hrmsnewlive',
     // database: 'hrmslatest',
 
 
-    host: process.env.host || 'localhost',
-    user: process.env.user || 'hrmsadminnew',
-    password: process.env.password || '!Hrms@Admin!123@Latest!',
-    database: process.env.database || 'hrmsnewlatest',
+    // host: process.env.host || 'localhost',
+    // user: process.env.user || 'hrmsadminnew',
+    // password: process.env.password || '!Hrms@Admin!123@Latest!',
+    // database: process.env.database || 'hrmsnewlatest',
+    host: '13.204.128.230',
+    user: 'hrmsadminnew',
+    password: '!Hrms@Admin!123@Latest!',
+    database: 'hrmsnewlatest',
     port: 3306
 });
-
 
 db.connect(err => {
     if (err) {
@@ -43,3 +45,9 @@ db.connect(err => {
 
 // Export the connection
 module.exports = db;
+
+
+//  host: '13.204.128.230',
+//     user: 'hrmsadminnew',
+//     password: '!Hrms@Admin!123@Latest!',
+//     database: 'hrmsnewlatest'
