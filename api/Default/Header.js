@@ -209,18 +209,35 @@ router.post('/api/GetEmployeesProfile', async (req, res) => {
         const employeeId = CheckId || decodedUserData.id;
 
         // Fetch employee data
+        // db.query(
+        //     `SELECT profile_image, type, attendance_rules_id,branch_id , CONCAT_WS(' ', first_name, last_name) AS full_name, CONCAT_WS(' ', first_name, last_name) AS first_name,
+        //         email_id, official_email_id, face_detection,login_status
+        //     FROM employees 
+        //     WHERE employee_status = 1 
+        //       AND status = 1 
+        //       AND delete_status = 0 
+        //       AND id = ?`,
+        //     [employeeId],
         db.query(
             `SELECT 
-                profile_image, type, attendance_rules_id,
-                CONCAT_WS(' ', first_name, last_name) AS full_name,
-                  CONCAT_WS(' ', first_name, last_name) AS first_name,
-                email_id, official_email_id,
-                face_detection,login_status
-            FROM employees 
-            WHERE employee_status = 1 
-              AND status = 1 
-              AND delete_status = 0 
-              AND id = ?`,
+        e.profile_image, 
+        e.type, 
+        e.attendance_rules_id,
+        e.branch_id,
+        CONCAT_WS(' ', e.first_name, e.last_name) AS full_name,
+        CONCAT_WS(' ', e.first_name, e.last_name) AS first_name,
+        e.email_id, 
+        e.official_email_id,
+        e.face_detection,
+        e.login_status,
+        b.latitude,
+        b.longitude
+     FROM employees e
+     LEFT JOIN branches b ON e.branch_id = b.id AND b.company_id = e.company_id
+     WHERE e.employee_status = 1 
+       AND e.status = 1 
+       AND e.delete_status = 0 
+       AND e.id = ?`,
             [employeeId],
             (err, results) => {
                 if (err) {
@@ -294,8 +311,8 @@ router.post('/api/GetEmployeesProfile', async (req, res) => {
                             out_time: outIST,
                             half_day_time,
                             working_hours,
-                            latitude:'',
-                            longitude:''
+                            latitude: employee.latitude || '',
+                            longitude: employee.longitude || ''
                         });
                     }
                 );
