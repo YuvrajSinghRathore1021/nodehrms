@@ -1371,16 +1371,122 @@ router.get("/Branchfetch", (req, res) => {
 // });
 
 
+// router.post("/BranchUpdate", async (req, res) => {
+//     const { id, userData, name, latitude, longitude, radius, ip, ip_status, location_status, branch_employee } = req.body;
+
+//     if (!id) {
+//         return res.status(400).json({ status: false, message: "ID is required to update branch." });
+//     }
+
+//     // Decode userData
+//     let decodedUserData = null;
+//     console.log(" userData:", req.body);
+
+//     if (userData) {
+//         try {
+//             const decodedString = Buffer.from(userData, "base64").toString("utf-8");
+//             decodedUserData = JSON.parse(decodedString);
+//         } catch (error) {
+//             return res.status(400).json({ status: false, error: "Invalid userData" });
+//         }
+//     }
+//     console.log("Decoded userData:", decodedUserData);
+
+
+//     if (!decodedUserData?.company_id) {
+//         return res.status(400).json({ status: false, error: "Company ID is missing or invalid" });
+//     }
+
+//     try {
+//         // 1. Update branch details
+//         const [updateResult] = await db.promise().query(
+//             `UPDATE branches 
+//              SET name=?, location_status=?, latitude=?, longitude=?, radius=?, ip=?, ip_status=? 
+//              WHERE id = ? AND company_id=?`,
+//             [name, location_status, latitude, longitude, radius, ip, ip_status, id, decodedUserData.company_id]
+//         );
+
+//         if (updateResult.affectedRows === 0) {
+//             return res.status(404).json({ status: false, message: "Branch not found or no changes made." });
+//         }
+
+//         // 2. Handle branch employees
+//         if (branch_employee) {
+//             let employeeIds = [];
+
+//             try {
+//                 if (Array.isArray(branch_employee)) {
+//                     // Already an array [7,8,10]
+//                     employeeIds = branch_employee;
+//                 } else if (typeof branch_employee === "string") {
+//                     let cleaned = branch_employee.trim();
+
+//                     // Remove wrapping quotes if present
+//                     if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
+//                         cleaned = cleaned.slice(1, -1);
+//                     }
+
+//                     // Remove [ ] if present
+//                     cleaned = cleaned.replace(/^\[|\]$/g, "");
+
+//                     // Convert to array
+//                     employeeIds = cleaned.split(",").map(e => parseInt(e.trim(), 10));
+//                 }
+
+//                 // Keep only valid numbers
+//                 employeeIds = employeeIds.filter(Number.isInteger);
+
+//             } catch (err) {
+//                 return res.status(400).json({ status: false, error: "Invalid branch_employee format" });
+//             }
+
+//             console.log("Parsed employeeIds:", employeeIds);
+
+//             // Fetch old employee IDs for this branch
+//             const [oldEmpResults] = await db.promise().query(
+//                 "SELECT id FROM employees WHERE branch_id = ? AND company_id = ?",
+//                 [id, decodedUserData.company_id]
+//             );
+//             const oldEmployeeIds = oldEmpResults.map(row => row.id);
+
+//             // Find employees to remove and to add
+//             const toRemove = oldEmployeeIds.filter(empId => !employeeIds.includes(empId));
+//             const toAdd = employeeIds.filter(empId => !oldEmployeeIds.includes(empId));
+
+//             if (toRemove.length > 0) {
+//                 await db.promise().query(
+//                     "UPDATE employees SET branch_id = NULL WHERE id IN (?) AND company_id = ?",
+//                     [toRemove, decodedUserData.company_id]
+//                 );
+//             }
+
+//             if (toAdd.length > 0) {
+//                 await db.promise().query(
+//                     "UPDATE employees SET branch_id = ? WHERE id IN (?) AND company_id = ?",
+//                     [id, toAdd, decodedUserData.company_id]
+//                 );
+//             }
+//         }
+
+//         return res.status(200).json({ status: true, message: "Branch updated successfully." });
+
+//     } catch (error) {
+//         console.error("Error in BranchUpdate:", error);
+//         return res.status(500).json({
+//             status: false,
+//             message: "Error updating branch.",
+//             error: error.message
+//         });
+//     }
+// });
+
+
+
 router.post("/BranchUpdate", async (req, res) => {
     const { id, userData, name, latitude, longitude, radius, ip, ip_status, location_status, branch_employee } = req.body;
 
-    if (!id) {
-        return res.status(400).json({ status: false, message: "ID is required to update branch." });
-    }
-
     // Decode userData
     let decodedUserData = null;
-    console.log(" userData:", req.body);
 
     if (userData) {
         try {
@@ -1390,11 +1496,13 @@ router.post("/BranchUpdate", async (req, res) => {
             return res.status(400).json({ status: false, error: "Invalid userData" });
         }
     }
-    console.log("Decoded userData:", decodedUserData);
-
 
     if (!decodedUserData?.company_id) {
         return res.status(400).json({ status: false, error: "Company ID is missing or invalid" });
+    }
+
+    if (!id) {
+        return res.status(400).json({ status: false, message: "ID is required to update branch." });
     }
 
     try {
@@ -1409,65 +1517,6 @@ router.post("/BranchUpdate", async (req, res) => {
         if (updateResult.affectedRows === 0) {
             return res.status(404).json({ status: false, message: "Branch not found or no changes made." });
         }
-
-        // 2. Handle branch employees
-        if (branch_employee) {
-            let employeeIds = [];
-
-            try {
-                if (Array.isArray(branch_employee)) {
-                    // Already an array [7,8,10]
-                    employeeIds = branch_employee;
-                } else if (typeof branch_employee === "string") {
-                    let cleaned = branch_employee.trim();
-
-                    // Remove wrapping quotes if present
-                    if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
-                        cleaned = cleaned.slice(1, -1);
-                    }
-
-                    // Remove [ ] if present
-                    cleaned = cleaned.replace(/^\[|\]$/g, "");
-
-                    // Convert to array
-                    employeeIds = cleaned.split(",").map(e => parseInt(e.trim(), 10));
-                }
-
-                // Keep only valid numbers
-                employeeIds = employeeIds.filter(Number.isInteger);
-
-            } catch (err) {
-                return res.status(400).json({ status: false, error: "Invalid branch_employee format" });
-            }
-
-            console.log("Parsed employeeIds:", employeeIds);
-
-            // Fetch old employee IDs for this branch
-            const [oldEmpResults] = await db.promise().query(
-                "SELECT id FROM employees WHERE branch_id = ? AND company_id = ?",
-                [id, decodedUserData.company_id]
-            );
-            const oldEmployeeIds = oldEmpResults.map(row => row.id);
-
-            // Find employees to remove and to add
-            const toRemove = oldEmployeeIds.filter(empId => !employeeIds.includes(empId));
-            const toAdd = employeeIds.filter(empId => !oldEmployeeIds.includes(empId));
-
-            if (toRemove.length > 0) {
-                await db.promise().query(
-                    "UPDATE employees SET branch_id = NULL WHERE id IN (?) AND company_id = ?",
-                    [toRemove, decodedUserData.company_id]
-                );
-            }
-
-            if (toAdd.length > 0) {
-                await db.promise().query(
-                    "UPDATE employees SET branch_id = ? WHERE id IN (?) AND company_id = ?",
-                    [id, toAdd, decodedUserData.company_id]
-                );
-            }
-        }
-
         return res.status(200).json({ status: true, message: "Branch updated successfully." });
 
     } catch (error) {
@@ -1479,8 +1528,6 @@ router.post("/BranchUpdate", async (req, res) => {
         });
     }
 });
-
-
 
 router.post("/BranchAdd", (req, res) => {
     const { name, latitude, longitude, radius, userData, ip, ip_status, location_status } = req.body;
