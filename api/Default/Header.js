@@ -261,7 +261,7 @@ router.post('/api/GetEmployeesProfile', async (req, res) => {
                             const rule = ruleResults[0];
                             in_time = rule.in_time || in_time;
                             out_time = rule.out_time || out_time;
-                            half_day_time = rule.half_day || half_day;
+                            half_day_time = rule.half_day || half_day_time;
                             working_hours = rule.max_working_hours || working_hours;
                         }
                         const today = new Date();
@@ -293,8 +293,9 @@ router.post('/api/GetEmployeesProfile', async (req, res) => {
                             in_time: inIST,
                             out_time: outIST,
                             half_day_time,
-                            working_hours
-
+                            working_hours,
+                            latitude:'',
+                            longitude:''
                         });
                     }
                 );

@@ -336,7 +336,7 @@ router.post('/api/onboarding/update-dates', upload.single('file'), async (req, r
         const setClause = keys.map(k => `\`${k}\` = ?`).join(', ');
         const query = `UPDATE employees SET ${setClause} WHERE employee_id = ? AND company_id = ?`;
 
-       
+
 
         console.log(query)
         console.log(values)
@@ -372,6 +372,109 @@ router.post('/api/onboarding/update-dates', upload.single('file'), async (req, r
     res.json({ status: true, message: `${successCount} employees updated successfully` });
 });
 
+router.post('/api/onboarding/updateRM', upload.single('file'), async (req, res) => {
+    const { userData } = req.body;
+
+    // Decode userData
+    let decodedUserData = null;
+    if (userData) {
+        try {
+            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+            decodedUserData = JSON.parse(decodedString);
+        } catch (error) {
+            return res.status(400).json({ status: false, error: 'Invalid userData' });
+        }
+    }
+
+    if (!decodedUserData?.id || !decodedUserData?.company_id) {
+        return res.status(400).json({ status: false, error: 'Employee ID and company ID are required' });
+    }
+
+    const companyId = decodedUserData.company_id;
+
+    if (!req.file) return res.status(400).json({ status: false, message: 'No file uploaded' });
+
+    const filePath = path.resolve(req.file.path);
+    let sheetData = [];
+
+    try {
+        const workbook = xlsx.readFile(filePath);
+        const sheetName = workbook.SheetNames[0];
+        sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+    } catch (err) {
+        return res.status(500).json({ status: false, message: 'Error reading Excel file', error: err.message });
+    }
+
+    let successCount = 0;
+    let failed = [];
+
+    for (let row of sheetData) {
+        const empId = row.employee_id;
+        const rmEmployeeId = row.reporting_manager;
+
+        if (!empId || !rmEmployeeId) {
+            failed.push({ ...row, error: 'Missing employee_id or reporting_manager' });
+            continue;
+        }
+
+        // Prevent employee becoming their own RM
+        if (empId === rmEmployeeId) {
+            failed.push({ ...row, error: 'Employee cannot be their own RM' });
+            continue;
+        }
+
+        try {
+            // First fetch RM ID
+            const [rmRows] = await db.promise().query(
+                `SELECT id FROM employees WHERE company_id = ? AND employee_id = ?`,
+                [companyId, rmEmployeeId]
+            );
+
+            if (rmRows.length === 0) {
+                failed.push({ ...row, error: `Reporting Manager ${rmEmployeeId} not found` });
+                continue;
+            }
+
+            const rmId = rmRows[0].id;
+
+            // Update employee's RM
+            const [result] = await db.promise().query(
+                `UPDATE employees SET reporting_manager = ? WHERE company_id = ? AND employee_id = ?`,
+                [rmId, companyId, empId]
+            );
+
+            if (result.affectedRows > 0) {
+                successCount++;
+            } else {
+                failed.push({ ...row, error: 'Employee not found for update' });
+            }
+
+        } catch (err) {
+            failed.push({ ...row, error: err.sqlMessage || 'DB error' });
+        }
+    }
+
+    // Clean up uploaded file safely
+    fs.unlink(filePath, () => {});
+
+    // If there are failed rows, export them
+    if (failed.length > 0) {
+        const errorSheet = xlsx.utils.json_to_sheet(failed);
+        const wb = xlsx.utils.book_new();
+        xlsx.utils.book_append_sheet(wb, errorSheet, 'Errors');
+
+        const outputPath = `uploads/emponbord/update_errors_${Date.now()}.xlsx`;
+        xlsx.writeFile(wb, outputPath);
+
+        return res.status(200).json({
+            status: false,
+            message: `${successCount} employees updated, ${failed.length} failed`,
+            file: outputPath
+        });
+    }
+
+    res.json({ status: true, message: `${successCount} employees updated successfully` });
+});
 
 
 
