@@ -157,7 +157,6 @@ function actionFound(action) {
     } else if (action.rm_id > 0 && action.rm_status == 1 && action.admin_id > 0) {
         return `admin`;
     }
-
     //    rm 
     else if (action.rm_id > 0 && action.rm_status == 0 && action.admin_id == 0) {
         return `rm`;
@@ -171,7 +170,6 @@ function actionFound(action) {
     } else if (action.admin_status == 1 || action.admin_status == 2) {
         return `view`;
     }
-
     return ' ';
 }
 
