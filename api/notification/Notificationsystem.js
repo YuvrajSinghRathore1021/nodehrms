@@ -5,11 +5,10 @@ const mysql = require('mysql2');
 
 // DB Connection
 const db = mysql.createConnection({
-   host: process.env.host || 'localhost',
-    user: process.env.user || 'hrmsadmin',
-    password: process.env.password || 'Hrms@Admin123!',
-    database: process.env.database || 'hrmsnew',
-    port: 3306
+  // host: process.env.host || 'localhost',
+  // user: process.env.user || 'hrmsadmin',
+  // password: process.env.password || 'Hrms@Admin123!',
+  // database: process.env.database || 'hrmsnew'
 
   // host: process.env.host || 'localhost',
   // user: process.env.user || 'hrmsadminnew',
@@ -22,7 +21,12 @@ const db = mysql.createConnection({
   // user: 'root',
   // password: '',
   // database: 'hrmslatest',
-  
+
+  host: process.env.host || 'localhost',
+  user: process.env.user || 'hrmsadminnew',
+  password: process.env.password || '!Hrms@Admin!123@Latest!',
+  database: process.env.database || 'hrmsnewlatest'
+
 });
 
 // Send Notification
