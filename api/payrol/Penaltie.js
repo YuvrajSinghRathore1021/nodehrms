@@ -7,7 +7,7 @@ const db = require('../../DB/ConnectionSql');
 router.post('/penaltie/submit', async (req, res) => {
     try {
         const { userData, employee_id, month, penaltyCount, penaltyName, penaltyType, penalty_reason, remark, year, type } = req.body;
-        
+
         let penaltyValue = req.body.penaltyValue;
         if (penaltyValue == '' || penaltyValue == null || penaltyValue == undefined) {
             penaltyValue = 0;
