@@ -190,10 +190,8 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 router.post('/expensesAdd', upload.single('document'), async (req, res) => {
-    // 'advance_payment', 'expense', 'deduction'
     const { userData, expense_type, amount, reason, expense_date } = req.body;
 
-    // rm_id, admin_id
     let decodedUserData = null;
     if (userData) {
         try {
@@ -291,7 +289,7 @@ router.post('/RequestApprove', async (req, res) => {
     }
 
     // Basic validations
-    if (!employee_id || !expense_type || !amount ) {
+    if (!employee_id || !expense_type || !amount) {
         return res.status(400).json({ status: false, message: 'Missing required fields.' });
     }
 

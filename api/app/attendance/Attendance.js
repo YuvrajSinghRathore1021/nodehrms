@@ -330,7 +330,8 @@ function queryDb(query, params) {
 // new 
 router.post('/api/AttendanceReqSubmit', async (req, res) => {
 
-    const { userData, request_date, attendance_id, request_type, in_time, out_time, reason } = req.body;
+    const { userData, request_date, request_type, in_time, out_time, reason } = req.body;
+    let attendance_id = Number(req.body.attendance_id) || 0;
 
     if (!userData) {
         return res.status(400).json({ status: false, error: 'Missing userData', message: 'userData is required' });

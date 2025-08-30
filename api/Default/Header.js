@@ -218,8 +218,7 @@ router.post('/api/GetEmployeesProfile', async (req, res) => {
         //       AND delete_status = 0 
         //       AND id = ?`,
         //     [employeeId],
-        db.query(
-            `SELECT 
+        db.query(`SELECT 
         e.profile_image, 
         e.type, 
         e.attendance_rules_id,
