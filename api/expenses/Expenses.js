@@ -14,6 +14,7 @@ const uploadsDir = path.join(__dirname, '../../uploads/logo/');
 
 
 router.post('/api/getExpenses', async (req, res) => {
+
     const { userData, limit = 10, page = 1, search = '' } = req.body;
 
     let decodedUserData = null;
@@ -39,31 +40,12 @@ router.post('/api/getExpenses', async (req, res) => {
     const offset = (parsedPage - 1) * parsedLimit;
 
     let query = `
-    SELECT 
-        e.id,
-        e.employee_id,
-        e.expense_type,
-        e.amount,
-        e.reason,
-        e.expense_date,
-        e.document,
-        e.added_by,
-        e.rm_id,
-        e.admin_id,
-        e.rm_status,
-        e.admin_status,
-        e.rm_remark,
-        e.admin_remark,
-        e.status,
-        e.created_at,
-        e.updated_at,
+    SELECT e.id,e.employee_id,e.expense_type,e.amount,e.reason,e.expense_date,e.document,e.added_by,e.rm_id,e.admin_id,e.rm_status,e.admin_status,e.rm_remark,e.admin_remark,e.status,e.created_at,e.updated_at,
         e.payment_status,e.scheduled_pay_date,e.is_auto_release,e.payment_released_at,
-
         CONCAT(emp.first_name, ' ', emp.last_name) AS employee_name,
         CONCAT(rm.first_name, ' ', rm.last_name) AS rm_name,
         CONCAT(admin.first_name, ' ', admin.last_name) AS admin_name,
         CONCAT(added.first_name, ' ', added.last_name) AS added_by_name
-
     FROM expenses e
     LEFT JOIN employees emp ON e.employee_id = emp.id
     LEFT JOIN employees rm ON e.rm_id = rm.id
@@ -205,8 +187,11 @@ router.post('/expensesAdd', upload.single('document'), async (req, res) => {
         return res.status(400).json({ status: false, error: 'Employee ID and company ID are required' });
     }
     // uploads/expenses/
-    // const document = req.file ? req.file.filename : null;
-    const document = 'uploads/expenses/' + (req.file ? req.file.filename : null);
+    let document = "";
+    if (req.file) {
+        document = 'uploads/expenses/' + (req.file ? req.file.filename : null);
+    }
+
     let { employee_id } = req.body;
     employee_id = employee_id || decodedUserData.id;
     // Basic validations
@@ -370,7 +355,8 @@ router.post('/amountCount', async (req, res) => {
 
 // expenses edit 
 router.post('/expensesEdit', upload.single('document'), async (req, res) => {
-    const { userData, id, expense_type, amount, reason, expense_date, employee_id } = req.body;
+
+    const { userData, id, expense_type, amount, reason, expense_date } = req.body;
     let decodedUserData = null;
 
     if (userData) {
@@ -391,8 +377,12 @@ router.post('/expensesEdit', upload.single('document'), async (req, res) => {
     if (!id || !expense_type || !amount || !expense_date) {
         return res.status(400).json({ status: false, message: 'Missing required fields.' });
     }
+    let document = "";
+    if (req.file) {
+        document = 'uploads/expenses/' + (req.file ? req.file.filename : null);
+    }
 
-    const document = 'uploads/expenses/' + (req.file ? req.file.filename : null);
+
     try {
         // Check if the expense exists
         const [expenseResults] = await db.promise().query(
@@ -405,31 +395,16 @@ router.post('/expensesEdit', upload.single('document'), async (req, res) => {
         }
 
         // Update the expense
-        const updateQuery = `
-            UPDATE expenses 
-            SET 
-                expense_type = ?, 
-                amount = ?, 
-                reason = ?, 
-                expense_date = ?, 
-                document = ?, 
-                updated_at = NOW() 
-            WHERE id = ? AND company_id = ?
-        `;
+        const updateQuery = ` UPDATE expenses SET expense_type = ?, amount = ?, reason = ?, expense_date = ?, document = ?, updated_at = NOW() WHERE id = ? AND company_id = ? `;
 
         await db.promise().query(updateQuery, [
-            expense_type,
-            amount,
-            reason || '',
-            expense_date,
-            document,
-            id,
-            decodedUserData.company_id
+            expense_type, amount, reason || '', expense_date, document, id, decodedUserData.company_id
         ]);
-
+        console.log({ status: true, message: 'Expense updated successfully' })
         return res.status(200).json({ status: true, message: 'Expense updated successfully' });
 
     } catch (err) {
+        console.log(err)
         res.status(500).json({ status: false, message: 'Database error', error: err.message });
     }
 });

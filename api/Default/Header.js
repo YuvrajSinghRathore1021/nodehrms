@@ -230,7 +230,8 @@ router.post('/api/GetEmployeesProfile', async (req, res) => {
         e.face_detection,
         e.login_status,
         b.latitude,
-        b.longitude
+        b.longitude,
+        b.radius
      FROM employees e
      LEFT JOIN branches b ON e.branch_id = b.id AND b.company_id = e.company_id
      WHERE e.employee_status = 1 
@@ -300,7 +301,7 @@ router.post('/api/GetEmployeesProfile', async (req, res) => {
 
                         return res.status(200).json({
                             status: true,
-                            data: employee,
+                            // data: employee,
                             face_detection: employee.face_detection || 0,
                             message: 'Profile fetched successfully',
                             profile_image: employee.profile_image || '',
@@ -311,7 +312,9 @@ router.post('/api/GetEmployeesProfile', async (req, res) => {
                             half_day_time,
                             working_hours,
                             latitude: employee.latitude || '',
-                            longitude: employee.longitude || ''
+                            longitude: employee.longitude || '',
+                            brachSwitch: true,
+                            radius: employee.radius || 0
                         });
                     }
                 );

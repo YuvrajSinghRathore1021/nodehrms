@@ -240,7 +240,7 @@ const { json } = require("body-parser");
 //     });
 //   }
 // });
- 
+
 
 ////net test
 // router.post("/FetchLeaveCount", async (req, res) => {
@@ -382,6 +382,7 @@ const { json } = require("body-parser");
 
 
 ////// working code 
+
 router.post("/FetchLeaveCount", async (req, res) => {
   const { userData, employee_Id = 0 } = req.body;
 
@@ -410,12 +411,7 @@ router.post("/FetchLeaveCount", async (req, res) => {
 
   try {
     // ---- Step 1: Fetch employee joining date
-    const [empRows] = await db
-      .promise()
-      .query("SELECT date_of_Joining FROM employees WHERE id=? AND company_id=?", [
-        employeeId,
-        companyId
-      ]);
+    const [empRows] = await db.promise().query("SELECT date_of_Joining FROM employees WHERE id=? AND company_id=?", [employeeId, companyId]);
     if (!empRows.length) {
       return res.status(404).json({ status: false, message: "Employee not found" });
     }
@@ -445,12 +441,7 @@ router.post("/FetchLeaveCount", async (req, res) => {
     // Group pending leave days by rule
     const pendingDaysByRule = {};
     for (const lr of leaveRequests) {
-      const days = calculateLeaveDays(
-        lr.start_date,
-        lr.end_date,
-        lr.start_half,
-        lr.end_half
-      );
+      const days = calculateLeaveDays(lr.start_date, lr.end_date, lr.start_half, lr.end_half);
       pendingDaysByRule[lr.leave_rule_id] =
         (pendingDaysByRule[lr.leave_rule_id] || 0) + days;
     }

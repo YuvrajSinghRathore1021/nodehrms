@@ -1161,6 +1161,7 @@ router.post('/employee-hierarchyTeam', (req, res) => {
 //         }
 //     );
 // });
+
 router.get("/Branchfetch", (req, res) => {
     const limit = parseInt(req.query.limit, 10) || 10;
     const page = parseInt(req.query.page, 10) || 1;
@@ -1567,6 +1568,55 @@ router.post('/assign-manager', async (req, res) => {
     );
 });
 
+
+
+router.post("/branchName", (req, res) => {
+
+    const { userData } = req.body;
+    let decodedUserData = null;
+
+    if (userData) {
+        try {
+            const decodedString = Buffer.from(userData, "base64").toString("utf-8");
+            decodedUserData = JSON.parse(decodedString);
+        } catch (error) {
+            return res.status(400).json({ status: false, error: "Invalid userData" });
+        }
+    }
+
+    if (!decodedUserData.company_id) {
+        return res
+            .status(400)
+            .json({ status: false, error: "Company ID is missing or invalid" });
+    }
+
+    // Fetch branches with pagination
+    const branchesQuery = `SELECT id,name FROM branches WHERE company_id = ? and status=1 ORDER BY name ASC ;`;
+
+    db.query(branchesQuery, [decodedUserData.company_id], (err, branches) => {
+        if (err) {
+            console.error("Error fetching branches:", err);
+            return res.status(500).json({ status: false, error: "Server error" });
+        }
+
+        if (branches.length === 0) {
+            return res.json({ status: true, records: [], oldBranch: [] });
+        }
+
+        db.query('SELECT b.id,  b.name FROM branches as b INNER JOIN employees as e on b.id=e.branch_id WHERE e.company_id=? and e.id=?', [decodedUserData?.company_id, decodedUserData?.id], (err, oldBranch) => {
+            if (err) {
+                console.error("Error fetching branches:", err);
+                return res.status(500).json({ status: false, error: "Server error" });
+            }
+            res.json({
+                status: true,
+                records: branches,
+                oldBranch: oldBranch
+            });
+        });
+    });
+
+});
 
 // Export the router
 module.exports = router;
