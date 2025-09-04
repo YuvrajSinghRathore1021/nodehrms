@@ -375,13 +375,13 @@ app.use('/EmployeeLocation', authenticateToken, EmployeeLocationTracking);
 app.use('/Salary', authenticateToken, Salary);
 app.use('/Expenses', authenticateToken, Expenses);
 io.on("connection", (socket) => {
-    console.log("User connected:", socket.id);
+    // console.log("User connected:", socket.id);
     socket.on("join", (userId) => {
-        console.log("User joined room:", userId);    
+        // console.log("User joined room:", userId);
         socket.join(userId.toString());
     });
     socket.on("disconnect", () => {
-        console.log("User disconnected:", socket.id);
+        // console.log("User disconnected:", socket.id);
     });
 });
 

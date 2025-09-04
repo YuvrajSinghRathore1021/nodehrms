@@ -119,6 +119,7 @@ router.post('/AttendanceGet', (req, res) => {
                     error: err
                 });
             }
+
             // If no entry exists for today
             if (results.length === 0) {
                 return res.status(200).json({
@@ -721,15 +722,19 @@ router.get('/api/data', async (req, res) => {
             const leaveRecord = leaveResultsRequest.find(leave =>
                 date >= leave.start_date.split('T')[0] && date <= leave.end_date.split('T')[0]
             );
-
+            console.log(leaveResultsRequest);
             if (leaveRecord) {
-                if (leaveRecord.start_date.split('T')[0] === date && leaveRecord.start_half === "Second Half") {
-                    status = "Leave (Afternoon)";
-                } else if (leaveRecord.end_date.split('T')[0] === date && leaveRecord.end_half === "First Half") {
-                    status = "Leave (Forenoon)";
-                } else {
-                    status = "Leave";
-                }
+                // if (leaveRecord.start_date.split('T')[0] == date && leaveRecord.start_half == "Second Half") {
+                //     // status = "Leave (Afternoon)";
+                //     status = "Leave";
+                // } else if (leaveRecord.end_date.split('T')[0] == date && leaveRecord.end_half == "First Half") {
+                //     // status = "Leave (Forenoon)";
+                //     status = "Leave";
+                // } else {
+                //     status = "Leave";
+                // }
+
+                status = "Leave";
             } else {
                 const holiday = await checkHoliday(decodedUserData.company_id, date);
                 if (holiday.length > 0) {
@@ -843,10 +848,10 @@ router.post('/api/data', async (req, res) => {
             );
 
             if (leaveRecord) {
-                if (leaveRecord.start_date.split('T')[0] === date && leaveRecord.start_half === "Second Half") {
+                if (leaveRecord.start_date.split('T')[0] == date && leaveRecord.start_half == "Second Half") {
                     // status = "Leave (Afternoon)";
                     status = "Leave";
-                } else if (leaveRecord.end_date.split('T')[0] === date && leaveRecord.end_half === "First Half") {
+                } else if (leaveRecord.end_date.split('T')[0] == date && leaveRecord.end_half == "First Half") {
                     // status = "Leave (Forenoon)";
                     status = "Leave";
                 } else {
@@ -1014,6 +1019,17 @@ router.get('/api/attendance', async (req, res) => {
                 [employee.id, year, month]
             );
 
+
+            const monthStr = String(month).padStart(2, '0'); // ensures "08" instead of "8"
+            const monthStart = `${year}-${monthStr}-01`;
+            const monthEnd = `${year}-${monthStr}-${new Date(year, month, 0).getDate()}`;
+
+            const [leaveResultsRequest] = await db.promise().query(
+                `SELECT employee_id, start_date, end_date, start_half, end_half FROM leaves WHERE deletestatus = 0 AND status = 1 AND admin_status = 1 AND company_id = ?  AND employee_id = ?  
+     AND ((start_date BETWEEN ? AND ?)  OR  (end_date BETWEEN ? AND ?) OR  (start_date <= ? AND end_date >= ?))`,
+                [decodedUserData.company_id, employee.id, monthStart, monthEnd, monthStart, monthEnd, monthStart, monthEnd]
+            );
+
             const monthlyAttendanceLogs = [];
             const daysInMonth = new Date(year, month, 0).getDate();
 
@@ -1029,7 +1045,7 @@ router.get('/api/attendance', async (req, res) => {
                 const dayOfWeek = date.getDay();
                 const weekNumber = Math.ceil(dayNo / 7);
                 const dayKey = `${daysOfWeek[dayOfWeek]}${weekNumber}`;
-                console.log(dayKey);
+                // console.log(dayKey);
                 const isWeeklyOff = workWeekData && workWeekData[dayKey] === 3;
                 const isHoliday = holidays.has(date.toISOString().split('T')[0]);
 
@@ -1037,9 +1053,14 @@ router.get('/api/attendance', async (req, res) => {
                     const attDate = new Date(a.attendance_date);
                     return attDate.getDate() === dayNo && attDate.getMonth() === month - 1;
                 });
+                const formattedDate = new Date(date).toISOString().split("T")[0];
+                // converts "2025-08-01T00:00:00.000Z" → "2025-08-01"
 
+                const leaveRecord = leaveResultsRequest.find(leave =>
+                    formattedDate >= leave.start_date.split("T")[0] &&
+                    formattedDate <= leave.end_date.split("T")[0]
+                );
                 let status = '';
-
                 if (isWeeklyOff) {
                     status = 'WO';
                 } else if (isHoliday) {
@@ -1063,7 +1084,12 @@ router.get('/api/attendance', async (req, res) => {
                     } else if (attendance.status.toLowerCase() === 'absent') {
                         status = 'AP';
                     }
-                } else {
+                }
+                else if (leaveRecord) {
+                    status = "L";
+                }
+
+                else {
                     status = 'A';
                 }
 

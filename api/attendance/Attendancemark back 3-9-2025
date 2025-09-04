@@ -37,7 +37,7 @@ router.post('/Attendancemark', async (req, res) => {
         return res.status(400).json({ status: false, error: 'company_id, id, and type are required' });
     }
     try {
-        const employeeResults = await queryDb('SELECT attendance_rules_id,branch_id ,work_week_id FROM employees WHERE employee_status=1 and status=1 and delete_status=0 and  id = ? AND company_id = ?', [decodedUserData.id, decodedUserData.company_id]);
+        const employeeResults = await queryDb('SELECT attendance_rules_id,branch_id FROM employees WHERE employee_status=1 and status=1 and delete_status=0 and  id = ? AND company_id = ?', [decodedUserData.id, decodedUserData.company_id]);
         if (employeeResults.length === 0) {
             return res.status(500).json({ status: false, message: 'Employee not found' });
         }
@@ -64,7 +64,7 @@ router.post('/Attendancemark', async (req, res) => {
             }
         }
 
-        const rulesResults = await queryDb('SELECT in_time,out_time,max_working_hours,half_day FROM attendance_rules WHERE rule_id = ? AND company_id = ?', [employeeResults[0].attendance_rules_id, decodedUserData.company_id]);
+        const rulesResults = await queryDb('SELECT * FROM attendance_rules WHERE rule_id = ? AND company_id = ?', [employeeResults[0].attendance_rules_id, decodedUserData.company_id]);
         const rule = rulesResults.length > 0 ? rulesResults[0] : { in_time: '09:30', out_time: '18:30' };
 
         let dailyStatus = '';
@@ -82,7 +82,7 @@ router.post('/Attendancemark', async (req, res) => {
                 dailyStatus = 'On Time';
                 timeCount = '00:00';
             }
-            const attendanceResults = await queryDb('SELECT attendance_id FROM attendance WHERE employee_id = ? AND company_id = ? AND attendance_date = CURDATE()', [decodedUserData.id, decodedUserData.company_id]);
+            const attendanceResults = await queryDb('SELECT * FROM attendance WHERE employee_id = ? AND company_id = ? AND attendance_date = CURDATE()', [decodedUserData.id, decodedUserData.company_id]);
             if (attendanceResults.length > 0) {
                 return res.status(400).json({ status: false, message: 'Attendance for today is already marked as in.' });
             }
@@ -91,12 +91,11 @@ router.post('/Attendancemark', async (req, res) => {
             return res.status(200).json({ status: true, message: `Attendance marked as 'in' at ${formattedTime}.` });
 
         } else if (type === 'out') {
-            const checkInResults = await queryDb('SELECT attendance_id,check_in_time,attendance_date FROM attendance WHERE employee_id = ? AND company_id = ? AND attendance_date = CURDATE()', [decodedUserData.id, decodedUserData.company_id]);
+            const checkInResults = await queryDb('SELECT attendance_id,check_in_time FROM attendance WHERE employee_id = ? AND company_id = ? AND attendance_date = CURDATE()', [decodedUserData.id, decodedUserData.company_id]);
             if (checkInResults.length === 0) {
                 return res.status(400).json({ status: false, message: 'No check-in found for today. Please check in first.' });
             }
             const checkInTime = checkInResults[0].check_in_time;
-            const attendanceDate = checkInResults[0].attendance_date;
             let duration = '00:00';
             // Calculate total break duration --start
             let breakDurationMillis = 0;
@@ -109,7 +108,7 @@ router.post('/Attendancemark', async (req, res) => {
                         'SELECT start_time, end_time FROM break_logs WHERE attendance_id = ? AND start_time IS NOT NULL AND end_time IS NOT NULL',
                         [attendanceId]
                     );
-
+                    console.log("Fetched break logs:", breakLogs);
 
                     // Check if any active break is still running
                     const activeBreak = await queryDb(
@@ -160,7 +159,6 @@ router.post('/Attendancemark', async (req, res) => {
                 attendanceStatus = 0;
             }
 
-
             if (numericDuration >= halfDayHours && numericDuration <= halfDayHours + 0.5) {
                 attendanceStatus = 1;
                 statusValue = 'half-day';
@@ -168,44 +166,6 @@ router.post('/Attendancemark', async (req, res) => {
 
             if (numericDuration >= maxWorkingHours) {
                 attendanceStatus = 1;
-            }
-            if (attendanceStatus == 0 || (attendanceStatus == 1 && statusValue == "half-day")) {
-
-                const dayOfWeek = attendanceDate.getDay();
-                const weekNumber = Math.ceil(attendanceDate.getDate() / 7);
-
-                const daysOfWeek = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
-                const dayKey = `${daysOfWeek[dayOfWeek]}${weekNumber}`;
-
-                // Whitelist allowed column names (safety check)
-                const allowedColumns = [
-                    "mon1", "tue1", "wed1", "thu1", "fri1", "sat1", "sun1",
-                    "mon2", "tue2", "wed2", "thu2", "fri2", "sat2", "sun2",
-                    "mon3", "tue3", "wed3", "thu3", "fri3", "sat3", "sun3",
-                    "mon4", "tue4", "wed4", "thu4", "fri4", "sat4", "sun4",
-                    "mon5", "tue5", "wed5", "thu5", "fri5", "sat5", "sun5"
-                ];
-
-                if (!allowedColumns.includes(dayKey)) {
-                    throw new Error("Invalid dayKey detected");
-                }
-
-                // Build query with validated column name
-                const [workWeekResult] = await db.promise().query(
-                    `SELECT \`${dayKey}\` AS dayValue FROM work_week WHERE id = ? AND company_id = ?`,
-                    [employee.work_week_id, decodedUserData.company_id]
-                );
-
-                if (workWeekResult.length > 0) {
-                    const isWeeklyOff = workWeekResult[0].dayValue == 2;
-
-                    if (isWeeklyOff) {
-                        if (numericDuration <= halfDayHours) {
-                            attendanceStatus = 1;
-                            statusValue = "Present";
-                        }
-                    }
-                }
             }
 
             if (outTimeFormatted > formattedTime) {
@@ -307,6 +267,53 @@ const calculateDurationCheck = (startTime, endTime) => {
     const minutes = totalMinutes % 60;
     return `${hours} hour ${minutes} minute`;
 };
+
+// const calculateDuration = (startTime, endTime, breakDurationMillis = 0) => {
+//     try {
+//         let totalDurationMillis = 0;
+
+//         // Parse start and end times
+//         const start = new Date(`1970-01-01T${startTime}`);
+//         const end = new Date(`1970-01-01T${endTime}`);
+
+//         // Calculate the total working duration (excluding breaks)
+//         totalDurationMillis = end - start - breakDurationMillis;
+
+//         // Convert total duration to hours and minutes
+//         const totalMinutes = Math.floor(totalDurationMillis / 60000);
+//         const hours = Math.floor(totalMinutes / 60);
+//         const minutes = totalMinutes % 60;
+
+//         return `${hours} hour ${minutes} minute`;
+//     } catch (error) {
+//         throw new Error('Failed to calculate duration');
+//     }
+// };
+
+
+
+// const calculateDuration = (startTime, endTime, breakDurationMillis = 0) => {
+//     return new Promise((resolve, reject) => {
+//         try {
+//             const start = new Date(`1970-01-01T${startTime}`);
+//             const end = new Date(`1970-01-01T${endTime}`);
+
+//             if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+//                 return reject(new Error('Invalid start or end time'));
+//             }
+
+//             const totalDurationMillis = end - start - breakDurationMillis;
+//             const totalMinutes = Math.floor(totalDurationMillis / 60000);
+//             const hours = Math.floor(totalMinutes / 60);
+//             const minutes = totalMinutes % 60;
+
+//             resolve(`${hours} hour ${minutes} minute`);
+//         } catch (error) {
+//             console.error("Duration calculation error:", error.message);
+//             reject(new Error('Error calculating duration'));
+//         }
+//     });
+// };
 
 
 const calculateDuration = (startTime, endTime, breakDurationMillis = 0) => {
