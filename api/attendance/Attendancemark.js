@@ -169,31 +169,23 @@ router.post('/Attendancemark', async (req, res) => {
             if (numericDuration >= maxWorkingHours) {
                 attendanceStatus = 1;
             }
+
             if (attendanceStatus == 0 || (attendanceStatus == 1 && statusValue == "half-day")) {
 
-                const dayOfWeek = attendanceDate.getDay();
-                const weekNumber = Math.ceil(attendanceDate.getDate() / 7);
+                const dateObj = new Date(attendanceDate);
+                const dayOfWeek = dateObj.getDay();
+
+                const weekNumber = Math.ceil(dateObj.getDate() / 7);
 
                 const daysOfWeek = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
                 const dayKey = `${daysOfWeek[dayOfWeek]}${weekNumber}`;
 
-                // Whitelist allowed column names (safety check)
-                const allowedColumns = [
-                    "mon1", "tue1", "wed1", "thu1", "fri1", "sat1", "sun1",
-                    "mon2", "tue2", "wed2", "thu2", "fri2", "sat2", "sun2",
-                    "mon3", "tue3", "wed3", "thu3", "fri3", "sat3", "sun3",
-                    "mon4", "tue4", "wed4", "thu4", "fri4", "sat4", "sun4",
-                    "mon5", "tue5", "wed5", "thu5", "fri5", "sat5", "sun5"
-                ];
+                //// Whitelist allowed column names (safety check)
+                let query = `SELECT \`${dayKey}\` AS dayValue FROM work_week WHERE id = ? AND company_id = ?`;
 
-                if (!allowedColumns.includes(dayKey)) {
-                    throw new Error("Invalid dayKey detected");
-                }
-
-                // Build query with validated column name
-                const [workWeekResult] = await db.promise().query(
-                    `SELECT \`${dayKey}\` AS dayValue FROM work_week WHERE id = ? AND company_id = ?`,
-                    [employee.work_week_id, decodedUserData.company_id]
+                const workWeekResult = await queryDb(
+                    query,
+                    [employeeResults[0].work_week_id, decodedUserData.company_id]
                 );
 
                 if (workWeekResult.length > 0) {

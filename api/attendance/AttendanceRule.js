@@ -14,24 +14,26 @@ router.post('/api/attendancerulesEdit', async (req, res) => {
         in_time,
         out_time,
         max_working_hours,
-        in_grace_period_minutes,
-        out_grace_period_minutes,
         half_day,
         total_break_duration,
         overtime_rate,
         max_overtime_hours,
-        leave_approval_required, rule_id,
-        late_coming_allowed_days,
-        late_coming_penalty_type,
-        early_leaving_allowed_days,
-        early_leaving_penalty_type
+        leave_approval_required,
+        rule_id
+
+
     } = req.body;
     // ,penalty_rule_applied,late_coming_penalty,early_leaving_penalty
     let penalty_rule_applied = req.body.penalty_rule_applied == true || req.body.penalty_rule_applied == "true" ? 1 : 0;
     let sandwich_leave_applied = req.body.sandwich_leave_applied == true || req.body.sandwich_leave_applied == "true" ? 1 : 0;
     let late_coming_penalty = req.body.late_coming_penalty == true || req.body.late_coming_penalty == "true" ? 1 : 0;
     let early_leaving_penalty = req.body.early_leaving_penalty == true || req.body.early_leaving_penalty == "true" ? 1 : 0;
-
+    let in_grace_period_minutes = req.body.in_grace_period_minutes == 'null' || req.body.in_grace_period_minutes == '' ? 0 : req.body.in_grace_period_minutes;
+    let out_grace_period_minutes = req.body.out_grace_period_minutes == 'null' || req.body.out_grace_period_minutes == '' ? 0 : req.body.out_grace_period_minutes;
+    let late_coming_allowed_days = req.body.late_coming_allowed_days == 'null' || req.body.late_coming_allowed_days == '' ? 0 : req.body.late_coming_allowed_days;
+    let late_coming_penalty_type = req.body.late_coming_penalty_type == 'null' || req.body.late_coming_penalty_type == '' ? 'half-day' : req.body.late_coming_penalty_type;
+    let early_leaving_penalty_type = req.body.early_leaving_penalty_type == 'null' || req.body.early_leaving_penalty_type == '' ? 'half-day' : req.body.early_leaving_penalty_type;
+    let early_leaving_allowed_days = req.body.early_leaving_allowed_days == 'null' || req.body.early_leaving_allowed_days == '' ? 0 : req.body.early_leaving_allowed_days;
 
     let decodedUserData = null;
 
