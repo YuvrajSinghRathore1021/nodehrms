@@ -1067,7 +1067,7 @@ router.get('/api/attendance', async (req, res) => {
                         status = 'P';
                         const checkInTime = new Date(`1970-01-01T${attendance.check_in_time}Z`);
                         const checkOutTime = attendance.check_out_time ? new Date(`1970-01-01T${attendance.check_out_time}Z`) : null;
-                        if (checkInTime && checkOutTime && approval_status != 1 && attendance_status != 1) {
+                        if (checkInTime && checkOutTime && attendance.approval_status != 1 && attendance.attendance_status != 1) {
                             const workDuration = (checkOutTime - checkInTime) / (1000 * 60);
                             if (workDuration < 510) {
                                 status = '-WD';
