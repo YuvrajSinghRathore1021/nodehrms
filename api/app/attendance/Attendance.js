@@ -424,117 +424,6 @@ router.post('/api/AttendancePending', async (req, res) => {
         return res.status(400).json({ status: false, message: 'End date cannot be greater than today.' });
     }
     if (decodedUserData.id == EmployeeId) {
-        // try {
-        //     const start = new Date(startDate);
-        //     const end = new Date(endDate);
-
-        //     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-        //         return res.status(400).json({ status: false, message: 'Invalid startDate or endDate format. Expected YYYY-MM-DD.' });
-        //     }
-
-        //     let empsql = `SELECT id, CONCAT(first_name,' ', last_name) As first_name, employee_id FROM employees WHERE employee_status=1 and status=1 and delete_status=0 and id=? AND company_id=?`;
-        //     let EmpArrayValue = [EmployeeId, decodedUserData.company_id];
-
-        //     if (searchData) {
-        //         empsql += ` AND first_name LIKE ?`;
-        //         EmpArrayValue.push(`%${searchData}%`);
-        //     }
-
-        //     // Fetch employees
-        //     const [empResults] = await db.promise().query(empsql, EmpArrayValue);
-        //     if (empResults.length === 0) {
-        //         return res.status(200).json({ status: false, message: 'Employees not found' });
-        //     }
-
-        //     // Fetch holidays
-        //     const [holidayResults] = await db.promise().query(
-        //         `SELECT date FROM holiday WHERE company_id=? And status = 1 AND date BETWEEN ? AND ?`,
-        //         [decodedUserData.company_id, startDate, endDate]
-        //     );
-        //     const holidays = new Set(holidayResults.map(holiday => new Date(holiday.date).toISOString().split('T')[0]));
-
-        //     // Fetch work week data
-        //     const [workWeekData] = await db.promise().query(
-        //         `SELECT * FROM work_week WHERE id = (
-        //         SELECT work_week_id FROM employees WHERE employee_status=1 and status=1 and delete_status=0 and id = ? AND company_id = ?
-        //     )`,
-        //         [EmployeeId, decodedUserData.company_id]
-        //     );
-
-        //     const workWeek = workWeekData.length > 0 ? workWeekData[0] : null;
-        //     const daysOfWeek = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-
-        //     // Fetch attendance logs for the date range
-        //     const monthlyAttendanceLogs = [];
-        //     for (const employee of empResults) {
-        //         const [attendanceResults] = await db.promise().query(
-        //             `SELECT attendance_id, status,request_id, check_in_time, check_out_time, attendance_date, duration,attendance_status
-        //          FROM attendance WHERE employee_id = ? AND attendance_date BETWEEN ? AND ?`,
-        //             [employee.id, startDate, endDate]
-        //         );
-        //         const [attendanceApprovalRequests] = await db.promise().query(
-        //             `SELECT id, request_date,in_time, out_time
-        //          FROM attendance_requests
-        //          WHERE company_id=? AND employee_id = ? AND request_date BETWEEN ? AND ?`,
-        //             [decodedUserData.company_id, employee.id, startDate, endDate]
-        //         );
-
-        //         const startDateObj = new Date(startDate);
-        //         const endDateObj = new Date(endDate);
-
-        //         for (let currentDate = startDateObj; currentDate <= endDateObj; currentDate.setDate(currentDate.getDate() + 1)) {
-        //             const formattedDate = currentDate.toISOString().split('T')[0];
-        //             const dayOfWeek = currentDate.getDay(); // Get day index (0 = Sunday, ..., 6 = Saturday)
-        //             const weekNumber = Math.ceil(currentDate.getDate() / 7); // Determine the week number (1 to 5)
-        //             const dayKey = `${daysOfWeek[dayOfWeek]}${weekNumber}`;
-
-        //             const isWeeklyOff = workWeek && workWeek[dayKey] === 3;
-
-        //             const attendance = attendanceResults.find(a => new Date(a.attendance_date).toISOString().split('T')[0] === formattedDate);
-        //             const ApprovalRequests = attendanceApprovalRequests.find(b => new Date(b.request_date).toISOString().split('T')[0] === formattedDate);
-
-        //             const isHoliday = holidays.has(formattedDate);
-        //             const inTime = attendance ? attendance.check_in_time : ApprovalRequests ? ApprovalRequests.in_time : '';
-        //             const request_id = attendance ? attendance.request_id : 0;
-        //             const attendance_date = attendance ? attendance.attendance_date : '';
-        //             const outTime = attendance ? attendance.check_out_time : ApprovalRequests ? ApprovalRequests.out_time : '';
-        //             const duration = attendance ? attendance.duration : '';
-        //             const attendance_id = attendance ? attendance.attendance_id : '';
-        //             const ApprovalRequests_id = ApprovalRequests ? ApprovalRequests.id : '';
-
-        //             let status = isHoliday ? 'H' : isWeeklyOff ? 'WO' : attendance ? attendance.status : 'A';
-        //             let attendance_statusCheck = attendance ? attendance.attendance_status : 0;
-        //             const PendingFor = await PendingForFunction(ApprovalRequests_id);
-
-        //             if (status != 'WO' && status != 'H' && attendance_statusCheck != 1 && request_id == 0) {
-        //                 monthlyAttendanceLogs.push({
-        //                     name: employee.first_name,
-        //                     userId: employee.employee_id,
-        //                     Id: employee.id,
-        //                     date: formattedDate,
-        //                     status: status,
-        //                     in_time: inTime,
-        //                     out_time: outTime,
-        //                     duration: duration,
-        //                     attendance_id: attendance_id,
-        //                     ApprovalRequests_id: ApprovalRequests_id,
-        //                     attendance_date: attendance_date,
-        //                     PendingFor: PendingFor,
-        //                     usertype: 'employee'
-        //                 });
-        //             }
-        //         }
-        //     }
-        //     res.json({
-        //         status: true,
-        //         ApprovalLog: monthlyAttendanceLogs,
-        //         message: 'Data Found',
-        //     });
-        // } catch (err) {
-        //     res.status(500).json({ status: false, message: 'An error occurred while fetching attendance data', error: err.message });
-        // }
-
-
 
         try {
             const start = new Date(startDate);
@@ -634,12 +523,14 @@ router.post('/api/AttendancePending', async (req, res) => {
                     const rm_id = ApprovalRequests ? ApprovalRequests.rm_id : '';
                     const admin_id = ApprovalRequests ? ApprovalRequests.admin_id : '';
                     const admin_status = ApprovalRequests ? ApprovalRequests.admin_status : '';
-                    let status = isHoliday ? 'H' : isWeeklyOff ? 'WO' : attendance ? attendance.status : 'A';
+                    // let status = isHoliday ? 'H' : isWeeklyOff ? 'WO' : attendance ? attendance.status : 'A';
+                    let status = attendance.status ? attendance.status : isHoliday ? 'H' : isWeeklyOff ? 'WO' : 'A';
                     let attendance_statusCheck = attendance ? attendance.attendance_status : 0;
                     const PendingFor = await PendingForFunction(ApprovalRequests_id);
-
                     // ✅ Only push pending data if NOT holiday, NOT weekly off, NOT approved leave
+
                     if (status !== 'WO' && status !== 'H' && !isLeave && attendance_statusCheck !== 1 && request_id === 0) {
+                        console.log(1);
                         monthlyAttendanceLogs.push({
                             name: employee.first_name,
                             userId: employee.employee_id,
@@ -656,6 +547,25 @@ router.post('/api/AttendancePending', async (req, res) => {
                             PendingFor: PendingFor,
                             usertype: 'employee'
                         });
+                    } else {
+                        if (attendance_statusCheck == 0 && request_id == 0 && status == 'Present' && (status == 'WO' || status == 'H')) {
+                            monthlyAttendanceLogs.push({
+                                name: employee.first_name,
+                                userId: employee.employee_id,
+                                Id: employee.id,
+                                date: formattedDate,
+                                status: status,
+                                in_time: inTime,
+                                rm_status: rm_status, rm_id: rm_id, admin_id: admin_id, admin_status: admin_status,
+                                out_time: outTime,
+                                duration: duration,
+                                attendance_id: attendance_id,
+                                ApprovalRequests_id: ApprovalRequests_id,
+                                attendance_date: attendance_date,
+                                PendingFor: PendingFor,
+                                usertype: 'employee'
+                            });
+                        }
                     }
                 }
             }

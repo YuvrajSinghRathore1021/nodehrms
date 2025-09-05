@@ -160,7 +160,6 @@ router.post('/Attendancemark', async (req, res) => {
                 attendanceStatus = 0;
             }
 
-
             if (numericDuration >= halfDayHours && numericDuration <= halfDayHours + 0.5) {
                 attendanceStatus = 1;
                 statusValue = 'half-day';
@@ -171,7 +170,6 @@ router.post('/Attendancemark', async (req, res) => {
             }
 
             if (attendanceStatus == 0 || (attendanceStatus == 1 && statusValue == "half-day")) {
-
                 const dateObj = new Date(attendanceDate);
                 const dayOfWeek = dateObj.getDay();
 

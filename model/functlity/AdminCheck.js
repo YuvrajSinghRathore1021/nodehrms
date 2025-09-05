@@ -36,7 +36,7 @@ function RmIdCheck(id, company_id) {
             }
             // results=[ ]
 
-            if (results.length === 0) {
+            if (results?.length === 0) {
                 resolve(true);
             } else {
                 resolve(true);
