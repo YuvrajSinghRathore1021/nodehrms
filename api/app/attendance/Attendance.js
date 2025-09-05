@@ -524,7 +524,7 @@ router.post('/api/AttendancePending', async (req, res) => {
                     const admin_id = ApprovalRequests ? ApprovalRequests.admin_id : '';
                     const admin_status = ApprovalRequests ? ApprovalRequests.admin_status : '';
                     // let status = isHoliday ? 'H' : isWeeklyOff ? 'WO' : attendance ? attendance.status : 'A';
-                    let status = attendance.status ? attendance.status : isHoliday ? 'H' : isWeeklyOff ? 'WO' : 'A';
+                    let status = attendance?.status ? attendance?.status : isHoliday ? 'H' : isWeeklyOff ? 'WO' : 'A';
                     let attendance_statusCheck = attendance ? attendance.attendance_status : 0;
                     const PendingFor = await PendingForFunction(ApprovalRequests_id);
                     // ✅ Only push pending data if NOT holiday, NOT weekly off, NOT approved leave
