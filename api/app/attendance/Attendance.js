@@ -530,7 +530,6 @@ router.post('/api/AttendancePending', async (req, res) => {
                     // ✅ Only push pending data if NOT holiday, NOT weekly off, NOT approved leave
 
                     if (status !== 'WO' && status !== 'H' && !isLeave && attendance_statusCheck !== 1 && request_id === 0) {
-                        console.log(1);
                         monthlyAttendanceLogs.push({
                             name: employee.first_name,
                             userId: employee.employee_id,

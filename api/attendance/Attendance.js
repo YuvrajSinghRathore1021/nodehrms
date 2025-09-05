@@ -89,9 +89,6 @@ router.post('/Attendancemark', async (req, res) => {
     }
 });
 
-
-
-
 router.post('/AttendanceGet', (req, res) => {
 
     const { userData } = req.body;
@@ -1013,7 +1010,7 @@ router.get('/api/attendance', async (req, res) => {
             const workWeekData = WorkWeek.length > 0 ? WorkWeek[0] : null;
 
             const [attendanceResults] = await db.promise().query(`
-                SELECT status, check_in_time, check_out_time, attendance_date
+                SELECT status, check_in_time, check_out_time, attendance_date,approval_status,attendance_status
                 FROM attendance
                 WHERE employee_id = ? AND YEAR(attendance_date) = ? AND MONTH(attendance_date) = ?`,
                 [employee.id, year, month]
@@ -1070,7 +1067,7 @@ router.get('/api/attendance', async (req, res) => {
                         status = 'P';
                         const checkInTime = new Date(`1970-01-01T${attendance.check_in_time}Z`);
                         const checkOutTime = attendance.check_out_time ? new Date(`1970-01-01T${attendance.check_out_time}Z`) : null;
-                        if (checkInTime && checkOutTime) {
+                        if (checkInTime && checkOutTime && approval_status != 1 && attendance_status != 1) {
                             const workDuration = (checkOutTime - checkInTime) / (1000 * 60);
                             if (workDuration < 510) {
                                 status = '-WD';
