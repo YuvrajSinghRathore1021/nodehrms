@@ -89,106 +89,159 @@ router.post('/Attendancemark', async (req, res) => {
     }
 });
 
-router.post('/AttendanceGet', (req, res) => {
+// router.post('/AttendanceGet', (req, res) => {
 
+//     const { userData } = req.body;
+
+//     let decodedUserData = null;
+//     if (userData) {
+//         try {
+//             const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+//             decodedUserData = JSON.parse(decodedString);
+//         } catch (error) {
+//             return res.status(400).json({ status: false, error: 'Invalid userData' });
+//         }
+//     }
+//     if (!decodedUserData || !decodedUserData.company_id || !decodedUserData.id) {
+//         return res.status(400).json({ status: false, error: 'company_id, id are required' });
+//     }
+
+//     db.query('SELECT attendance_id,check_in_time,created,check_out_time,duration FROM attendance WHERE employee_id = ? AND attendance_date = CURDATE()',
+//         [decodedUserData.id],
+//         (err, results) => {
+//             if (err) {
+//                 return res.status(500).json({
+//                     status: false,
+//                     message: 'Database error.',
+//                     error: err
+//                 });
+//             }
+
+//             // If no entry exists for today
+//             if (results.length === 0) {
+//                 return res.status(200).json({
+//                     status: false,
+//                     message: 'No check-in record found for today.'
+//                 });
+//             }
+
+//             const checkInTime = results[0].created;
+//             const check_out_time = results[0].check_out_time;
+//             const check_in_time = results[0].check_in_time;
+//             const duration = results[0].duration;
+//             const attendance_id = results[0].attendance_id;
+
+//             db.query(`SELECT start_time, end_time FROM break_logs WHERE attendance_id = ? and (end_time IS  NULL or end_time ='00:00:00') ORDER by break_id DESC LIMIT 1`,
+//                 [results[0].attendance_id],
+//                 (err, resultsData) => {
+//                     if (err) {
+//                         return res.status(500).json({
+//                             status: false,
+//                             message: 'Database error.',
+//                             error: err
+//                         });
+//                     }
+
+//                     // If no entry exists for today
+//                     if (resultsData.length === 0) {
+//                         return res.status(200).json({
+//                             status: true,
+//                             message: 'Check-in time retrieved successfully.',
+//                             InTime: checkInTime,
+//                             check_in_time: check_in_time,
+//                             attendance_id: attendance_id,
+//                             check_out_time: check_out_time,
+//                             duration: duration,
+//                             Breakstart_time: '',
+//                             Breakend_time: ''
+//                         });
+
+//                     } else {
+//                         const Breakend = resultsData[0].end_time;
+//                         let BreakendValue = resultsData[0].end_time;
+//                         if (Breakend == '00:00:00') {
+//                             BreakendValue = "";
+//                         } else {
+//                             BreakendValue = resultsData[0].end_time;
+//                         }
+//                         return res.status(200).json({
+//                             status: true,
+//                             message: 'Check-in time retrieved successfully.',
+//                             InTime: checkInTime,
+//                             check_in_time: check_in_time,
+//                             attendance_id: attendance_id,
+//                             check_out_time: check_out_time,
+//                             duration: duration,
+//                             data: resultsData,
+//                             Breakstart_time: resultsData[0].start_time,
+//                             Breakend_time: BreakendValue
+//                         });
+//                     }
+//                 });
+//         });
+// });
+
+
+
+router.post('/AttendanceGet', (req, res) => {
     const { userData } = req.body;
 
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
+    let decodedUserData;
+    try {
+        if (!userData) throw new Error("Missing userData");
+        decodedUserData = JSON.parse(Buffer.from(userData, 'base64').toString('utf-8'));
+    } catch (error) {
+        return res.status(400).json({ status: false, error: 'Invalid userData' });
     }
-    if (!decodedUserData || !decodedUserData.company_id || !decodedUserData.id) {
+
+    const { company_id, id: employee_id } = decodedUserData || {};
+    if (!company_id || !employee_id) {
         return res.status(400).json({ status: false, error: 'company_id, id are required' });
     }
 
-    db.query('SELECT attendance_id,check_in_time,created,check_out_time,duration FROM attendance WHERE employee_id = ? AND attendance_date = CURDATE()',
-        [decodedUserData.id],
-        (err, results) => {
-            if (err) {
-                return res.status(500).json({
-                    status: false,
-                    message: 'Database error.',
-                    error: err
-                });
-            }
+    const sql = `
+        SELECT 
+            a.attendance_id,
+            a.check_in_time,
+            a.created,
+            a.check_out_time,
+            a.duration,
+            bl.start_time AS Breakstart_time,
+            bl.end_time AS Breakend_time
+        FROM attendance a
+        LEFT JOIN (
+            SELECT * 
+            FROM break_logs 
+            WHERE (end_time IS NULL OR end_time = '00:00:00') 
+            ORDER BY break_id DESC LIMIT 1
+        ) bl ON bl.attendance_id = a.attendance_id
+        WHERE a.employee_id = ? 
+          AND a.attendance_date = CURDATE()
+        LIMIT 1
+    `;
 
-            // If no entry exists for today
-            if (results.length === 0) {
-                return res.status(200).json({
-                    status: false,
-                    message: 'No check-in record found for today.'
-                });
-            }
+    db.query(sql, [employee_id], (err, results) => {
+        if (err) {
+            return res.status(500).json({ status: false, message: 'Database error.', error: err });
+        }
 
-            const checkInTime = results[0].created;
-            const check_out_time = results[0].check_out_time;
-            const check_in_time = results[0].check_in_time;
-            const duration = results[0].duration;
-            const attendance_id = results[0].attendance_id;
+        if (results.length === 0) {
+            return res.status(200).json({ status: false, message: 'No check-in record found for today.' });
+        }
 
-            db.query(`SELECT start_time, end_time FROM break_logs WHERE attendance_id = ? and (end_time IS  NULL or end_time ='00:00:00') ORDER by break_id DESC LIMIT 1`,
-                [results[0].attendance_id],
-                (err, resultsData) => {
-                    if (err) {
-                        return res.status(500).json({
-                            status: false,
-                            message: 'Database error.',
-                            error: err
-                        });
-                    }
-
-                    // If no entry exists for today
-                    if (resultsData.length === 0) {
-                        return res.status(200).json({
-                            status: true,
-                            message: 'Check-in time retrieved successfully.',
-                            InTime: checkInTime,
-                            check_in_time: check_in_time,
-                            attendance_id: attendance_id,
-                            check_out_time: check_out_time,
-                            duration: duration,
-                            Breakstart_time: '',
-                            Breakend_time: ''
-                        });
-
-                    } else {
-                        const Breakend = resultsData[0].end_time;
-                        let BreakendValue = resultsData[0].end_time;
-                        if (Breakend == '00:00:00') {
-                            BreakendValue = "";
-                        } else {
-                            BreakendValue = resultsData[0].end_time;
-                        }
-                        return res.status(200).json({
-                            status: true,
-                            message: 'Check-in time retrieved successfully.',
-                            InTime: checkInTime,
-                            check_in_time: check_in_time,
-                            attendance_id: attendance_id,
-                            check_out_time: check_out_time,
-                            duration: duration,
-                            data: resultsData,
-                            Breakstart_time: resultsData[0].start_time,
-                            Breakend_time: BreakendValue
-                        });
-                    }
-                });
-
-
-            // return res.status(200).json({
-            //     status: true,
-            //     message: 'Check-in time retrieved successfully.',
-            //     InTime: checkInTime,
-            //     check_out_time: check_out_time,
-            //     duration: duration,
-            // });
-
+        const record = results[0];
+        return res.status(200).json({
+            status: true,
+            message: 'Check-in time retrieved successfully.',
+            attendance_id: record.attendance_id,
+            InTime: record.created,
+            check_in_time: record.check_in_time,
+            check_out_time: record.check_out_time,
+            duration: record.duration,
+            Breakstart_time: record.Breakstart_time || '',
+            Breakend_time: (record.Breakend_time && record.Breakend_time !== '00:00:00') ? record.Breakend_time : ''
         });
+    });
 });
 
 router.get('/api/Attendancedirectory', async (req, res) => {

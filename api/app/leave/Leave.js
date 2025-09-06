@@ -80,8 +80,7 @@ router.post("/fetchleave", (req, res) => {
         leaveQuery += ` LIMIT ? OFFSET ?`;
         leaveQueryParams.push(limit, offset);
 
-        console.log(leaveQuery);
-        console.log(leaveQueryParams);
+        
         db.query(leaveQuery, leaveQueryParams, (err, results) => {
             if (err) {
                 console.error("Error fetching leave records:", err);
@@ -340,7 +339,6 @@ router.post("/api/Review", async (req, res) => {
         l.end_date, 
           l.start_half,
           l.end_half,
-        DATEDIFF(l.end_date, l.start_date) + 1 AS leave_days,
         Emp.employee_id, Emp.first_name,
         Emp.last_name,
         Emp.type, 
@@ -489,6 +487,7 @@ router.post("/api/Review", async (req, res) => {
         // Add serial number (srnu) to each result
         const requestsWithSrnu = results.map((request, index) => ({
             srnu: index + 1,
+            leave_days: calculateLeaveDays(request.start_date, request.end_date, request.start_half, request.end_half),
             ...request
         }));
 
@@ -506,7 +505,20 @@ router.post("/api/Review", async (req, res) => {
 });
 
 
+function calculateLeaveDays(startDate, endDate, startHalf, endHalf) {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    let totalDays = (end - start) / (1000 * 60 * 60 * 24) + 1;
 
+    if (startHalf == "Second Half") {
+        totalDays -= 0.5; // Deduct 0.5 day for second half leave start
+    }
+    if (endHalf == "First Half") {
+        totalDays -= 0.5; // Deduct 0.5 day for first half leave end
+    }
+
+    return totalDays;
+}
 // Approved //
 
 router.post("/api/Approved", async (req, res) => {

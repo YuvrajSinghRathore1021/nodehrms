@@ -502,41 +502,50 @@ router.post('/api/ApprovalSubmit', async (req, res) => {
     const queryArray = [ApprovalStatus, reason, employee_id, ApprovalRequests_id, company_id];
     try {
         const updateResult = await queryDb(query, queryArray);
-        const attendanceRequestType = await queryDb(
-            'SELECT request_type,in_time,out_time FROM attendance_requests WHERE id = ? AND company_id = ?',
-            [ApprovalRequests_id, company_id]
-        );
-        if (ApprovalStatus == 1) {
-            const employeeResults = await queryDb(
-                'SELECT attendance_rules_id FROM employees WHERE  employee_status=1 and status=1 and delete_status=0 and id = ? AND company_id = ?',
-                [employee_id, company_id]
+        console.log(updateResult);
+        if (updateResult.affectedRows == 1) {
+            const attendanceRequestType = await queryDb(
+                'SELECT request_type,in_time,out_time FROM attendance_requests WHERE id = ? AND company_id = ?',
+                [ApprovalRequests_id, company_id]
             );
-            if (employeeResults.length === 0) {
-                return res.status(404).json({ status: false, message: 'Employee not found' });
-            }
-            const rulesResults = await queryDb(
-                'SELECT in_time, out_time FROM attendance_rules WHERE rule_id = ? AND company_id = ?',
-                [employeeResults[0].attendance_rules_id, company_id]
-            );
-            const rule = rulesResults.length > 0 ? rulesResults[0] : { in_time: '09:30', out_time: '18:30' };
-            const { dailyStatus: dailyStatusIN, timeCount: timeCountIN } = calculateStatus(in_time || attendanceRequestType[0].in_time, rule.in_time || '09:30');
-            const { dailyStatus: dailyStatusOUT, timeCount: timeCountOUT } = calculateStatus(out_time || attendanceRequestType[0].out_time, rule.out_time || '18:30');
-            // Insert attendance record
-            const insertQuery = `
+            if (ApprovalStatus == 1) {
+                const employeeResults = await queryDb(
+                    'SELECT attendance_rules_id FROM employees WHERE  employee_status=1 and status=1 and delete_status=0 and id = ? AND company_id = ?',
+                    [employee_id, company_id]
+                );
+                if (employeeResults.length === 0) {
+                    return res.status(404).json({ status: false, message: 'Employee not found' });
+                }
+                const rulesResults = await queryDb(
+                    'SELECT in_time, out_time FROM attendance_rules WHERE rule_id = ? AND company_id = ?',
+                    [employeeResults[0].attendance_rules_id, company_id]
+                );
+                const rule = rulesResults.length > 0 ? rulesResults[0] : { in_time: '09:30', out_time: '18:30' };
+                const { dailyStatus: dailyStatusIN, timeCount: timeCountIN } = calculateStatus(in_time || attendanceRequestType[0].in_time, rule.in_time || '09:30');
+                const { dailyStatus: dailyStatusOUT, timeCount: timeCountOUT } = calculateStatus(out_time || attendanceRequestType[0].out_time, rule.out_time || '18:30');
+                // Insert attendance record
+                const insertQuery = `
                 INSERT INTO attendance (request_id,daily_status_in, daily_status_intime, daily_status_out, daily_status_outtime, 
                     employee_id, company_id, attendance_date, status, check_in_time, check_out_time, approval_status
                 ) VALUES (?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
-            const insertParams = [ApprovalRequests_id,
-                dailyStatusIN, timeCountIN, dailyStatusOUT, timeCountOUT,
-                employee_id, company_id, request_date, attendanceRequestType[0].request_type, in_time || attendanceRequestType[0].in_time, out_time || attendanceRequestType[0].out_time, 1
-            ];
-            await queryDb(insertQuery, insertParams);
+                const insertParams = [ApprovalRequests_id,
+                    dailyStatusIN, timeCountIN, dailyStatusOUT, timeCountOUT,
+                    employee_id, company_id, request_date, attendanceRequestType[0].request_type, in_time || attendanceRequestType[0].in_time, out_time || attendanceRequestType[0].out_time, 1
+                ];
+                await queryDb(insertQuery, insertParams);
+            }
+            return res.status(200).json({
+                status: true,
+                message: 'Approval updated successfully',
+            });
+        } else {
+            return res.status(200).json({
+                status: false,
+                message: 'Approval update failed',
+            });
         }
-        return res.status(200).json({
-            status: true,
-            message: 'Approval updated successfully',
-        });
+
     } catch (err) {
         return res.status(500).json({
             status: false,
