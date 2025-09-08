@@ -1045,7 +1045,7 @@ router.post('/api/Attendancedirectory', async (req, res) => {
         } else if (filter === 'inactive') {
             employeeFilter += ` AND (b.status = 0 OR b.delete_status = 1)`;
         } else {
-            employeeFilter += ` AND b.status = 1 AND b.delete_status = 0`; // default only active employees
+            employeeFilter += ` AND b.status = 1 AND b.delete_status = 0`; 
         }
 
         // Add search filter if provided
@@ -1081,7 +1081,7 @@ router.post('/api/Attendancedirectory', async (req, res) => {
         //      LEFT JOIN attendance AS a ON a.employee_id = b.id AND a.attendance_date = ?
         const attendanceResults = await new Promise((resolve, reject) => {
             const query = `
-                SELECT b.id AS employee_id, b.first_name, b.profile_image, b.work_week_id,
+                SELECT b.id AS employee_id, concat(b.first_name,' ',b.last_name,' -',b.employee_id) as first_name, b.profile_image, b.work_week_id,
                        a.attendance_date, a.status, a.daily_status_in, a.daily_status_out, a.daily_status_intime,
                        a.daily_status_outtime, a.check_in_time, a.check_out_time, a.duration, a.attendance_id,
                        a.in_latitude, a.in_longitude, a.out_latitude, a.out_longitude
@@ -1090,7 +1090,7 @@ router.post('/api/Attendancedirectory', async (req, res) => {
         WHERE ${employeeFilter} ${filterCondition} 
                 ORDER BY b.first_name ASC
                 LIMIT ? OFFSET ?
-            `;
+            `;  
             filterParams.unshift(SearchDate);
             filterParams.push(limit, offset);
             db.query(query, filterParams, (err, results) => (err ? reject(err) : resolve(results)));

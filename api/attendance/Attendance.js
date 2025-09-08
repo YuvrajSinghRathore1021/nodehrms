@@ -181,12 +181,10 @@ router.post('/Attendancemark', async (req, res) => {
 //         });
 // });
 
-
-
 router.post('/AttendanceGet', (req, res) => {
     const { userData } = req.body;
-
     let decodedUserData;
+
     try {
         if (!userData) throw new Error("Missing userData");
         decodedUserData = JSON.parse(Buffer.from(userData, 'base64').toString('utf-8'));
@@ -200,24 +198,10 @@ router.post('/AttendanceGet', (req, res) => {
     }
 
     const sql = `
-        SELECT 
-            a.attendance_id,
-            a.check_in_time,
-            a.created,
-            a.check_out_time,
-            a.duration,
-            bl.start_time AS Breakstart_time,
-            bl.end_time AS Breakend_time
+        SELECT a.attendance_id, a.check_in_time, a.created, a.check_out_time, a.duration, bl.start_time AS Breakstart_time, bl.end_time AS Breakend_time
         FROM attendance a
-        LEFT JOIN (
-            SELECT * 
-            FROM break_logs 
-            WHERE (end_time IS NULL OR end_time = '00:00:00') 
-            ORDER BY break_id DESC LIMIT 1
-        ) bl ON bl.attendance_id = a.attendance_id
-        WHERE a.employee_id = ? 
-          AND a.attendance_date = CURDATE()
-        LIMIT 1
+        LEFT JOIN (SELECT * FROM break_logs WHERE (end_time IS NULL OR end_time = '00:00:00') ORDER BY break_id DESC LIMIT 1
+        ) bl ON bl.attendance_id = a.attendance_id WHERE a.employee_id = ? AND a.attendance_date = CURDATE() LIMIT 1
     `;
 
     db.query(sql, [employee_id], (err, results) => {

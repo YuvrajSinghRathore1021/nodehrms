@@ -229,7 +229,7 @@ router.post('/api/ApprovalSubmit', async (req, res) => {
     let query = '';
     let queryArray = [];
     // Update attendance request
-    if (Type == 'Rm') {
+    if (Type == 'Rm' || Type == 'rm') {
         query = `
         UPDATE attendance_requests 
         SET rm_status = ?, rm_remark = ?,request_type=? 
@@ -240,7 +240,7 @@ router.post('/api/ApprovalSubmit', async (req, res) => {
         UPDATE attendance_requests 
         SET admin_status = ?, admin_remark = ?, admin_id = ? ,request_type=?
         WHERE id = ? AND company_id = ?`;
-        queryArray = [ApprovalStatus, reason, decodedUserData.id,request_type, ApprovalRequests_id, company_id];
+        queryArray = [ApprovalStatus, reason, decodedUserData.id, request_type, ApprovalRequests_id, company_id];
     }
 
     try {
@@ -267,12 +267,19 @@ router.post('/api/ApprovalSubmit', async (req, res) => {
 
 
         const updateResult = await queryDb(query, queryArray);
+        if (updateResult.affectedRows === 0) {
+            return res.status(404).json({
+                status: false,
+                message: 'No matching attendance request found to update'
+            });
+        }
 
         const attendanceRequestType = await queryDb(
             'SELECT request_type,in_time,out_time,request_date,attendance_id FROM attendance_requests WHERE id = ? AND company_id = ?',
             [ApprovalRequests_id, company_id]
         );
-        if (ApprovalStatus == 1 && Type == 'Admin') {
+        let message = '';
+        if (ApprovalStatus == 1 && (Type == 'Admin' || Type == 'admin')) {
             const employeeResults = await queryDb(
                 'SELECT attendance_rules_id FROM employees WHERE id = ? AND company_id = ?',
                 [employee_id, company_id]
@@ -290,6 +297,8 @@ router.post('/api/ApprovalSubmit', async (req, res) => {
             // Insert attendance record  request_date
             let insertQuery = '';
             let insertParams = '';
+            let actionType = '';
+
             if (attendanceRequestType[0].attendance_id != 0 && attendanceRequestType[0].attendance_id != '') {
 
                 insertQuery = `
@@ -301,7 +310,7 @@ router.post('/api/ApprovalSubmit', async (req, res) => {
                     attendanceRequestType[0].request_type, in_time || attendanceRequestType[0].in_time, out_time || attendanceRequestType[0].out_time, 1
                     , employee_id, company_id, attendanceRequestType[0].attendance_id];
 
-
+                actionType = 'update';
                 console.log(insertQuery);
                 console.log(insertParams);
             } else {
@@ -314,13 +323,25 @@ router.post('/api/ApprovalSubmit', async (req, res) => {
                     dailyStatusIN, timeCountIN, dailyStatusOUT, timeCountOUT,
                     employee_id, company_id, attendanceRequestType[0].request_date, attendanceRequestType[0].request_type, in_time || attendanceRequestType[0].in_time, out_time || attendanceRequestType[0].out_time, 1
                 ];
+                actionType = 'insert';
             }
 
-            await queryDb(insertQuery, insertParams);
+            const resultss = await queryDb(insertQuery, insertParams);
+
+
+            if (actionType === 'update') {
+                message = resultss.affectedRows > 0
+                    ? 'Approval updated successfully'
+                    : 'No record found to update';
+            } else {
+                message = resultss.insertId
+                    ? 'Approval inserted successfully'
+                    : 'Failed to insert approval';
+            }
         }
         return res.status(200).json({
             status: true,
-            message: 'Approval updated successfully',
+            message: message || 'Approval status updated',
         });
     } catch (err) {
         return res.status(500).json({

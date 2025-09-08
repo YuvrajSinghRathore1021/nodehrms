@@ -16,23 +16,26 @@ const db = mysql.createConnection({
     // user: process.env.user || 'root',
     // password: process.env.password || '',
     // database: process.env.database || 'hrmsnewlive'
+    // port: 3306
 
     // host: 'localhost',
     // user: 'root',
     // password: '',
     // database: 'hrmslatest',
 
-
+    //////on aws loacalhost on live server
     host: process.env.host || 'localhost',
     user: process.env.user || 'hrmsadminnew',
     password: process.env.password || '!Hrms@Admin!123@Latest!',
-    database: process.env.database || 'hrmsnewlatest'
+    database: process.env.database || 'hrmsnewlatest',
+    port: 3306
 
     // host: '13.204.128.230',
     // user: 'hrmsadminnew',
     // password: '!Hrms@Admin!123@Latest!',
     // database: 'hrmsnewlatest',
     // port: 3306
+
 });
 
 db.connect(err => {

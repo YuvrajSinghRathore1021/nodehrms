@@ -5,6 +5,7 @@ const mysql = require('mysql2');
 
 // DB Connection
 const db = mysql.createConnection({
+
   // host: process.env.host || 'localhost',
   // user: process.env.user || 'hrmsadmin',
   // password: process.env.password || 'Hrms@Admin123!',
@@ -22,10 +23,20 @@ const db = mysql.createConnection({
   // password: '',
   // database: 'hrmslatest',
 
+
+  ////// on aws live
   host: process.env.host || 'localhost',
   user: process.env.user || 'hrmsadminnew',
   password: process.env.password || '!Hrms@Admin!123@Latest!',
-  database: process.env.database || 'hrmsnewlatest'
+  database: process.env.database || 'hrmsnewlatest',
+  port: 3306
+
+
+  // host: '13.204.128.230',
+  // user: 'hrmsadminnew',
+  // password: '!Hrms@Admin!123@Latest!',
+  // database: 'hrmsnewlatest',
+  // port: 3306
 
 });
 
