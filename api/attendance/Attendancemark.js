@@ -86,8 +86,8 @@ router.post('/Attendancemark', async (req, res) => {
             if (attendanceResults.length > 0) {
                 return res.status(400).json({ status: false, message: 'Attendance for today is already marked as in.' });
             }
-            await queryDb('INSERT INTO attendance (status,in_latitude, in_longitude, daily_status_in, daily_status_intime, employee_id, company_id, attendance_date, check_in_time, in_ip) VALUES (?,?, ?, ?, ?, ?, ?, CURDATE(), ?, ?)',
-                ['Present', latitude, longitude, dailyStatus, timeCount, decodedUserData.id, decodedUserData.company_id, formattedTime, IpHandal]);
+            await queryDb('INSERT INTO attendance (status,in_latitude, in_longitude, daily_status_in, daily_status_intime, employee_id, company_id, attendance_date, check_in_time, in_ip,branch_id_in) VALUES (?,?,?, ?, ?, ?, ?, ?, CURDATE(), ?, ?)',
+                ['Present', latitude, longitude, dailyStatus, timeCount, decodedUserData.id, decodedUserData.company_id, formattedTime, IpHandal, empbranch_id]);
             return res.status(200).json({ status: true, message: `Attendance marked as 'in' at ${formattedTime}.` });
 
         } else if (type === 'out') {
@@ -208,8 +208,8 @@ router.post('/Attendancemark', async (req, res) => {
                 dailyStatus = 'On Time';
                 timeCount = '00:00';
             }
-            await queryDb('UPDATE attendance SET attendance_status=?,status=?,out_latitude=?, out_longitude=?,out_ip=?,daily_status_out=?, daily_status_outtime=?, check_out_time = ?, duration = ? WHERE employee_id = ? AND company_id = ? AND attendance_date = CURDATE()',
-                [attendanceStatus, statusValue, latitude, longitude, IpHandal, dailyStatus, timeCount, formattedTime, duration, decodedUserData.id, decodedUserData.company_id]);
+            await queryDb('UPDATE attendance SET attendance_status=?,status=?,out_latitude=?, out_longitude=?,out_ip=?,daily_status_out=?, daily_status_outtime=?, check_out_time = ?, duration = ? ,branch_id_out=? WHERE employee_id = ? AND company_id = ? AND attendance_date = CURDATE()',
+                [attendanceStatus, statusValue, latitude, longitude, IpHandal, dailyStatus, timeCount, formattedTime, duration, empbranch_id, decodedUserData.id, decodedUserData.company_id]);
 
             // After marking 'out', calculate total break duration
             await calculateAndUpdateTotalBreakDuration(decodedUserData.id, decodedUserData.company_id);

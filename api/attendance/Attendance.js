@@ -902,9 +902,47 @@ router.post('/api/data', async (req, res) => {
 
             // Fetch Attendance
             let record = await getAttendanceData(decodedUserData.company_id, EmployeeId, date);
+
             if (record.length > 0) {
-                allData.push(record[0]);
-            } else {
+                const {
+                    id,
+                    first_name,
+                    name,
+                    in_ip,
+                    out_ip,
+                    in_latitude,
+                    in_longitude,
+                    out_latitude,
+                    out_longitude,
+                    attendance_id,
+                    status,
+                    check_in_time,
+                    check_out_time,
+                    duration,
+                    created,
+                    attendance_date
+                } = record[0];
+
+                allData.push({
+                    id,
+                    first_name,
+                    name,
+                    in_ip,
+                    out_ip,
+                    in_latitude,
+                    in_longitude,
+                    out_latitude,
+                    out_longitude,
+                    attendance_id,
+                    status,
+                    check_in_time,
+                    check_out_time,
+                    duration,
+                    created,
+                    attendance_date: attendance_date || date
+                });
+            }
+            else {
                 const employeeInfo = await getEmployeeInfo(decodedUserData.company_id, EmployeeId);
                 allData.push(createAttendanceResponse(employeeInfo[0], status, date));
             }
