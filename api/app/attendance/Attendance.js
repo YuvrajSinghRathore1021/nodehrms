@@ -1060,20 +1060,32 @@ router.post('/api/Attendancedirectory', async (req, res) => {
         if (filter == "present") {
             joinClause = ` INNER JOIN attendance AS a 
                    ON a.employee_id = b.id 
-                   AND a.attendance_date = ?`;
+                   AND a.attendance_date = ?
+                   LEFT JOIN branches AS bi 
+    ON a.branch_id_in = bi.id
+LEFT JOIN branches AS bo 
+    ON a.branch_id_out = bo.id`;
             filterCondition = ` AND a.status IN ('Present','half-day')`;
 
         } else if (filter == "absent") {
             joinClause = ` LEFT JOIN attendance AS a 
                    ON a.employee_id = b.id 
-                   AND a.attendance_date = ?`;
+                   AND a.attendance_date = ? 
+                   LEFT JOIN branches AS bi 
+    ON a.branch_id_in = bi.id
+LEFT JOIN branches AS bo 
+    ON a.branch_id_out = bo.id`;
             filterCondition = ` AND a.attendance_id IS NULL`;
 
         } else {
             // Default = all employees with attendance info if exists
             joinClause = ` LEFT JOIN attendance AS a 
                    ON a.employee_id = b.id 
-                   AND a.attendance_date = ?`;
+                   AND a.attendance_date = ?
+                   LEFT JOIN branches AS bi 
+    ON a.branch_id_in = bi.id
+LEFT JOIN branches AS bo 
+    ON a.branch_id_out = bo.id `;
         }
 
 
@@ -1082,7 +1094,10 @@ router.post('/api/Attendancedirectory', async (req, res) => {
                 SELECT b.id AS employee_id,b.branch_id, concat(b.first_name,' ',b.last_name,' -',b.employee_id) as first_name, b.profile_image, b.work_week_id,
                        a.attendance_date, a.status, a.daily_status_in, a.daily_status_out, a.daily_status_intime,
                        a.daily_status_outtime, a.check_in_time, a.check_out_time, a.duration, a.attendance_id,
-                       a.in_latitude, a.in_longitude, a.out_latitude, a.out_longitude
+                       a.in_latitude, a.in_longitude, a.out_latitude, a.out_longitude,a.branch_id_in,
+    bi.name AS branch_in_name,
+    a.branch_id_out,
+    bo.name AS branch_out_name 
                 FROM employees AS b
                    ${joinClause}
         WHERE ${employeeFilter} ${filterCondition} 
@@ -1091,6 +1106,7 @@ router.post('/api/Attendancedirectory', async (req, res) => {
             `;
             filterParams.unshift(SearchDate);
             filterParams.push(limit, offset);
+
             db.query(query, filterParams, (err, results) => (err ? reject(err) : resolve(results)));
         });
 
@@ -1188,11 +1204,8 @@ router.post('/api/Attendancedirectory', async (req, res) => {
                 } else if (leave) {
                     status = 'L';
                 }
-                // else if (status === 'A' && attendance.work_week_id) {}
-                let branchName = { branch_in_name: '', branch_out_name: '' };
-                // if (status == 'p' || status == 'P/(WO HF)' || status == 'HF' || status == 'HF/(WO HF)') {
-                //     branchName = await getBranchName(attendance.branch_id);
-                // }
+                // console.log(attendance)
+
                 return {
                     srnu: offset + attendanceResults.indexOf(attendance) + 1,
                     attendance_date: attendance.attendance_date || SearchDate,
@@ -1212,8 +1225,8 @@ router.post('/api/Attendancedirectory', async (req, res) => {
                     in_longitude: attendance.in_longitude || null,
                     out_latitude: attendance.out_latitude || null,
                     out_longitude: attendance.out_longitude || null,
-                    branch_in: branchName?.branch_in_name || '',
-                    branch_out: branchName?.branch_out_name || '',
+                    branch_in: attendance?.branch_in_name || '',
+                    branch_out: attendance?.branch_out_name || '',
                     status
                 };
             })

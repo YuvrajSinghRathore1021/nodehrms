@@ -678,8 +678,6 @@ router.get('/api/PayDetails', async (req, res) => {
             });
 
             // // Weekly Off Count
-
-
             for (let d = new Date(adjustedStartDate); d <= adjustedEndDate; d.setDate(d.getDate() + 1)) {
                 const dateStr = d.toLocaleDateString("en-CA"); // ✅ local date, no UTC shift
                 const isHoliday = allHolidays.includes(dateStr);

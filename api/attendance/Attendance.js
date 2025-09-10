@@ -1012,10 +1012,7 @@ const createAttendanceResponse = (record, status, date) => {
 
 
 router.get('/api/attendance', async (req, res) => {
-    const { data, userData } = req.query;
-
-    const employeeIds = '1,2,3,4';
-
+    const { data, userData, employeeId } = req.query;
     let year = null;
     let month = null;
     let searchData = null;
@@ -1032,25 +1029,36 @@ router.get('/api/attendance', async (req, res) => {
         return res.status(400).json({ status: false, message: 'Employee ID is required', error: 'Employee ID is required' });
     }
 
+
     if (data) {
         year = parseInt(data['Year'], 10) || null;
         month = parseInt(data['Month'], 10) || null;
         searchData = data['searchData'] || null;
     }
 
+    // let employeeIds = employeeId || decodedUserData.id.toString();
+
+    let employeeIds;
+    if (!employeeId || employeeId.trim() === "" || employeeId.trim().toLowerCase() === "null" || employeeId.trim().toLowerCase() === "undefined" || employeeId.trim() === '""' // 👈 catch "%22%22"
+    ) {
+        employeeIds = decodedUserData.id.toString();
+    } else {
+        employeeIds = employeeId;
+    }
+
+    const cleanIds = employeeIds.replace(/^,|,$/g, '').trim();
+    let employeeIdsArray = cleanIds.split(',').map(id => parseInt(id.trim(), 10)).filter(id => !isNaN(id));
+
     if (!employeeIds || !month || !year || month < 1 || month > 12 || year < 1900 || year > new Date().getFullYear()) {
         return res.status(200).json({ status: false, message: 'Invalid or missing parameters' });
     }
 
-    const employeeIdsArray = employeeIds.split(',').map(id => parseInt(id, 10)).filter(id => !isNaN(id));
-
     if (employeeIdsArray.length === 0) {
         return res.status(200).json({ status: false, message: 'Invalid employee IDs' });
     }
-
     try {
-        let empsql = `SELECT id, first_name, work_week_id, employee_id FROM employees WHERE  employee_status=1 and status=1 and delete_status=0 and company_id=?`;
-        let EmpArrayValue = [decodedUserData.company_id];
+        let empsql = `SELECT id, first_name, work_week_id, employee_id FROM employees WHERE  employee_status=1 and status=1 and delete_status=0 and company_id=? AND id IN (?)`;
+        let EmpArrayValue = [decodedUserData.company_id, employeeIdsArray];
 
         if (searchData) {
             empsql += ` AND first_name LIKE ?`;

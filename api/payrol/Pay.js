@@ -44,7 +44,7 @@ router.post('/salary/submit', async (req, res) => {
         const checkDuplicateValues = [
             decodedUserData.company_id, employee_id, month, year,
         ];
-        console.log('checkDuplicateQuery', checkDuplicateQuery, checkDuplicateValues);
+        // console.log('checkDuplicateQuery', checkDuplicateQuery, checkDuplicateValues);
 
         db.query(checkDuplicateQuery, checkDuplicateValues, (err, duplicateResult) => {
             if (err) {

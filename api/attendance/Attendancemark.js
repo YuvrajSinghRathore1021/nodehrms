@@ -86,9 +86,15 @@ router.post('/Attendancemark', async (req, res) => {
             if (attendanceResults.length > 0) {
                 return res.status(400).json({ status: false, message: 'Attendance for today is already marked as in.' });
             }
-            await queryDb('INSERT INTO attendance (status,in_latitude, in_longitude, daily_status_in, daily_status_intime, employee_id, company_id, attendance_date, check_in_time, in_ip,branch_id_in) VALUES (?,?,?, ?, ?, ?, ?, ?, CURDATE(), ?, ?)',
+            let attendanceCheckInsert = await queryDb('INSERT INTO attendance (status,in_latitude, in_longitude, daily_status_in, daily_status_intime, employee_id, company_id, attendance_date, check_in_time, in_ip,branch_id_in) VALUES (?,?,?, ?, ?, ?, ?,CURDATE(), ?,  ?, ?)',
                 ['Present', latitude, longitude, dailyStatus, timeCount, decodedUserData.id, decodedUserData.company_id, formattedTime, IpHandal, empbranch_id]);
-            return res.status(200).json({ status: true, message: `Attendance marked as 'in' at ${formattedTime}.` });
+            if (!attendanceCheckInsert || !attendanceCheckInsert.insertId) {
+
+                return res.status(500).json({ status: false, message: 'Failed to mark attendance. Please try again.', error: attendanceCheckInsert });
+            } else {
+                return res.status(200).json({ status: true, message: `Attendance marked as 'in' at ${formattedTime}.` });
+            }
+
 
         } else if (type === 'out') {
             const checkInResults = await queryDb('SELECT attendance_id,check_in_time,attendance_date FROM attendance WHERE employee_id = ? AND company_id = ? AND attendance_date = CURDATE()', [decodedUserData.id, decodedUserData.company_id]);

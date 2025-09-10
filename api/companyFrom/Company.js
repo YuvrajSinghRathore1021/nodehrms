@@ -1567,6 +1567,50 @@ router.post('/assign-manager', async (req, res) => {
         }
     );
 });
+router.post('/assign-manager-bulk', async (req, res) => {
+    const { employeeId, userData, managerId } = req.body;
+
+    let decodedUserData = null;
+    if (userData) {
+        try {
+            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+            decodedUserData = JSON.parse(decodedString);
+        } catch (error) {
+            return res.status(400).json({ status: false, error: 'Invalid userData' });
+        }
+    }
+    if (!decodedUserData || !decodedUserData.id) {
+        return res.status(400).json({ status: false, error: 'Employee ID is required' });
+    }
+    if (!employeeId || !managerId) {
+        return res.status(400).json({ status: false, message: 'All fields are required.' });
+    }
+
+    let employeeIdsArray = employeeId.split(',').map(id => parseInt(id.trim(), 10)).filter(id => !isNaN(id));
+    if (employeeIdsArray.length === 0) {
+
+        return res.status(200).json({ status: false, message: 'Employee ID Not Found' });
+    }
+
+    db.query(
+        'UPDATE employees SET reporting_manager = ? WHERE id IN (?) and company_id=?',
+        [managerId, employeeIdsArray, decodedUserData.company_id],
+        (err) => {
+            if (err) {
+                console.error(err);
+                return res.status(500).json({
+                    status: false,
+                    message: 'Failed to edit company.',
+                    error: err.message
+                });
+            }
+            return res.status(200).json({
+                status: true,
+                message: 'Manager Update successfully.'
+            });
+        }
+    );
+});
 
 
 
