@@ -132,6 +132,10 @@ function getDaysInMonth(month, year) {
 }
 
 
+
+
+
+// working 100 %
 router.post('/api/GenerateSalary', (req, res) => {
     const { employeeId, presentCount, HF, leaveCount, holidayCount, WO, month, year, PenaltyData, userData } = req.body;
 
@@ -197,6 +201,8 @@ router.post('/api/GenerateSalary', (req, res) => {
             message: 'Missing required fields: month,year'
         });
     }
+
+
 
     // Query to fetch employee details
     const employeeQuery = `SELECT company_id, first_name, last_name, email_id, ctc, structure_id FROM employees WHERE id = ?`;
@@ -308,6 +314,168 @@ router.post('/api/GenerateSalary', (req, res) => {
     });
 });
 
+const queryDb = (query, params) => {
+    return new Promise((resolve, reject) => {
+        db.query(query, params, (err, results) => {
+            if (err) return reject(err);
+            resolve(results);
+        });
+    });
+};
+
+// test new way  work 
+// router.post('/api/GenerateSalary', async (req, res) => {
+//     try {
+//         const { employeeId, presentCount, HF, leaveCount, holidayCount, WO, month, year, PenaltyData, userData } = req.body;
+
+//         // Decode userData
+//         let decodedUserData = null;
+//         if (userData) {
+//             try {
+//                 decodedUserData = JSON.parse(Buffer.from(userData, 'base64').toString('utf-8'));
+//             } catch (error) {
+//                 return res.status(400).json({ status: false, error: 'Invalid userData format' });
+//             }
+//         }
+
+//         if (!decodedUserData?.id || !decodedUserData?.company_id) {
+//             return res.status(400).json({
+//                 status: false,
+//                 error: 'Employee ID and Company ID are required',
+//             });
+//         }
+
+//         // Validate required fields
+//         if (!employeeId || !presentCount || !HF || !leaveCount || !holidayCount || !WO) {
+//             return res.status(200).json({
+//                 status: false,
+//                 message: 'Missing required fields: employeeId, presentCount, HF, leaveCount, holidayCount, WO'
+//             });
+//         }
+
+//         // Parse penalties
+//         let PenaltieHF = 0, PenaltieLeave = 0, PenaltieAbsent = 0, PenaltieFixAmount = 0, PenaltieSandwichLeave = 0;
+//         let PenaltyDatas = [];
+//         try {
+//             PenaltyDatas = JSON.parse(PenaltyData || "[]");
+//         } catch {
+//             return res.status(400).json({ status: false, message: "Invalid PenaltyData format" });
+//         }
+
+//         PenaltyDatas.forEach(({ penalty_type, penalty_count = 0, penalty_amount = 0 }) => {
+//             if (penalty_type === "half-day") PenaltieHF += penalty_count;
+//             else if (penalty_type === "leave") PenaltieLeave += penalty_count;
+//             else if (penalty_type === "absent") PenaltieAbsent += penalty_count;
+//             else if (penalty_type === "fixamout") PenaltieFixAmount += penalty_amount;
+//             else if (penalty_type === "Sandwich Leave") PenaltieSandwichLeave += penalty_count;
+//         });
+
+//         let NewPresentCount = parseInt(presentCount) - (PenaltieHF / 2) - PenaltieAbsent;
+//         let NewLeaveCount = parseInt(leaveCount) + PenaltieLeave;
+//         let newHolidayCount = parseInt(holidayCount) - PenaltieSandwichLeave;
+
+//         if (!month || !year) {
+//             return res.status(200).json({
+//                 status: false,
+//                 message: 'Missing required fields: month,year'
+//             });
+//         }
+
+//         // Fetch employee details
+//         const employeeResults = await queryDb(
+//             `SELECT company_id, first_name, last_name, email_id, ctc, structure_id FROM employees WHERE id = ?`,
+//             [employeeId]
+//         );
+
+//         if (employeeResults.length === 0) {
+//             return res.status(200).json({ status: false, message: 'Employee not found' });
+//         }
+
+//         const employee = employeeResults[0];
+//         const ctc = employee.ctc;
+
+//         // Salary calculation
+//         const totalWorkingDays = NewPresentCount + newHolidayCount + parseInt(WO) + NewLeaveCount + (parseInt(HF) / 2);
+//         const monthSalary = ctc / 12;
+//         const daysInMonth = getDaysInMonth(month, year);
+//         const dailySalary = monthSalary / daysInMonth;
+
+//         let proratedSalary = (totalWorkingDays * dailySalary) - PenaltieFixAmount;
+//         let BasicPayAmount = proratedSalary;
+
+//         // Salary structure
+//         const structureResults = await queryDb(
+//             `SELECT * FROM salary_structure WHERE structure_id = ?`,
+//             [employee.structure_id]
+//         );
+
+//         if (structureResults.length === 0) {
+//             return res.status(200).json({ status: false, message: 'Salary structure not found' });
+//         }
+
+//         const salaryStructure = structureResults[0];
+
+//         // Salary components
+//         const componentResults = await queryDb(
+//             `SELECT component_id, company_id, structure_id, component_name, component_type, calculation_method, percentage, fixed_amount 
+//              FROM salary_component WHERE structure_id = ?`,
+//             [employee.structure_id]
+//         );
+//         const expenses = await queryDb(
+//             `SELECT e.id,e.employee_id,e.expense_type,e.amount,e.reason,e.expense_date,e.document,e.added_by,e.rm_id,e.admin_id,e.rm_status,e.admin_status,e.rm_remark,e.admin_remark,e.status,e.created_at,e.updated_at,
+//         e.payment_status,e.scheduled_pay_date,e.is_auto_release,e.payment_released_at,
+//         CONCAT(emp.first_name, ' ', emp.last_name) AS employee_name,
+//         CONCAT(rm.first_name, ' ', rm.last_name) AS rm_name,
+//         CONCAT(admin.first_name, ' ', admin.last_name) AS admin_name,
+//         CONCAT(added.first_name, ' ', added.last_name) AS added_by_name
+//     FROM expenses e 
+//     LEFT JOIN employees emp ON e.employee_id = emp.id
+//     LEFT JOIN employees rm ON e.rm_id = rm.id
+//     LEFT JOIN employees admin ON e.admin_id = admin.id
+//     LEFT JOIN employees added ON e.added_by = added.id
+//     WHERE e.company_id = ? AND e.employee_id = ? and e.admin_status=1 and e.status=1`,
+//             [decodedUserData?.company_id, employeeId]
+//         );
+
+//         if (componentResults.length === 0) {
+//             return res.status(200).json({ status: false, message: 'Salary components not found for the given structure' });
+//         }
+
+//         // Calculate salary breakdown
+//         const salaryBreakdown = componentResults.map(component => {
+//             let amount = 0;
+//             if (component.component_type !== 'basic' && component.component_type !== 'basic_pay') {
+//                 if (component.calculation_method === 'percentage') {
+//                     amount = (proratedSalary * component.percentage) / 100;
+//                 } else if (component.calculation_method === 'fixed_amount') {
+//                     amount = component.fixed_amount;
+//                 }
+//                 BasicPayAmount -= amount;
+//             }
+//             return {
+//                 component_name: component.component_name,
+//                 amount: parseFloat(amount.toFixed(2))
+//             };
+//         });
+
+//         return res.json({
+//             status: true,
+//             data: {
+//                 employee,
+//                 salaryStructure,
+//                 components: salaryBreakdown,
+//                 ctc,
+//                 proratedSalary: proratedSalary.toFixed(2),
+//                 BasicPayAmount: BasicPayAmount.toFixed(2),
+//                 expenses: expenses
+//             }
+//         });
+
+//     } catch (err) {
+//         console.error("GenerateSalary Error:", err);
+//         return res.status(500).json({ status: false, error: "Internal Server Error", details: err.message });
+//     }
+// });
 
 router.get('/api/PayEmployeeSalaryDetails', async (req, res) => {
     const { userData, data } = req.query;
