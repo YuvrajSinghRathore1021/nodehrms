@@ -17,14 +17,9 @@ function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
 
 
 router.post('/Attendancemark', async (req, res) => {
-    ///09:05:32=attendanceTime
-    ////attendanceDate like 2025-08-15
-    const { type, userData, latitude, longitude, attendanceType = "", employeeId = "0", attendanceTime = "", attendanceDate = "", reason = "" } = req.body;
-    // const currentDate = new Date();
-    const currentDate = attendanceDate ? new Date(`${attendanceDate}T00:00:00`) : new Date();
-    const formattedTime = attendanceTime || `${String(currentDate.getHours()).padStart(2, '0')}:${String(currentDate.getMinutes()).padStart(2, '0')}:${String(currentDate.getSeconds()).padStart(2, '0')}`;
-
-
+    const { type, userData, latitude, longitude, attendanceType = "", } = req.body;
+    const currentDate = new Date();
+    const formattedTime = `${String(currentDate.getHours()).padStart(2, '0')}:${String(currentDate.getMinutes()).padStart(2, '0')}:${String(currentDate.getSeconds()).padStart(2, '0')}`;
     let decodedUserData = null;
     let IpHandal = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
     if (!latitude || !longitude) {
@@ -41,22 +36,16 @@ router.post('/Attendancemark', async (req, res) => {
     if (!decodedUserData || !decodedUserData.company_id || !decodedUserData.id || !type) {
         return res.status(400).json({ status: false, error: 'company_id, id, and type are required' });
     }
-    let empId = attendanceType == "hr" && employeeId && employeeId != "0" ? employeeId : decodedUserData.id;
-    let companyId = decodedUserData.company_id;
-    let applyBy = 0;
-
-    if (empId != decodedUserData.id) {
-        applyBy = decodedUserData.id;
-    }
     try {
-        const employeeResults = await queryDb('SELECT attendance_rules_id,branch_id ,work_week_id FROM employees WHERE employee_status=1 and status=1 and delete_status=0 and  id = ? AND company_id = ?', [empId, companyId]);
+        const employeeResults = await queryDb('SELECT attendance_rules_id,branch_id ,work_week_id FROM employees WHERE employee_status=1 and status=1 and delete_status=0 and  id = ? AND company_id = ?', [decodedUserData.id, decodedUserData.company_id]);
         if (employeeResults.length === 0) {
             return res.status(500).json({ status: false, message: 'Employee not found' });
         }
 
         let empbranch_id = employeeResults[0].branch_id;
-        if (empbranch_id != 0 && attendanceType != "hr") {
-            const branchResults = await queryDb('SELECT id, company_id, name, location_status, latitude, longitude, radius, ip, ip_status,status FROM branches WHERE id = ? AND company_id = ? AND status=1', [employeeResults[0].branch_id, companyId]);
+        if (empbranch_id != 0) {
+
+            const branchResults = await queryDb('SELECT id, company_id, name, location_status, latitude, longitude, radius, ip, ip_status,status FROM branches WHERE id = ? AND company_id = ? AND status=1', [employeeResults[0].branch_id, decodedUserData.company_id]);
             if (branchResults.length === 0) {
 
             } else {
@@ -75,7 +64,7 @@ router.post('/Attendancemark', async (req, res) => {
             }
         }
 
-        const rulesResults = await queryDb('SELECT in_time,out_time,max_working_hours,half_day FROM attendance_rules WHERE rule_id = ? AND company_id = ?', [employeeResults[0].attendance_rules_id, companyId]);
+        const rulesResults = await queryDb('SELECT in_time,out_time,max_working_hours,half_day FROM attendance_rules WHERE rule_id = ? AND company_id = ?', [employeeResults[0].attendance_rules_id, decodedUserData.company_id]);
         const rule = rulesResults.length > 0 ? rulesResults[0] : { in_time: '09:30', out_time: '18:30' };
 
         let dailyStatus = '';
@@ -93,12 +82,12 @@ router.post('/Attendancemark', async (req, res) => {
                 dailyStatus = 'On Time';
                 timeCount = '00:00';
             }
-            const attendanceResults = await queryDb('SELECT attendance_id FROM attendance WHERE employee_id = ? AND company_id = ? AND attendance_date = CURDATE()', [empId, companyId]);
+            const attendanceResults = await queryDb('SELECT attendance_id FROM attendance WHERE employee_id = ? AND company_id = ? AND attendance_date = CURDATE()', [decodedUserData.id, decodedUserData.company_id]);
             if (attendanceResults.length > 0) {
                 return res.status(400).json({ status: false, message: 'Attendance for today is already marked as in.' });
             }
-            let attendanceCheckInsert = await queryDb('INSERT INTO attendance (status,in_latitude, in_longitude, daily_status_in, daily_status_intime, employee_id, company_id, attendance_date, check_in_time, in_ip,branch_id_in,apply_by,reason) VALUES (?,?,?, ?, ?, ?, ?,CURDATE(), ?,  ?, ?,?,?)',
-                ['Present', latitude, longitude, dailyStatus, timeCount, empId, companyId, formattedTime, IpHandal, empbranch_id, applyBy, reason]);
+            let attendanceCheckInsert = await queryDb('INSERT INTO attendance (status,in_latitude, in_longitude, daily_status_in, daily_status_intime, employee_id, company_id, attendance_date, check_in_time, in_ip,branch_id_in) VALUES (?,?,?, ?, ?, ?, ?,CURDATE(), ?,  ?, ?)',
+                ['Present', latitude, longitude, dailyStatus, timeCount, decodedUserData.id, decodedUserData.company_id, formattedTime, IpHandal, empbranch_id]);
             if (!attendanceCheckInsert || !attendanceCheckInsert.insertId) {
 
                 return res.status(500).json({ status: false, message: 'Failed to mark attendance. Please try again.', error: attendanceCheckInsert });
@@ -108,7 +97,7 @@ router.post('/Attendancemark', async (req, res) => {
 
 
         } else if (type === 'out') {
-            const checkInResults = await queryDb('SELECT attendance_id,check_in_time,attendance_date FROM attendance WHERE employee_id = ? AND company_id = ? AND attendance_date = CURDATE()', [empId, companyId]);
+            const checkInResults = await queryDb('SELECT attendance_id,check_in_time,attendance_date FROM attendance WHERE employee_id = ? AND company_id = ? AND attendance_date = CURDATE()', [decodedUserData.id, decodedUserData.company_id]);
             if (checkInResults.length === 0) {
                 return res.status(400).json({ status: false, message: 'No check-in found for today. Please check in first.' });
             }
@@ -131,7 +120,7 @@ router.post('/Attendancemark', async (req, res) => {
                     // Check if any active break is still running
                     const activeBreak = await queryDb(
                         'SELECT start_time FROM break_logs WHERE employee_id = ? AND company_id = ? AND (end_time IS NULL OR end_time = ?) AND DATE(created) = CURDATE() ORDER BY created DESC LIMIT 1',
-                        [empId, companyId, '00:00:00']
+                        [decodedUserData.id, decodedUserData.company_id, '00:00:00']
                     );
 
                     if (activeBreak.length > 0) {
@@ -200,7 +189,7 @@ router.post('/Attendancemark', async (req, res) => {
 
                 const workWeekResult = await queryDb(
                     query,
-                    [employeeResults[0].work_week_id, companyId]
+                    [employeeResults[0].work_week_id, decodedUserData.company_id]
                 );
 
                 if (workWeekResult.length > 0) {
@@ -226,16 +215,16 @@ router.post('/Attendancemark', async (req, res) => {
                 timeCount = '00:00';
             }
             await queryDb('UPDATE attendance SET attendance_status=?,status=?,out_latitude=?, out_longitude=?,out_ip=?,daily_status_out=?, daily_status_outtime=?, check_out_time = ?, duration = ? ,branch_id_out=? WHERE employee_id = ? AND company_id = ? AND attendance_date = CURDATE()',
-                [attendanceStatus, statusValue, latitude, longitude, IpHandal, dailyStatus, timeCount, formattedTime, duration, empbranch_id, empId, companyId]);
+                [attendanceStatus, statusValue, latitude, longitude, IpHandal, dailyStatus, timeCount, formattedTime, duration, empbranch_id, decodedUserData.id, decodedUserData.company_id]);
 
             // After marking 'out', calculate total break duration
-            await calculateAndUpdateTotalBreakDuration(empId, companyId);
+            await calculateAndUpdateTotalBreakDuration(decodedUserData.id, decodedUserData.company_id);
             return res.status(200).json({ status: true, message: `Attendance marked as 'out' at ${formattedTime}. Duration: ${duration}.` });
 
         } else if (type === 'Start_break') {
             const attendanceResults = await queryDb(
                 'SELECT attendance_id FROM attendance WHERE employee_id = ? AND company_id = ? AND attendance_date = CURDATE() And (check_out_time IS NULL OR check_out_time =?)',
-                [empId, companyId, '']
+                [decodedUserData.id, decodedUserData.company_id, '']
             );
 
             if (attendanceResults.length === 0) {
@@ -247,7 +236,7 @@ router.post('/Attendancemark', async (req, res) => {
             // Check if a break has already been started and not ended
             const existingBreak = await queryDb(
                 'SELECT break_id FROM break_logs WHERE employee_id = ? AND attendance_id = ? AND company_id = ? AND DATE(created) = CURDATE() AND (end_time IS NULL OR end_time =?)',
-                [empId, attendanceId, companyId, '00:00:00']
+                [decodedUserData.id, attendanceId, decodedUserData.company_id, '00:00:00']
             );
 
             if (existingBreak.length > 0) {
@@ -256,12 +245,12 @@ router.post('/Attendancemark', async (req, res) => {
 
             // Insert break record with attendance_id
             await queryDb('INSERT INTO break_logs (employee_id,company_id , attendance_id, BreakType, start_time, in_ip, in_latitude, in_longitude, created) VALUES (?, ?, ?, ?, ?, ?, ?, ?,?)',
-                [empId, companyId, attendanceId, 'Start', formattedTime, IpHandal, latitude, longitude, currentDate]);
+                [decodedUserData.id, decodedUserData.company_id, attendanceId, 'Start', formattedTime, IpHandal, latitude, longitude, currentDate]);
 
             return res.status(200).json({ status: true, message: `Break started at ${formattedTime}.` });
 
         } else if (type === 'End_break') {
-            const breakStartTime = await queryDb('SELECT start_time, attendance_id FROM break_logs WHERE employee_id = ? AND company_id=? AND (end_time IS NULL OR end_time=?) AND  DATE(created)  = CURDATE() ORDER BY created DESC LIMIT 1', [empId, companyId, '00:00:00']);
+            const breakStartTime = await queryDb('SELECT start_time, attendance_id FROM break_logs WHERE employee_id = ? AND company_id=? AND (end_time IS NULL OR end_time=?) AND  DATE(created)  = CURDATE() ORDER BY created DESC LIMIT 1', [decodedUserData.id, decodedUserData.company_id, '00:00:00']);
 
             if (breakStartTime.length === 0) {
                 return res.status(400).json({ status: false, message: 'No active break found to end.' });
@@ -270,7 +259,7 @@ router.post('/Attendancemark', async (req, res) => {
             const breakDuration = calculateDurationCheck(breakStartTime[0].start_time, formattedTime);
 
             await queryDb('UPDATE break_logs SET out_latitude=?, out_longitude=?, out_ip=?, end_time = ?, duration = ? WHERE employee_id = ? AND start_time = ? And company_id=?',
-                [latitude, longitude, IpHandal, formattedTime, breakDuration, empId, breakStartTime[0].start_time, companyId]);
+                [latitude, longitude, IpHandal, formattedTime, breakDuration, decodedUserData.id, breakStartTime[0].start_time, decodedUserData.company_id]);
 
             return res.status(200).json({ status: true, message: `Break ended at ${formattedTime}. Duration: ${breakDuration}.` });
         } else {

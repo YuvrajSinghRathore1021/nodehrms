@@ -502,7 +502,7 @@ router.post('/api/ApprovalSubmit', async (req, res) => {
     const queryArray = [ApprovalStatus, reason, employee_id, ApprovalRequests_id, company_id];
     try {
         const updateResult = await queryDb(query, queryArray);
-        console.log(updateResult);
+        // console.log(updateResult);
         if (updateResult.affectedRows == 1) {
             const attendanceRequestType = await queryDb(
                 'SELECT request_type,in_time,out_time FROM attendance_requests WHERE id = ? AND company_id = ?',
