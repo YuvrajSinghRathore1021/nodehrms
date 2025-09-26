@@ -1017,7 +1017,7 @@ router.post('/employee-hierarchyTeam', (req, res) => {
     const id = CheckId || decodedUserData.id;
     const company_id = decodedUserData.company_id;
     db.query(
-        'SELECT id, type,profile_image, company_id, first_name, reporting_manager FROM employees WHERE company_id = ? and status=1',
+        'SELECT id, type,profile_image, company_id,   CONCAT(first_name, " ", last_name,"-",employee_id) AS first_name, reporting_manager FROM employees WHERE company_id = ? and status=1',
         [company_id],
         (err, employees) => {
             if (err) return res.status(500).json({ error: err.message });
@@ -1586,9 +1586,28 @@ router.post('/assign-manager-bulk', async (req, res) => {
         return res.status(400).json({ status: false, message: 'All fields are required.' });
     }
 
-    let employeeIdsArray = employeeId.split(',').map(id => parseInt(id.trim(), 10)).filter(id => !isNaN(id));
-    if (employeeIdsArray.length === 0) {
+    // let employeeIdsArray = employeeId.split(',').map(id => parseInt(id.trim(), 10)).filter(id => !isNaN(id));
 
+    // ✅ Normalize employeeId to always be an array of numbers
+    let employeeIdsArray = [];
+
+    if (typeof employeeId === 'string') {
+        // case: "1,2,3"
+        employeeIdsArray = employeeId
+            .split(',')
+            .map(id => parseInt(id.trim(), 10))
+            .filter(id => !isNaN(id));
+    } else if (Array.isArray(employeeId)) {
+        // case: [1, 2, "3"]
+        employeeIdsArray = employeeId
+            .map(id => parseInt(id, 10))
+            .filter(id => !isNaN(id));
+    } else if (typeof employeeId === 'number') {
+        // case: single number
+        employeeIdsArray = [employeeId];
+    }
+
+    if (employeeIdsArray.length === 0) {
         return res.status(200).json({ status: false, message: 'Employee ID Not Found' });
     }
 

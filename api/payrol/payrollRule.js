@@ -367,7 +367,7 @@ router.get('/api/data', async (req, res) => {
 
     // Build the base query
     let query = `
-        SELECT a.first_name, a.id, a.employee_id, SS.structure_name, SS.structure_id 
+        SELECT CONCAT(a.first_name, " ", a.last_name) AS first_name, a.id, a.employee_id, SS.structure_name, SS.structure_id 
         FROM employees AS a
         LEFT JOIN salary_structure AS SS ON a.structure_id = SS.structure_id
         WHERE  a.employee_status=1 and a.status=1 and a.delete_status=0 and a.company_id = ?`;

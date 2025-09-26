@@ -88,6 +88,11 @@
 // // Expenses
 // const Expenses = require('./api/expenses/Expenses');
 
+// //////HrAttendance
+// const HrAttendance = require('./api/attendance/HrAttendance');
+
+
+
 // const authenticateToken = (req, res, next) => {
 //     const token = req.headers['authorization']?.split(' ')[1];
 //     if (!token) {
@@ -101,6 +106,38 @@
 //         next();
 //     });
 // };
+// const url = require("url");
+// app.use((req, res, next) => {
+//     const start = Date.now();
+
+//     res.on("finish", () => {
+//         const duration = Date.now() - start;
+
+//         // Ignore socket.io
+//         if (req.url.startsWith("/socket.io")) return;
+
+//         const method = req.method;
+//         const parsedUrl = url.parse(req.originalUrl);
+//         const cleanUrl = parsedUrl.pathname; // removes ?query=params
+//         const statusCode = res.statusCode;
+//         const userId = req.user ? req.user.id : null;
+
+//         const sql = `
+//       INSERT INTO api_sql_logs (method, url, status_code, duration_ms, user_id)
+//       VALUES (?, ?, ?, ?, ?)
+//     `;
+//         const values = [method, cleanUrl, statusCode, duration, userId];
+
+//         db.query(sql, values, (err) => {
+//             if (err) {
+//                 console.error("Log insert failed:", err.message);
+//             }
+//             // no need to send response here, this is async logging
+//         });
+//     });
+
+//     next();
+// });
 
 
 // // Apply authentication middleware to all routes except /userapi
@@ -169,6 +206,7 @@
 // // Salary
 // app.use('/Salary', authenticateToken, Salary);
 // app.use('/Expenses', authenticateToken, Expenses);
+// app.use('/hrAttendance', authenticateToken, HrAttendance);
 // io.on("connection", (socket) => {
 //     console.log("User connected:", socket.id);
 //     socket.on("join", (userId) => {
@@ -298,6 +336,8 @@ const ExcelEmployee = require('./api/directory/ExcelEmployee');
 
 // Expenses
 const Expenses = require('./api/expenses/Expenses');
+////HrAttendance
+const HrAttendance = require('./api/attendance/HrAttendance');
 const authenticateToken = (req, res, next) => {
     const token = req.headers['authorization']?.split(' ')[1];
     if (!token) {
@@ -376,6 +416,7 @@ app.use('/EmployeeLocation', authenticateToken, EmployeeLocationTracking);
 // Salary
 app.use('/Salary', authenticateToken, Salary);
 app.use('/Expenses', authenticateToken, Expenses);
+app.use('/hrAttendance', authenticateToken, HrAttendance);
 io.on("connection", (socket) => {
     // console.log("User connected:", socket.id);
     socket.on("join", (userId) => {

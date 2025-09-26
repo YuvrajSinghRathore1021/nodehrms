@@ -19,9 +19,7 @@ router.post('/api/attendancerulesEdit', async (req, res) => {
         overtime_rate,
         max_overtime_hours,
         leave_approval_required,
-        rule_id
-
-
+        rule_id, out_time_required, working_hours_required
     } = req.body;
     // ,penalty_rule_applied,late_coming_penalty,early_leaving_penalty
     let penalty_rule_applied = req.body.penalty_rule_applied == true || req.body.penalty_rule_applied == "true" ? 1 : 0;
@@ -69,7 +67,7 @@ router.post('/api/attendancerulesEdit', async (req, res) => {
         late_coming_penalty_type =?,
         early_leaving_penalty=?,
         early_leaving_allowed_days=?,
-        early_leaving_penalty_type=? WHERE company_id=? And rule_id=?
+        early_leaving_penalty_type=?,out_time_required=?,working_hours_required=? WHERE company_id=? And rule_id=?
 `;
 
     const values = [
@@ -81,7 +79,7 @@ router.post('/api/attendancerulesEdit', async (req, res) => {
         late_coming_penalty_type,
         early_leaving_penalty,
         early_leaving_allowed_days,
-        early_leaving_penalty_type, company_id, rule_id
+        early_leaving_penalty_type, out_time_required, working_hours_required, company_id, rule_id
     ];
 
     db.query(query, values, (err, result) => {
@@ -188,7 +186,7 @@ router.get('/api/fetchDetails', async (req, res) => {
             out_grace_period_minutes, half_day, total_break_duration, 
             overtime_rate, max_overtime_hours, sandwich_leave_applied,
             leave_approval_required, created_at , penalty_rule_applied, late_coming_penalty, late_coming_allowed_days, in_grace_period_minutes, late_coming_penalty_type, early_leaving_penalty, early_leaving_allowed_days, out_grace_period_minutes, early_leaving_penalty_type
-        FROM attendance_rules 
+        ,out_time_required,working_hours_required FROM attendance_rules 
         WHERE 1=1
     `;
 
@@ -416,8 +414,9 @@ router.get('/api/data', async (req, res) => {
     }
 
     // Build the base query
+
     let query = `
-        SELECT a.first_name, a.id, a.employee_id, b.rule_name, b.rule_id 
+        SELECT CONCAT(a.first_name, " ", a.last_name,"-",a.employee_id) AS first_name, a.id, a.employee_id, b.rule_name, b.rule_id 
         FROM employees AS a
         LEFT JOIN attendance_rules AS b ON a.attendance_rules_id = b.rule_id
         WHERE  a.employee_status=1 and a.status=1 and a.delete_status=0 and a.company_id = ?`;

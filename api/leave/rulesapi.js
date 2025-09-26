@@ -10,9 +10,7 @@ router.get("/fetch-department-employee", async (req, res) => {
   try {
     const { userData } = req.query;
     if (!userData) {
-      return res
-        .status(400)
-        .json({ status: false, message: "UserData is required." });
+      return res.status(400).json({ status: false, message: "UserData is required." });
     }
 
     let decodedUserData;
@@ -20,16 +18,12 @@ router.get("/fetch-department-employee", async (req, res) => {
       const decodedString = Buffer.from(userData, "base64").toString("utf-8");
       decodedUserData = JSON.parse(decodedString);
     } catch (error) {
-      return res
-        .status(400)
-        .json({ status: false, message: "Invalid UserData format." });
+      return res.status(400).json({ status: false, message: "Invalid UserData format." });
     }
 
     const companyId = decodedUserData?.company_id;
     if (!companyId) {
-      return res
-        .status(400)
-        .json({ status: false, message: "Company ID is required." });
+      return res.status(400).json({ status: false, message: "Company ID is required." });
     }
 
     const employeeQuery = `
@@ -37,7 +31,7 @@ router.get("/fetch-department-employee", async (req, res) => {
         e.id,
         e.employee_id,
         e.leave_rule_id ,
-        e.first_name AS employee_name,
+        CONCAT(e.first_name, " ", e.last_name) AS employee_name,
         e.employee_type,
         COALESCE(d1.name, '') AS department,
         COALESCE(d2.name, '') AS sub_department,

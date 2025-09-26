@@ -207,7 +207,7 @@ router.get('/api/FetchLocationPermissions', async (req, res) => {
     FROM location_permissions AS lp
     LEFT JOIN employees AS e1 ON lp.employee_id = e1.id
     LEFT JOIN employees AS e2 ON lp.viewer_id = e2.id
-    WHERE lp.company_id = ?
+    WHERE lp.company_id = ? and e1.employee_status=1 and e1.status=1 and e1.delete_status=0 and e2.employee_status=1 and e2.status=1 and e2.delete_status=0
     ORDER BY lp.id DESC
     LIMIT ? OFFSET ?
   `;
@@ -220,7 +220,7 @@ router.get('/api/FetchLocationPermissions', async (req, res) => {
     }
 
     // Fetch all employees once for mapping target IDs
-    db.query('SELECT id, CONCAT(first_name, " ", last_name) AS full_name FROM employees WHERE company_id = ?', [decodedUserData.company_id], (empErr, employees) => {
+    db.query('SELECT id, CONCAT(first_name, " ", last_name) AS full_name FROM employees WHERE company_id = ? and employee_status=1 and status=1 and delete_status=0', [decodedUserData.company_id], (empErr, employees) => {
       if (empErr) {
         return res.status(500).json({ status: false, error: 'Error fetching employee names' });
       }
@@ -242,7 +242,7 @@ router.get('/api/FetchLocationPermissions', async (req, res) => {
       });
 
       // Get total count
-      db.query('SELECT COUNT(id) AS total FROM location_permissions WHERE company_id = ?', [decodedUserData.company_id], (countErr, countResults) => {
+      db.query('SELECT COUNT(id) AS total FROM location_permissions WHERE company_id = ? ', [decodedUserData.company_id], (countErr, countResults) => {
         if (countErr) {
           return res.status(500).json({ status: false, error: 'Server error' });
         }
@@ -263,57 +263,57 @@ router.get('/api/FetchLocationPermissions', async (req, res) => {
 
 // get loaction 
 router.post('/Get', async (req, res) => {
-    const { userData, type = 'in', startDate, endDate, employeeId } = req.body;
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    }
-
-    if (!decodedUserData || !decodedUserData.company_id || !decodedUserData.id) {
-        return res.status(400).json({ status: false, error: 'company_id and id are required' });
-    }
-
+  const { userData, type = 'in', startDate, endDate, employeeId } = req.body;
+  let decodedUserData = null;
+  if (userData) {
     try {
-        const companyId = decodedUserData.company_id;
-
-        // Validate type
-        const locationField = type === 'out' ? 
-            '`out_latitude`, `out_longitude`, `check_out_time`, `attendance_date`' : 
-            '`in_latitude`, `in_longitude`, `check_in_time`, `attendance_date`';
-
-        let whereClause = `WHERE company_id = ?`;
-        const params = [companyId];
-
-        if (employeeId) {
-            whereClause += ` AND employee_id = ?`;
-            params.push(employeeId);
-        }
-
-        if (startDate && endDate) {
-            whereClause += ` AND DATE(attendance_date) BETWEEN ? AND ?`;
-            params.push(startDate, endDate);
-        }
-
-        const [dataGet] = await db.promise().query(
-            `SELECT attendance_id, employee_id, ${locationField} FROM attendance ${whereClause}`,
-            params
-        );
-
-        res.json({
-            status: true,
-            message: 'Data fetched successfully',
-            data: dataGet
-        });
-
+      const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+      decodedUserData = JSON.parse(decodedString);
     } catch (error) {
-        console.error('Error fetching location:', error);
-        res.status(500).json({ status: false, error: 'Server error' });
+      return res.status(400).json({ status: false, error: 'Invalid userData' });
     }
+  }
+
+  if (!decodedUserData || !decodedUserData.company_id || !decodedUserData.id) {
+    return res.status(400).json({ status: false, error: 'company_id and id are required' });
+  }
+
+  try {
+    const companyId = decodedUserData.company_id;
+
+    // Validate type
+    const locationField = type === 'out' ?
+      '`out_latitude`, `out_longitude`, `check_out_time`, `attendance_date`' :
+      '`in_latitude`, `in_longitude`, `check_in_time`, `attendance_date`';
+
+    let whereClause = `WHERE company_id = ?`;
+    const params = [companyId];
+
+    if (employeeId) {
+      whereClause += ` AND employee_id = ?`;
+      params.push(employeeId);
+    }
+
+    if (startDate && endDate) {
+      whereClause += ` AND DATE(attendance_date) BETWEEN ? AND ?`;
+      params.push(startDate, endDate);
+    }
+
+    const [dataGet] = await db.promise().query(
+      `SELECT attendance_id, employee_id, ${locationField} FROM attendance ${whereClause}`,
+      params
+    );
+
+    res.json({
+      status: true,
+      message: 'Data fetched successfully',
+      data: dataGet
+    });
+
+  } catch (error) {
+    console.error('Error fetching location:', error);
+    res.status(500).json({ status: false, error: 'Server error' });
+  }
 });
 
 
