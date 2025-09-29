@@ -150,7 +150,7 @@ router.post("/leave", async (req, res) => {
 
     if (settingResult.length > 0) {
       const multiLeaveApprove = settingResult[0].multi_level_approve;
-      if (multiLeaveApprove === 1) {
+      if (multiLeaveApprove == 1) {
         const [managerResults] = await db.promise().query(
           "SELECT reporting_manager FROM employees WHERE  employee_status=1 and status=1 and delete_status=0 and id = ? AND company_id = ?",
           [decodedUserData.id, decodedUserData.company_id]

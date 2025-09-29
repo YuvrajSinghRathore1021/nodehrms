@@ -7,7 +7,7 @@ const db = require('../../DB/ConnectionSql');
 router.post('/attendanceEdit', async (req, res) => {
 
     const { userData, status, checkInTime, checkOutTime, duration, reason, branchIdIn, branchIdOut, attendanceId, hrReason } = req.body;
-    
+
     let decodedUserData = null;
     // Decode and validate userData
     if (userData) {
@@ -17,7 +17,7 @@ router.post('/attendanceEdit', async (req, res) => {
         } catch (error) {
             return res.status(400).json({
                 status: false, error: 'Invalid userData', message: 'Invalid userData'
-            });
+            }); 3
         }
     }
 
@@ -134,6 +134,7 @@ router.post('/attendanceDetails', async (req, res) => {
         });
     }
     const company_id = decodedUserData.company_id;
+    let employee_Id = employeeId;
 
     let query = "";
     let queryArray = "";
@@ -202,8 +203,8 @@ LEFT JOIN employees AS admin ON ar.admin_id = admin.id -- Admin details
 LEFT JOIN branches AS br ON att.branch_id_in = br.id
 LEFT JOIN branches AS br1 ON att.branch_id_out = br1.id
 
-WHERE att.attendance_id = ? AND att.company_id = ?`;
-    queryArray = [attendanceId, company_id];
+WHERE (att.attendance_id = ? or (att.attendance_date=? and att.employee_id=?)) AND att.company_id = ?`;
+    queryArray = [attendanceId, attendanceDate, employeeId, company_id];
 
 
     db.query(query, queryArray, (err, results) => {
@@ -328,8 +329,72 @@ router.post('/attendanceDetailsSummary', async (req, res) => {
 });
 
 
+/////AttendanceRequestDetails
+router.post('/AttendanceRequestDetails', async (req, res) => {
+    const { userData, employeeId, attendanceDate } = req.body;
+
+    let decodedUserData = null;
+    try {
+        decodedUserData = JSON.parse(Buffer.from(userData, 'base64').toString('utf-8'));
+    } catch (error) {
+        return res.status(400).json({ status: false, message: "Invalid userData" });
+    }
+
+    if (!decodedUserData?.company_id) {
+        return res.status(400).json({ status: false, message: "Company ID is required" });
+    }
+
+    const company_id = decodedUserData.company_id;
+    let employee_Id = employeeId || decodedUserData.id;
+
+    try {
+        // 1️⃣ Attendance summary
+        const [attendance] = await db.promise().query(
+            `SELECT 
+    ar.id, 
+    ar.employee_id, 
+    ar.company_id, 
+    ar.attendance_id, 
+    ar.rm_status, 
+    ar.rm_id, 
+    ar.rm_remark, 
+    ar.admin_id, 
+    ar.admin_status, 
+    ar.admin_remark, 
+    ar.request_type, 
+    ar.request_date, 
+    ar.in_time, 
+    ar.out_time, 
+    ar.status, 
+    ar.reason, 
+    ar.reason_admin, 
+    ar.reason_rm, 
+    ar.created,
+    CONCAT(empName.first_name, ' ', empName.last_name, '-', empName.employee_id) AS employee_name,
+    CONCAT(rmName.first_name, ' ', rmName.last_name, '-', rmName.employee_id) AS rm_name,
+    CONCAT(adminName.first_name, ' ', adminName.last_name, '-', adminName.employee_id) AS admin_name
+FROM attendance_requests AS ar
+LEFT JOIN employees AS empName ON ar.employee_id = empName.id
+LEFT JOIN employees AS rmName ON ar.rm_id = rmName.id
+LEFT JOIN employees AS adminName ON ar.admin_id = adminName.id
+WHERE ar.company_id=? and ar.employee_id=? and ar.request_date=?;
+`,
+            [company_id, employee_Id, attendanceDate]
+        );
 
 
+        return res.json({
+            status: true,
+            data: attendance
+        });
+
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ status: false, message: "Error fetching attendance summary" });
+    }
+});
 
 // Export the router
 module.exports = router;
+
+

@@ -24,12 +24,12 @@ const db = mysql.createConnection({
   // database: 'hrmslatest',
 
 
-  ////// on aws live
-  host: process.env.host || 'localhost',
-  user: process.env.user || 'hrmsadminnew',
-  password: process.env.password || '!Hrms@Admin!123@Latest!',
-  database: process.env.database || 'hrmsnewlatest',
-  port: 3306
+  // ////// on aws live
+  // host: process.env.host || 'localhost',
+  // user: process.env.user || 'hrmsadminnew',
+  // password: process.env.password || '!Hrms@Admin!123@Latest!',
+  // database: process.env.database || 'hrmsnewlatest',
+  // port: 3306
 
 
   // host: '13.204.128.230',
@@ -37,6 +37,15 @@ const db = mysql.createConnection({
   // password: '!Hrms@Admin!123@Latest!',
   // database: 'hrmsnewlatest',
   // port: 3306
+
+
+
+  // new  rds connection    // 
+  host: 'database-1.c564ew8oajmx.ap-south-1.rds.amazonaws.com',
+  user: 'hrmsadmin',
+  password: 'HrmsAdmin123Latest',
+  database: 'hrms',
+  port: 3306
 
 });
 
