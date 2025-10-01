@@ -201,8 +201,6 @@ router.post('/read', (req, res) => {
 
 router.post('/SendLocation', (req, res) => {
   const { userData, latitude, longitude } = req.body;
-  let decodedUserData = null;
-
   if (userData) {
     try {
       const decodedString = Buffer.from(userData, 'base64').toString('utf-8');

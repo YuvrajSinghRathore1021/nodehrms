@@ -5,9 +5,7 @@ const db = require('../../DB/ConnectionSql');
 
 //////
 router.post('/attendanceEdit', async (req, res) => {
-
-    const { userData, status, checkInTime, checkOutTime, duration, reason, branchIdIn, branchIdOut, attendanceId, hrReason } = req.body;
-
+    const { userData, status, checkInTime, attendance_status, checkOutTime, duration, reason, branchIdIn, branchIdOut, attendanceId, hrReason, type, employeeId } = req.body;
     let decodedUserData = null;
     // Decode and validate userData
     if (userData) {
@@ -30,11 +28,23 @@ router.post('/attendanceEdit', async (req, res) => {
 
     const company_id = decodedUserData.company_id;
     try {
-        const [result] = await db.promise().query(
-            `UPDATE attendance SET  status=?,check_in_time=? ,check_out_time=?,duration=? ,reason=?,branch_id_in=?, branch_id_out=? WHERE attendance_id=? and company_id=?`,
-            [status, checkInTime, checkOutTime, duration, reason, branchIdIn, branchIdOut, attendanceId, company_id]
-        );
+        let result;
+        if (type == "AttendanceSubmit") {
 
+            [result] = await db.promise().query(
+                `INSERT INTO attendance ( status,check_in_time ,check_out_time,duration ,reason,branch_id_in, branch_id_out,employee_id , company_id,apply_by,reason) values (?,?,?,?,?,?,?,?,) `,
+                [status, checkInTime, checkOutTime, duration, reason, branchIdIn, branchIdOut, employeeId, company_id, decodedUserData.id, hrReason]
+            );
+
+        } else {
+            [result] = await db.promise().query(
+                `UPDATE attendance SET attendance_status=?, status=?,check_in_time=? ,check_out_time=?,duration=? ,reason=?,branch_id_in=?, branch_id_out=? WHERE attendance_id=? and company_id=?`,
+                [attendance_status, status, checkInTime, checkOutTime, duration, reason, branchIdIn, branchIdOut, attendanceId, company_id]
+            );
+
+
+
+        }
         if (result.affectedRows > 0) {
             return res.status(200).json({
                 status: true,
@@ -54,12 +64,10 @@ router.post('/attendanceEdit', async (req, res) => {
             message: 'failed'
         });
     }
-
 });
 
 
 router.post('/attendanceRequestEdit', async (req, res) => {
-
     const { userData, attendanceId, request_type, in_time, out_time, reason, rm_id, rm_status, admin_id, admin_status, request_id } = req.body;
 
     let decodedUserData = null;
@@ -70,46 +78,222 @@ router.post('/attendanceRequestEdit', async (req, res) => {
             const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
             decodedUserData = JSON.parse(decodedString);
         } catch (error) {
-            return res.status(400).json({
-                status: false, error: 'Invalid userData', message: 'Invalid userData'
-            });
+            return res.status(400).json({ status: false, message: 'Invalid userData' });
         }
     }
 
-    // Validate company_id
     if (!decodedUserData || !decodedUserData.company_id) {
-        return res.status(400).json({
-            status: false, error: 'Company ID is required', message: 'Company ID is required'
-        });
+        return res.status(400).json({ status: false, message: 'Company ID is required' });
     }
 
     const company_id = decodedUserData.company_id;
+
     try {
         const [result] = await db.promise().query(
-            `UPDATE attendance_requests SET request_type=?,in_time=?,out_time=?,reason=?,rm_id=?,rm_status=?,admin_id=?,admin_status=? WHERE id=? and company_id=?`,
+            `UPDATE attendance_requests 
+             SET request_type=?, in_time=?, out_time=?, reason=?, rm_id=?, rm_status=?, admin_id=?, admin_status=? 
+             WHERE id=? AND company_id=?`,
             [request_type, in_time, out_time, reason, rm_id, rm_status, admin_id, admin_status, request_id, company_id]
         );
 
-        if (result.affectedRows > 0) {
-            return res.status(200).json({
-                status: true,
-                message: 'update successfully',
-                data: result
-            });
-        } else {
-            return res.status(200).json({
-                status: false,
-                message: 'failed',
-                data: result
-            });
+        if (result.affectedRows === 0) {
+            return res.status(200).json({ status: false, message: 'No record updated' });
         }
+
+        let message = 'Request updated successfully';
+
+        // If approved by admin, sync to attendance table
+        if (admin_status == 1) {
+            const attendanceRequestType = await queryDb(
+                `SELECT id, employee_id, company_id, attendance_id, rm_status, rm_id, rm_remark, admin_id, admin_status, 
+                        admin_remark, request_type, request_date, in_time, out_time, status, reason, reason_admin, 
+                        reason_rm, created 
+                 FROM attendance_requests WHERE id = ? AND company_id = ?`,
+                [request_id, company_id]
+            );
+
+            if (!attendanceRequestType.length) {
+                return res.status(404).json({ status: false, message: 'Attendance request not found' });
+            }
+
+            const employeeResults = await queryDb(
+                `SELECT attendance_rules_id FROM employees WHERE id = ? AND company_id = ?`,
+                [attendanceRequestType[0].employee_id, company_id]
+            );
+
+            if (!employeeResults.length) {
+                return res.status(404).json({ status: false, message: 'Employee not found' });
+            }
+
+            const rulesResults = await queryDb(
+                `SELECT in_time, out_time FROM attendance_rules WHERE rule_id = ? AND company_id = ?`,
+                [employeeResults[0].attendance_rules_id, company_id]
+            );
+
+            const rule = rulesResults.length > 0 ? rulesResults[0] : { in_time: '09:30', out_time: '18:30' };
+
+            const { dailyStatus: dailyStatusIN, timeCount: timeCountIN } = calculateStatus(in_time || attendanceRequestType[0].in_time, rule.in_time);
+            const { dailyStatus: dailyStatusOUT, timeCount: timeCountOUT } = calculateStatus(out_time || attendanceRequestType[0].out_time, rule.out_time);
+
+            let insertQuery, insertParams, actionType;
+
+            if (attendanceRequestType[0].attendance_id && attendanceRequestType[0].attendance_id != 0) {
+                // Update attendance
+                insertQuery = `
+                    UPDATE attendance 
+                    SET request_id=?, daily_status_in=?, daily_status_intime=?, daily_status_out=?, daily_status_outtime=?, 
+                        status=?, check_in_time=?, check_out_time=?, approval_status=? 
+                    WHERE employee_id=? AND company_id=? AND attendance_id=?`;
+
+                insertParams = [
+                    request_id,
+                    dailyStatusIN, timeCountIN,
+                    dailyStatusOUT, timeCountOUT,
+                    attendanceRequestType[0].request_type,
+                    in_time || attendanceRequestType[0].in_time,
+                    out_time || attendanceRequestType[0].out_time,
+                    1,
+                    attendanceRequestType[0].employee_id,
+                    company_id,
+                    attendanceRequestType[0].attendance_id
+                ];
+                actionType = 'update';
+            } else {
+                // Insert attendance
+                insertQuery = `
+                    INSERT INTO attendance (request_id, daily_status_in, daily_status_intime, daily_status_out, daily_status_outtime, 
+                        employee_id, company_id, attendance_date, status, check_in_time, check_out_time, approval_status
+                    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`;
+
+                insertParams = [
+                    request_id,
+                    dailyStatusIN, timeCountIN,
+                    dailyStatusOUT, timeCountOUT,
+                    attendanceRequestType[0].employee_id,
+                    company_id,
+                    attendanceRequestType[0].request_date,
+                    attendanceRequestType[0].request_type,
+                    in_time || attendanceRequestType[0].in_time,
+                    out_time || attendanceRequestType[0].out_time,
+                    1
+                ];
+                actionType = 'insert';
+            }
+
+            const resultss = await queryDb(insertQuery, insertParams);
+
+            if (actionType === 'update') {
+                message = resultss.affectedRows > 0 ? 'Attendance updated successfully' : 'No attendance record found to update';
+            } else {
+                message = resultss.insertId ? 'Attendance inserted successfully' : 'Failed to insert attendance';
+            }
+        }
+
+        return res.status(200).json({ status: true, message });
     } catch (err) {
-        return res.status(200).json({
-            status: false,
-            message: 'failed'
-        });
+        console.error(err);
+        return res.status(500).json({ status: false, message: 'Internal server error' });
     }
 });
+
+
+// Generic function to execute database queries
+function queryDb(query, params) {
+    return new Promise((resolve, reject) => {
+        db.query(query, params, (err, results) => {
+            if (err) return reject(err);
+            resolve(results);
+        });
+    });
+}
+function calculateStatus(time, ruleTime) {
+    const formattedRuleTime = String(ruleTime).padStart(5, '0');
+    const formattedtime = String(time).padStart(5, '0');
+    if (!formattedtime) return { dailyStatus: '', timeCount: '' };
+    if (formattedtime < formattedRuleTime) {
+        return { dailyStatus: 'Early', timeCount: trackTime(formattedRuleTime, formattedtime) };
+    } else if (formattedtime > formattedRuleTime) {
+        return { dailyStatus: 'Late', timeCount: trackTime(formattedRuleTime, formattedtime) };
+    } else {
+        return { dailyStatus: 'On Time', timeCount: '00:00' };
+    }
+}
+// new time check 
+function trackTime(officeStartTime, arrivalTimeOrCloseTime) {
+    const [officeHours, officeMinutes] = officeStartTime.split(':').map(Number);
+    const [arrivalHours, arrivalMinutes] = arrivalTimeOrCloseTime.split(':').map(Number);
+    const officeStart = new Date();
+    officeStart.setHours(officeHours, officeMinutes, 0, 0);
+    const arrivalOrClose = new Date();
+    arrivalOrClose.setHours(arrivalHours, arrivalMinutes, 0, 0);
+    // Calculate the difference in milliseconds
+    const timeDifferenceMs = arrivalOrClose - officeStart;
+    const isLate = timeDifferenceMs > 0;
+    // Convert milliseconds to hours and minutes
+    const absTimeDifference = Math.abs(timeDifferenceMs);
+    const hours = Math.floor(absTimeDifference / 3600000);
+    const minutes = Math.floor((absTimeDifference % 3600000) / 60000);
+    // Format the time difference
+    const formattedTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    if (isLate) {
+        return formattedTime;
+    } else {
+        return formattedTime;
+    }
+};
+
+// router.post('/attendanceRequestEdit', async (req, res) => {
+//     const { userData, attendanceId, request_type, in_time, out_time, reason, rm_id, rm_status, admin_id, admin_status, request_id } = req.body;
+
+//     let decodedUserData = null;
+//     // Decode and validate userData
+//     if (userData) {
+//         try {
+//             const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+//             decodedUserData = JSON.parse(decodedString);
+//         } catch (error) {
+//             return res.status(400).json({
+//                 status: false, error: 'Invalid userData', message: 'Invalid userData'
+//             });
+//         }
+//     }
+
+//     // Validate company_id
+//     if (!decodedUserData || !decodedUserData.company_id) {
+//         return res.status(400).json({
+//             status: false, error: 'Company ID is required', message: 'Company ID is required'
+//         });
+//     }
+
+//     const company_id = decodedUserData.company_id;
+//     try {
+//         const [result] = await db.promise().query(
+//             `UPDATE attendance_requests SET request_type=?,in_time=?,out_time=?,reason=?,rm_id=?,rm_status=?,admin_id=?,admin_status=? WHERE id=? and company_id=?`,
+//             [request_type, in_time, out_time, reason, rm_id, rm_status, admin_id, admin_status, request_id, company_id]
+//         );
+
+//         if (result.affectedRows > 0) {
+//             return res.status(200).json({
+//                 status: true,
+//                 message: 'update successfully',
+//                 data: result
+//             });
+//         }
+
+//         else {
+//             return res.status(200).json({
+//                 status: false,
+//                 message: 'failed',
+//                 data: result
+//             });
+//         }
+//     } catch (err) {
+//         return res.status(200).json({
+//             status: false,
+//             message: 'failed'
+//         });
+//     }
+// });
 
 router.post('/attendanceDetails', async (req, res) => {
     const { userData, attendanceId, attendanceDate, employeeId } = req.body;
@@ -133,6 +317,7 @@ router.post('/attendanceDetails', async (req, res) => {
             status: false, error: 'Company ID is required', message: 'Company ID is required'
         });
     }
+
     const company_id = decodedUserData.company_id;
     let employee_Id = employeeId;
 
@@ -269,29 +454,19 @@ router.post('/attendanceDetailsSummary', async (req, res) => {
 
         // 2️⃣ Leave count
         const [leaveSummary] = await db.promise().query(
-            `
-            SELECT COUNT(*) AS leaveCount
+            `SELECT COUNT(*) AS leaveCount
             FROM leaves
             WHERE company_id = ?
               AND employee_id = ?
               AND status = 'approved'
-              AND (
-                  (start_date BETWEEN ? AND ?) OR 
-                  (end_date BETWEEN ? AND ?)
-              )
-            `,
+              AND ((start_date BETWEEN ? AND ?) OR (end_date BETWEEN ? AND ?))`,
             [company_id, employeeId, startDate, endDate, startDate, endDate]
         );
 
         // 3️⃣ Holiday count
         const [holidaySummary] = await db.promise().query(
-            `
-            SELECT COUNT(*) AS holiday
-            FROM holiday
-            WHERE company_id = ?
-              AND date BETWEEN ? AND ?
-              AND status = 1
-            `,
+            `SELECT COUNT(*) AS holiday FROM holiday WHERE company_id = ? AND date BETWEEN ? AND ? AND 
+            status = 1`,
             [company_id, startDate, endDate]
         );
 
@@ -330,6 +505,7 @@ router.post('/attendanceDetailsSummary', async (req, res) => {
 
 
 /////AttendanceRequestDetails
+
 router.post('/AttendanceRequestDetails', async (req, res) => {
     const { userData, employeeId, attendanceDate } = req.body;
 

@@ -1075,14 +1075,18 @@ router.get('/api/attendance', async (req, res) => {
         }
 
         const [holidayResults] = await db.promise().query(`
-            SELECT date
+            SELECT date, holiday
             FROM holiday
             WHERE company_id=? And status = 1 AND YEAR(date) = ? AND MONTH(date) = ?`,
             [decodedUserData.company_id, year, month]
         );
 
-        const holidays = new Set(holidayResults.map(holiday => new Date(holiday.date).toISOString().split('T')[0]));
-
+        // const holidays = new Set(holidayResults.map(holiday => new Date(holiday.date).toISOString().split('T')[0]));
+        const holidays = {};
+        holidayResults.forEach(h => {
+            const dateKey = new Date(h.date).toISOString().split('T')[0];
+            holidays[dateKey] = h.holiday;
+        });
         const employeesAttendanceData = [];
         for (const employee of empResults) {
             const [WorkWeek] = await db.promise().query(
@@ -1109,7 +1113,7 @@ router.get('/api/attendance', async (req, res) => {
             const monthEnd = `${year}-${monthStr}-${new Date(year, month, 0).getDate()}`;
 
             const [leaveResultsRequest] = await db.promise().query(
-                `SELECT employee_id, start_date, end_date, start_half, end_half FROM leaves WHERE deletestatus = 0 AND status = 1 AND admin_status = 1 AND company_id = ?  AND employee_id = ?  
+                `SELECT employee_id, start_date, end_date, start_half, end_half,leave_type FROM leaves WHERE deletestatus = 0 AND status = 1 AND admin_status = 1 AND company_id = ?  AND employee_id = ?  
      AND ((start_date BETWEEN ? AND ?)  OR  (end_date BETWEEN ? AND ?) OR  (start_date <= ? AND end_date >= ?))`,
                 [decodedUserData.company_id, employee.id, monthStart, monthEnd, monthStart, monthEnd, monthStart, monthEnd]
             );
@@ -1131,24 +1135,32 @@ router.get('/api/attendance', async (req, res) => {
                 const dayKey = `${daysOfWeek[dayOfWeek]}${weekNumber}`;
                 // console.log(dayKey);
                 const isWeeklyOff = workWeekData && workWeekData[dayKey] === 3;
-                const isHoliday = holidays.has(date.toISOString().split('T')[0]);
+                // const isHoliday = holidays.has(date.toISOString().split('T')[0]);
+
 
                 const attendance = attendanceResults.find(a => {
                     const attDate = new Date(a.attendance_date);
                     return attDate.getDate() === dayNo && attDate.getMonth() === month - 1;
                 });
                 const formattedDate = new Date(date).toISOString().split("T")[0];
+                const isHoliday = holidays[formattedDate];
                 // converts "2025-08-01T00:00:00.000Z" → "2025-08-01"
 
                 const leaveRecord = leaveResultsRequest.find(leave =>
                     formattedDate >= leave.start_date.split("T")[0] &&
                     formattedDate <= leave.end_date.split("T")[0]
                 );
+
                 let status = '';
+                let label = '';
+
                 if (isWeeklyOff) {
                     status = 'WO';
+                    label = 'Weekly Off';
                 } else if (isHoliday) {
                     status = 'H';
+                    // label = `Holiday`;                   
+                    label = `Holiday - ${isHoliday}`;
                 } else if (attendance) {
                     if (attendance.status.toLowerCase() === 'present') {
                         status = 'P';
@@ -1158,28 +1170,36 @@ router.get('/api/attendance', async (req, res) => {
                             const workDuration = (checkOutTime - checkInTime) / (1000 * 60);
                             if (workDuration < 510) {
                                 status = '-WD';
+                                label = 'Less Work Duration';
                             }
                         }
                         if (!attendance.check_out_time) {
                             status = 'NCO';
+                            label = 'Not Checked Out';
                         }
                     } else if (attendance.status.toLowerCase() === 'half-day') {
                         status = 'HF';
+                        label = 'Half Day';
                     } else if (attendance.status.toLowerCase() === 'absent') {
-                        status = 'AP';
+                        status = 'A';
+                        label = 'Absent (Applied)';
                     }
                 }
                 else if (leaveRecord) {
                     status = "L";
+                    // label = 'Leave';
+                    label = `Leave - ${leaveRecord.leave_type}`;
                 }
 
                 else {
                     status = 'A';
+                    label = 'Absent';
                 }
 
                 monthlyAttendanceLogs.push({
                     day_no: dayNo,
                     status: status,
+                    label: label,
                     date: date,
                     in_time: attendance ? attendance.check_in_time : '',
                     out_time: attendance ? attendance.check_out_time : ''
