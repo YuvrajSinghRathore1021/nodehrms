@@ -6,9 +6,82 @@ const { AdminCheck } = require("../../model/functlity/AdminCheck");
 
 ////// Fetch Department Employee //////////
 
+// router.get("/fetch-department-employee", async (req, res) => {
+//   try {
+//     const { userData, search ,page=1,limit=10} = req.query;
+//     if (!userData) {
+//       return res.status(400).json({ status: false, message: "UserData is required." });
+//     }
+
+//     let decodedUserData;
+//     try {
+//       const decodedString = Buffer.from(userData, "base64").toString("utf-8");
+//       decodedUserData = JSON.parse(decodedString);
+//     } catch (error) {
+//       return res.status(400).json({ status: false, message: "Invalid UserData format." });
+//     }
+
+//     const companyId = decodedUserData?.company_id;
+//     if (!companyId) {
+//       return res.status(400).json({ status: false, message: "Company ID is required." });
+//     }
+
+//     const employeeQuery = `
+//       SELECT 
+//         e.id,
+//         e.employee_id,
+//         e.leave_rule_id ,
+//         CONCAT(e.first_name, " ", e.last_name) AS employee_name,
+//         e.employee_type,
+//         COALESCE(d1.name, '') AS department,
+//         COALESCE(d2.name, '') AS sub_department,
+//         COALESCE(GROUP_CONCAT(lr.leave_type), 'Unknown') AS leave_type
+//       FROM 
+//         employees e
+//       LEFT JOIN 
+//         departments d1 ON e.department = d1.id
+//       LEFT JOIN 
+//         departments d2 ON e.sub_department = d2.id
+//       LEFT JOIN 
+//         leave_rules lr ON FIND_IN_SET(lr.id, e.leave_rule_id)
+//       WHERE
+//         e.employee_status = 1 AND 
+//         e.status = 1 AND 
+//         e.delete_status = 0 AND 
+//         e.company_id = ?
+//       GROUP BY 
+//         e.id
+//     `;
+
+//     const [employees] = await db.promise().query(employeeQuery, [companyId]);
+
+//     if (employees.length === 0) {
+//       return res
+//         .status(404)
+//         .json({ status: false, message: "No employee data found." });
+//     }
+
+//     return res.status(200).json({
+//       status: true,
+//       message: "Employee data fetched successfully.",
+//       data: employees,
+//       totalRecords: employees.length
+//     });
+//   } catch (err) {
+//     console.error("Error fetching data:", err.message);
+//     return res.status(500).json({
+//       status: false,
+//       message: "Error fetching department and employee data.",
+//       error: err.message
+//     });
+//   }
+// });
+
+
 router.get("/fetch-department-employee", async (req, res) => {
   try {
-    const { userData } = req.query;
+    const { userData, search = "", page = 1, limit = 10 } = req.query;
+
     if (!userData) {
       return res.status(400).json({ status: false, message: "UserData is required." });
     }
@@ -26,56 +99,89 @@ router.get("/fetch-department-employee", async (req, res) => {
       return res.status(400).json({ status: false, message: "Company ID is required." });
     }
 
+    // Pagination calculations
+    const pageNumber = parseInt(page, 10) || 1;
+    const pageLimit = parseInt(limit, 10) || 10;
+    const offset = (pageNumber - 1) * pageLimit;
+
+    // Base query with search filter
+    let searchCondition = "";
+    let params = [companyId];
+
+    if (search) {
+      searchCondition = ` AND (e.employee_id LIKE ? OR e.first_name LIKE ? OR e.last_name LIKE ? OR d1.name LIKE ? OR d2.name LIKE ?) `;
+      params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
+    }
+
+    // Count total records (for pagination)
+    const countQuery = `
+      SELECT COUNT(DISTINCT e.id) as totalRecords
+      FROM employees e
+      LEFT JOIN departments d1 ON e.department = d1.id
+      LEFT JOIN departments d2 ON e.sub_department = d2.id
+      WHERE e.employee_status = 1 
+        AND e.status = 1 
+        AND e.delete_status = 0 
+        AND e.company_id = ?
+        ${searchCondition}
+    `;
+
+    const [countResult] = await db.promise().query(countQuery, params);
+    const totalRecords = countResult[0]?.totalRecords || 0;
+
+    if (totalRecords === 0) {
+      return res.status(404).json({ status: false, message: "No employee data found." });
+    }
+
+    // Main query with LIMIT + OFFSET
     const employeeQuery = `
       SELECT 
         e.id,
         e.employee_id,
-        e.leave_rule_id ,
+        e.leave_rule_id,
         CONCAT(e.first_name, " ", e.last_name) AS employee_name,
         e.employee_type,
         COALESCE(d1.name, '') AS department,
         COALESCE(d2.name, '') AS sub_department,
         COALESCE(GROUP_CONCAT(lr.leave_type), 'Unknown') AS leave_type
-      FROM 
-        employees e
-      LEFT JOIN 
-        departments d1 ON e.department = d1.id
-      LEFT JOIN 
-        departments d2 ON e.sub_department = d2.id
-      LEFT JOIN 
-        leave_rules lr ON FIND_IN_SET(lr.id, e.leave_rule_id)
-      WHERE
-        e.employee_status = 1 AND 
-        e.status = 1 AND 
-        e.delete_status = 0 AND 
-        e.company_id = ?
-      GROUP BY 
-        e.id
+      FROM employees e
+      LEFT JOIN departments d1 ON e.department = d1.id
+      LEFT JOIN departments d2 ON e.sub_department = d2.id
+      LEFT JOIN leave_rules lr ON FIND_IN_SET(lr.id, e.leave_rule_id)
+      WHERE e.employee_status = 1 
+        AND e.status = 1 
+        AND e.delete_status = 0 
+        AND e.company_id = ?
+        ${searchCondition}
+      GROUP BY e.id
+      ORDER BY e.id DESC
+      LIMIT ? OFFSET ?
     `;
 
-    const [employees] = await db.promise().query(employeeQuery, [companyId]);
+    // Add pagination params
+    params.push(pageLimit, offset);
 
-    if (employees.length === 0) {
-      return res
-        .status(404)
-        .json({ status: false, message: "No employee data found." });
-    }
+    const [employees] = await db.promise().query(employeeQuery, params);
 
     return res.status(200).json({
       status: true,
       message: "Employee data fetched successfully.",
       data: employees,
-      totalRecords: employees.length
+      totalRecords,
+      currentPage: pageNumber,
+      totalPages: Math.ceil(totalRecords / pageLimit),
     });
   } catch (err) {
     console.error("Error fetching data:", err.message);
     return res.status(500).json({
       status: false,
       message: "Error fetching department and employee data.",
-      error: err.message
+      error: err.message,
     });
   }
 });
+
+
 
 /////////////////////////////////////////////
 ////////////  Rules Update  /////////////////

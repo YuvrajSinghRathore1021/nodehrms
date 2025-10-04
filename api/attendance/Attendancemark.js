@@ -178,8 +178,13 @@ router.post('/Attendancemark', async (req, res) => {
             if (numericDuration <= maxWorkingHours) { //bug solve
                 attendanceStatus = 0;
             }
+            let halfDayDuration = halfDayHours + 0.5;
+            if (companyId == 10) {
+                //+4:45 hours
+                halfDayDuration = halfDayHours + 4.70;
+            }
 
-            if (numericDuration >= halfDayHours && numericDuration <= halfDayHours + 0.5 && halfDayHours != 0) {
+            if (numericDuration >= halfDayHours && numericDuration <= halfDayDuration && halfDayHours != 0) {
                 attendanceStatus = 1;
                 statusValue = 'half-day';
             }

@@ -835,15 +835,11 @@ router.post("/api/ApprovalSubmit", async (req, res) => {
         const leave = leaveDetails[0];
 
         // 2. Calculate leave days
-        let leaveDays = calculateLeaveDays(
-          leave.start_date,
-          leave.end_date,
-          leave.start_half,
-          leave.end_half
-        );
+
+        let leaveDays = calculateLeaveDays(leave.start_date, leave.end_date, leave.start_half, leave.end_half);
 
         const currentYear = new Date(leave.start_date).getFullYear();
-
+        console.log(currentYear);
         // 3. Get employee leave balance
         const balanceResults = await queryDb(
           `SELECT * FROM leave_balance 
@@ -854,8 +850,25 @@ router.post("/api/ApprovalSubmit", async (req, res) => {
         if (balanceResults.length > 0) {
           const balance = balanceResults[0];
 
-          let used = balance.used_leaves + leaveDays;
-          let remaining = balance.total_leaves - used;
+          // let used = balance.used_leaves + leaveDays;
+          // let remaining = balance.total_leaves - used;
+
+          // console.log(balance.used_leaves, leaveDays);
+          // console.log(used, remaining);
+
+
+
+          // ////// Ensure numeric values
+          const usedLeaves = parseFloat(balance.used_leaves) || 0;
+          const totalLeaves = parseFloat(balance.total_leaves) || 0;
+          const leaveDaysNum = parseFloat(leaveDays) || 0;
+
+          let used = usedLeaves + leaveDaysNum;
+          let remaining = totalLeaves - used;
+
+          console.log("usedLeaves:", usedLeaves, "leaveDays:", leaveDaysNum);
+          console.log("used:", used, "remaining:", remaining);
+
           // if (remaining < 0) remaining = 0; // handle negative leaves
 
           // 4. Update leave balance

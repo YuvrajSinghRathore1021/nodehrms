@@ -526,7 +526,9 @@ router.post("/FetchLeaveCount", async (req, res) => {
       const used = rule.used_leaves || 0;
       let available = totalCredited - used;
       const pending = pendingDaysByRule[rule.id] || 0;
-      let monthly_balance_leave = available + rule.old_balance - pending;
+      // let monthly_balance_leave = available + rule.old_balance - pending;
+      let monthly_balance_leave = (parseFloat(available) + parseFloat(rule.old_balance) - parseFloat(pending)).toFixed(1);
+
       if (available < 0) available = 0;
 
       results.push({

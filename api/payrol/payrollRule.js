@@ -517,8 +517,248 @@ router.post('/api/Update', async (req, res) => {
 
 
 
+// router.get('/api/PayDetails', async (req, res) => {
+//     const { userData, data, page = 1, limit = 10 } = req.query;
+//     const month = data.month;
+//     const year = data.year;
+//     let search = data.search || "";
+
+//     let decodedUserData = null;
+
+//     if (!month || !year) {
+//         return res.status(400).json({ status: false, error: 'Month and Year are required' });
+//     }
+
+//     // Decode userData
+//     if (userData) {
+//         try {
+//             const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+//             decodedUserData = JSON.parse(decodedString);
+//         } catch (error) {
+//             return res.status(400).json({ status: false, error: 'Invalid userData format' });
+//         }
+//     }
+
+//     if (!decodedUserData?.id || !decodedUserData?.company_id) {
+//         return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
+//     }
+
+//     const startDate = new Date(year, month - 1, 1);
+//     const endDate = new Date(year, month, 0);
+
+//     try {
+//         const searchQuery = `%${search}%`;
+
+//         const [totalEmployees] = await db.promise().query(
+//             `SELECT e.id, concat(e.first_name,'',e.last_name,'-',e.employee_id) as first_name,e.date_of_Joining, e.work_week_id, e.date_of_Joining, e.last_day 
+//      FROM employees e
+//      WHERE e.employee_status = 1 
+//        AND e.status = 1 
+//        AND e.delete_status = 0 
+//        AND e.company_id = ?
+//        AND (CAST(e.id AS CHAR) LIKE ? OR e.first_name LIKE ? OR e.last_name LIKE ? OR e.employee_id LIKE ?)
+//        AND NOT EXISTS (
+//            SELECT 1 
+//            FROM employeesalarydetails s 
+//            WHERE s.month = ? 
+//              AND s.year = ? 
+//              AND s.company_id = e.company_id 
+//              AND s.employee_id = e.id
+//        )
+//      LIMIT ? OFFSET ?`,
+//             [
+//                 decodedUserData.company_id,
+//                 searchQuery,
+//                 searchQuery,
+//                 searchQuery,
+//                 searchQuery,
+//                 month,
+//                 year,
+//                 parseInt(limit),
+//                 (parseInt(page) - 1) * parseInt(limit)
+//             ]
+//         );
+
+
+//         const [Employees] = await db.promise().query(
+//             `SELECT id 
+//      FROM employees 
+//      WHERE employee_status = 1 
+//        AND status = 1 
+//        AND delete_status = 0 
+//        AND company_id = ?
+//        AND (CAST(id AS CHAR) LIKE ? OR first_name LIKE ?)
+//        AND NOT EXISTS (
+//            SELECT 1 
+//            FROM employeesalarydetails 
+//            WHERE month = ? 
+//              AND year = ? 
+//              AND company_id = employees.company_id 
+//              AND employee_id = employees.id
+//        )`,
+//             [decodedUserData.company_id, searchQuery, searchQuery, month, year]
+//         );
+
+//         // Get holidays
+//         const [holidayResults] = await db.promise().query(
+//             `SELECT date FROM holiday 
+//              WHERE status = 1 AND company_id = ? AND date BETWEEN ? AND ?`,
+//             [decodedUserData.company_id, formatDate(startDate), formatDate(endDate)]
+//         );
+//         const allHolidays = holidayResults.map(h => new Date(h.date).toISOString().split('T')[0]);
+
+//         const employeeAttendanceDetails = [];
+
+//         for (const emp of totalEmployees) {
+//             const [WorkWeek] = await db.promise().query(
+//                 `SELECT * FROM work_week WHERE id = ? AND company_id = ?`,
+//                 [emp.work_week_id, decodedUserData.company_id]
+//             );
+//             const workWeekData = WorkWeek.length > 0 ? WorkWeek[0] : null;
+
+//             const doj = new Date(emp.date_of_Joining);
+//             const lastDay = emp.last_day ? new Date(emp.last_day) : null;
+
+//             // Skip if not active in selected month
+//             if (doj > endDate || (lastDay && lastDay < startDate)) continue;
+
+//             // Adjusted Dates
+//             const adjustedStartDate = doj > startDate ? new Date(doj) : new Date(startDate);
+//             const adjustedEndDate = lastDay && lastDay < endDate ? new Date(lastDay) : new Date(endDate);
+
+
+//             // Normalize to midnight
+//             adjustedStartDate.setHours(0, 0, 0, 0);
+//             adjustedEndDate.setHours(0, 0, 0, 0);
+
+//             const adjustedTotalDays = Math.floor((adjustedEndDate - adjustedStartDate) / (1000 * 60 * 60 * 24)) + 1;
+
+//             let WO = 0, HF = 0, presentCount = 0, leaveCount = 0, leaveRequestCount = 0;
+
+//             // Attendance
+//             const [attendanceResults] = await db.promise().query(
+//                 `SELECT status, attendance_date FROM attendance
+//                  WHERE company_id = ? AND employee_id = ? 
+//                  AND (attendance_status=1 OR approval_status=1) 
+//                  AND attendance_date BETWEEN ? AND ?`,
+//                 [decodedUserData.company_id, emp.id, formatDate(adjustedStartDate), formatDate(adjustedEndDate)]
+//             );
+
+//             attendanceResults.forEach(att => {
+//                 const status = att.status?.toLowerCase();
+//                 if (status === 'present') presentCount++;
+//                 else if (status === 'half-day') HF++;
+//             });
+
+//             // Leaves
+//             const [leaveResults] = await db.promise().query(
+//                 `SELECT start_date, end_date, start_half, end_half 
+//                  FROM leaves 
+//                  WHERE deletestatus=0 AND status=1 AND admin_status=1 
+//                  AND company_id=? AND employee_id=? 
+//                  AND ((start_date BETWEEN ? AND ?) OR (end_date BETWEEN ? AND ?))`,
+//                 [decodedUserData.company_id, emp.id,
+//                 formatDate(adjustedStartDate), formatDate(adjustedEndDate),
+//                 formatDate(adjustedStartDate), formatDate(adjustedEndDate)]
+//             );
+//             console.log('leaveResults', leaveResults);
+
+//             // leaveResults.forEach(leave => {
+//             //     const leaveStart = new Date(leave.start_date);
+//             //     const leaveEnd = new Date(leave.end_date);
+//             //     const adjStart = leaveStart < adjustedStartDate ? adjustedStartDate : leaveStart;
+//             //     const adjEnd = leaveEnd > adjustedEndDate ? adjustedEndDate : leaveEnd;
+//             //     console.log('adjEnd =', adjEnd, 'adjStart =', adjStart);
+//             //     let totalLeaveDays = (adjEnd - adjStart) / (1000 * 60 * 60 * 24) + 1;
+//             //     console.log('totalLeaveDays', totalLeaveDays);
+//             //     if (leave.start_half == 'Second Half') totalLeaveDays -= 0.5;
+//             //     if (leave.end_half == 'First Half') totalLeaveDays -= 0.5;
+//             //     console.log('totalLeaveDays', totalLeaveDays);
+//             //     leaveCount += totalLeaveDays;
+//             //     leaveRequestCount += totalLeaveDays;
+//             // });
+
+//             leaveResults.forEach(leave => {
+//                 const leaveStart = normalizeDate(leave.start_date);
+//                 const leaveEnd = normalizeDate(leave.end_date);
+//                 const adjStart = leaveStart < adjustedStartDate ? adjustedStartDate : leaveStart;
+//                 const adjEnd = leaveEnd > adjustedEndDate ? adjustedEndDate : leaveEnd;
+
+//                 console.log('adjEnd =', adjEnd, 'adjStart =', adjStart);
+
+//                 let totalLeaveDays = (adjEnd - adjStart) / (1000 * 60 * 60 * 24) + 1;
+
+//                 if (leave.start_half === 'Second Half') totalLeaveDays -= 0.5;
+//                 if (leave.end_half === 'First Half') totalLeaveDays -= 0.5;
+
+//                 console.log('totalLeaveDays', totalLeaveDays);
+
+//                 leaveCount += totalLeaveDays;
+//                 leaveRequestCount += totalLeaveDays;
+//             })
+
+//             // // Weekly Off Count
+//             for (let d = new Date(adjustedStartDate); d <= adjustedEndDate; d.setDate(d.getDate() + 1)) {
+//                 const dateStr = d.toLocaleDateString("en-CA"); // ✅ local date, no UTC shift
+//                 const isHoliday = allHolidays.includes(dateStr);
+
+//                 const dayOfWeek = d.getDay(); // 0=Sun ... 6=Sat
+//                 const weekKey = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][dayOfWeek] + Math.ceil(d.getDate() / 7);
+//                 const isWeeklyOff = workWeekData && workWeekData[weekKey] === 3;
+
+//                 if (!isHoliday && isWeeklyOff) {
+//                     WO++;
+//                 }
+//             }
+
+
+//             const holidayCount = allHolidays.filter(dateStr => {
+//                 const date = new Date(dateStr);
+//                 return date >= adjustedStartDate && date <= adjustedEndDate;
+//             }).length;
+
+//             const NewHF = HF / 2;
+
+
+//             let absenteeCount = adjustedTotalDays - holidayCount - leaveCount - WO - NewHF - presentCount;
+//             if (absenteeCount < 0) absenteeCount = 0;
+
+//             employeeAttendanceDetails.push({
+//                 employee_id: emp.id,
+//                 first_name: emp.first_name,
+//                 date_of_Joining: emp.date_of_Joining,
+//                 WO,
+//                 HF,
+//                 absenteeCount,
+//                 presentCount,
+//                 holidayCount,
+//                 leaveCount,
+//                 leaveRequestCount
+//             });
+//         }
+
+//         res.json({
+//             status: true,
+//             month,
+//             year,
+//             page: parseInt(page),
+//             limit: parseInt(limit),
+//             data: employeeAttendanceDetails,
+//             total: Employees.length
+//         });
+
+//     } catch (error) {
+//         console.error('Error:', error);
+//         res.status(500).json({ status: false, error: 'Server error fetching PayDetails' });
+//     }
+
+
+// });
+
+
+
 router.get('/api/PayDetails', async (req, res) => {
-    const { userData, data, page = 1, limit = 10 } = req.query;
+    const { userData, data, page = 1, limit = 10, departmentId = 0, subDepartmentid, employeeStatus = 0 } = req.query;
     const month = data.month;
     const year = data.year;
     let search = data.search || "";
@@ -548,56 +788,74 @@ router.get('/api/PayDetails', async (req, res) => {
 
     try {
         const searchQuery = `%${search}%`;
-
-        const [totalEmployees] = await db.promise().query(
-            `SELECT e.id, concat(e.first_name,'',e.last_name,'-',e.employee_id) as first_name,e.date_of_Joining, e.work_week_id, e.date_of_Joining, e.last_day 
+        let query = `SELECT e.id, concat(e.first_name,'',e.last_name,'-',e.employee_id) as first_name,e.date_of_Joining, e.work_week_id, e.date_of_Joining, e.last_day 
      FROM employees e
-     WHERE e.employee_status = 1 
-       AND e.status = 1 
-       AND e.delete_status = 0 
-       AND e.company_id = ?
+     WHERE e.company_id = ?
        AND (CAST(e.id AS CHAR) LIKE ? OR e.first_name LIKE ? OR e.last_name LIKE ? OR e.employee_id LIKE ?)
        AND NOT EXISTS (
-           SELECT 1 
-           FROM employeesalarydetails s 
-           WHERE s.month = ? 
-             AND s.year = ? 
-             AND s.company_id = e.company_id 
-             AND s.employee_id = e.id
+           SELECT 1 FROM employeesalarydetails s 
+           WHERE s.month = ?  AND s.year = ?  AND s.company_id = e.company_id  AND s.employee_id = e.id
        )
-     LIMIT ? OFFSET ?`,
-            [
-                decodedUserData.company_id,
-                searchQuery,
-                searchQuery,
-                searchQuery,
-                searchQuery,
-                month,
-                year,
-                parseInt(limit),
-                (parseInt(page) - 1) * parseInt(limit)
-            ]
-        );
+   `;
+        let queryParams = [
+            decodedUserData.company_id,
+            searchQuery,
+            searchQuery,
+            searchQuery,
+            searchQuery,
+            month,
+            year
+        ]
+        if (departmentId && departmentId != 0) {
+            query += " AND e.department = ?";
+            queryParams.push(departmentId);
+        }
+
+        if (subDepartmentid && subDepartmentid != 0) {
+            query += " AND e.sub_department = ?";
+            queryParams.push(subDepartmentid);
+        }
+
+        if (employeeStatus == 0) {
+            // Fetch inactive/terminated employees
+            query += " AND (e.employee_status = 0 OR e.status = 0 OR e.delete_status = 1)";
+        } else {
+            query += " AND e.employee_status = 1 AND e.status = 1 AND e.delete_status = 0";
+        }
+
+        // Order by employee name (ASC)
+        query += " ORDER BY e.first_name ASC";
+
+        // Add pagination
+        query += " LIMIT ? OFFSET ?";
+        queryParams.push(parseInt(limit), (parseInt(page) - 1) * parseInt(limit));
+        const [totalEmployees] = await db.promise().query(query, queryParams);
 
 
-        const [Employees] = await db.promise().query(
-            `SELECT id 
-     FROM employees 
-     WHERE employee_status = 1 
-       AND status = 1 
-       AND delete_status = 0 
-       AND company_id = ?
-       AND (CAST(id AS CHAR) LIKE ? OR first_name LIKE ?)
+        let queryCount = `SELECT id FROM employees 
+     WHERE company_id = ? AND (CAST(id AS CHAR) LIKE ? OR first_name LIKE ? OR last_name LIKE ? OR employee_id LIKE ?)
        AND NOT EXISTS (
-           SELECT 1 
-           FROM employeesalarydetails 
-           WHERE month = ? 
-             AND year = ? 
-             AND company_id = employees.company_id 
-             AND employee_id = employees.id
-       )`,
-            [decodedUserData.company_id, searchQuery, searchQuery, month, year]
-        );
+           SELECT 1 FROM employeesalarydetails 
+           WHERE month = ? AND year = ? AND company_id = employees.company_id AND employee_id = employees.id
+       )`;
+        let queryCountParams = [decodedUserData.company_id, searchQuery, searchQuery, searchQuery, searchQuery, month, year]
+
+        if (departmentId && departmentId != 0) {
+            queryCount += " AND department = ?";
+            queryParams.push(departmentId);
+        }
+        if (subDepartmentid && subDepartmentid != 0) {
+            queryCount += " AND sub_department = ?";
+            queryParams.push(subDepartmentid);
+        }
+        if (employeeStatus == 0) {
+            // Fetch inactive/terminated employees
+            queryCount += " AND (employee_status = 0 OR status = 0 OR delete_status = 1)";
+        } else {
+            queryCount += " AND employee_status = 1 AND status = 1 AND delete_status = 0";
+        }
+
+        const [Employees] = await db.promise().query(queryCount, queryCountParams);
 
         // Get holidays
         const [holidayResults] = await db.promise().query(
@@ -661,21 +919,41 @@ router.get('/api/PayDetails', async (req, res) => {
                 formatDate(adjustedStartDate), formatDate(adjustedEndDate),
                 formatDate(adjustedStartDate), formatDate(adjustedEndDate)]
             );
+            console.log('leaveResults', leaveResults);
+
+            // leaveResults.forEach(leave => {
+            //     const leaveStart = new Date(leave.start_date);
+            //     const leaveEnd = new Date(leave.end_date);
+            //     const adjStart = leaveStart < adjustedStartDate ? adjustedStartDate : leaveStart;
+            //     const adjEnd = leaveEnd > adjustedEndDate ? adjustedEndDate : leaveEnd;
+            //     console.log('adjEnd =', adjEnd, 'adjStart =', adjStart);
+            //     let totalLeaveDays = (adjEnd - adjStart) / (1000 * 60 * 60 * 24) + 1;
+            //     console.log('totalLeaveDays', totalLeaveDays);
+            //     if (leave.start_half == 'Second Half') totalLeaveDays -= 0.5;
+            //     if (leave.end_half == 'First Half') totalLeaveDays -= 0.5;
+            //     console.log('totalLeaveDays', totalLeaveDays);
+            //     leaveCount += totalLeaveDays;
+            //     leaveRequestCount += totalLeaveDays;
+            // });
 
             leaveResults.forEach(leave => {
-                const leaveStart = new Date(leave.start_date);
-                const leaveEnd = new Date(leave.end_date);
+                const leaveStart = normalizeDate(leave.start_date);
+                const leaveEnd = normalizeDate(leave.end_date);
                 const adjStart = leaveStart < adjustedStartDate ? adjustedStartDate : leaveStart;
                 const adjEnd = leaveEnd > adjustedEndDate ? adjustedEndDate : leaveEnd;
+
+                console.log('adjEnd =', adjEnd, 'adjStart =', adjStart);
 
                 let totalLeaveDays = (adjEnd - adjStart) / (1000 * 60 * 60 * 24) + 1;
 
                 if (leave.start_half === 'Second Half') totalLeaveDays -= 0.5;
                 if (leave.end_half === 'First Half') totalLeaveDays -= 0.5;
 
+                console.log('totalLeaveDays', totalLeaveDays);
+
                 leaveCount += totalLeaveDays;
                 leaveRequestCount += totalLeaveDays;
-            });
+            })
 
             // // Weekly Off Count
             for (let d = new Date(adjustedStartDate); d <= adjustedEndDate; d.setDate(d.getDate() + 1)) {
@@ -734,6 +1012,15 @@ router.get('/api/PayDetails', async (req, res) => {
 
 
 });
+
+
+
+function normalizeDate(dateStr) {
+    // Create date and reset to local midnight
+    const d = new Date(dateStr);
+    d.setHours(0, 0, 0, 0);
+    return d;
+}
 
 function formatDate(date) {
     const year = date.getFullYear();

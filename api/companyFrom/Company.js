@@ -1567,6 +1567,7 @@ router.post('/assign-manager', async (req, res) => {
         }
     );
 });
+
 router.post('/assign-manager-bulk', async (req, res) => {
     const { employeeId, userData, managerId } = req.body;
 
@@ -1680,6 +1681,54 @@ router.post("/branchName", (req, res) => {
     });
 
 });
+
+
+
+// changeBranch  
+router.post('/changeBranch', async (req, res) => {
+    const { userData, branchId } = req.body;
+
+    let decodedUserData = null;
+    if (userData) {
+        try {
+            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+            decodedUserData = JSON.parse(decodedString);
+        } catch (error) {
+            return res.status(400).json({ status: false, error: 'Invalid userData' });
+        }
+    }
+    if (!decodedUserData || !decodedUserData.id) {
+        return res.status(400).json({ status: false, error: 'Employee ID is required' });
+    }
+    let employeeId = decodedUserData.id;
+    // Check for required fields
+    if (!employeeId || !branchId) {
+        return res.status(400).json({ status: false, message: 'All fields are required.' });
+    }
+
+
+    // Fetch the current logo from the database
+    db.query(
+        'UPDATE employees SET branch_id = ? WHERE id = ? and company_id=?',
+        [branchId, employeeId, decodedUserData.company_id],
+        (err) => {
+            if (err) {
+                console.error(err);
+                return res.status(500).json({
+                    status: false,
+                    message: 'Failed to edit company.',
+                    error: err.message
+                });
+            }
+            return res.status(200).json({
+                status: true,
+                message: 'Branch Update successfully.'
+            });
+        }
+    );
+});
+
+
 
 // Export the router
 module.exports = router;

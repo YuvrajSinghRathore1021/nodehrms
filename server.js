@@ -106,6 +106,8 @@
 //         next();
 //     });
 // };
+
+
 // const url = require("url");
 // app.use((req, res, next) => {
 //     const start = Date.now();
@@ -182,7 +184,8 @@
 // app.use('/Face', authenticateToken, FaceUplode);
 
 // // // Pdf Make for app
-// app.use('/PDFdow', authenticateToken, Salaryslip);
+// app.use('/PDFdow', Salaryslip);
+// // app.use('/PDFdow', authenticateToken, Salaryslip);
 // app.use('/Reports', authenticateToken, Reports);
 
 // // No authentication for userapi

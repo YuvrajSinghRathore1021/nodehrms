@@ -877,7 +877,7 @@ LEFT JOIN branches AS bo
         });
 
         const holidayResults = await new Promise((resolve, reject) => {
-            const query = `SELECT id, date, holiday FROM holiday WHERE company_id = ? AND date = ?`;
+            const query = `SELECT id, date, holiday FROM holiday WHERE company_id = ? AND date = ? and status=1`;
             db.query(query, [decodedUserData.company_id, SearchDate], (err, results) => (err ? reject(err) : resolve(results)));
         });
         let workWeekStatus = "";
@@ -913,7 +913,8 @@ LEFT JOIN branches AS bo
                         if (workWeekStatus == 1) {
                             status = 'P';
                         } else if (workWeekStatus == 2) {
-                            status = 'P/(WO HF)';
+                            // status = 'P/(WO HF)';
+                            status = 'P';
                         } else if (workWeekStatus == 3) {
                             status = 'WO';
                         } else {
@@ -926,7 +927,8 @@ LEFT JOIN branches AS bo
                         if (workWeekStatus == 1) {
                             status = 'HF';
                         } else if (workWeekStatus == 2) {
-                            status = 'HF/(WO HF)';
+                            // status = 'HF/(WO HF)';
+                            status = 'HF';
                         } else if (workWeekStatus == 3) {
                             status = 'WO';
                         } else {
@@ -938,7 +940,8 @@ LEFT JOIN branches AS bo
                         if (workWeekStatus == 1) {
                             status = 'A';
                         } else if (workWeekStatus == 2) {
-                            status = 'A/(WO HF)';
+                            // status = 'A/(WO HF)';
+                            status = 'A';
                         } else if (workWeekStatus == 3) {
                             status = 'WO';
                         } else {
@@ -949,7 +952,8 @@ LEFT JOIN branches AS bo
                         if (workWeekStatus == 1) {
                             status = 'P';
                         } else if (workWeekStatus == 2) {
-                            status = 'P/(WO HF)';
+                            // status = 'P/(WO HF)';
+                            status = 'P';
                         } else if (workWeekStatus == 3) {
                             status = 'WO';
                         } else {

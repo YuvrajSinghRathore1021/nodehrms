@@ -224,9 +224,11 @@ router.post('/api/GenerateSalary', (req, res) => {
         const employee = employeeResults[0];
         const ctc = employee.ctc;
         // Calculate total working days
-        // const totalWorkingDays = parseInt(NewPresentCount, 10) + parseInt(holidayCount, 10) + parseInt(WO, 10) + parseInt(leaveCount, 10) + (parseInt(HF, 10) / 2);
-        const totalWorkingDays = parseInt(NewPresentCount, 10) + parseInt(newHolidayCount, 10) + parseInt(WO, 10) + parseInt(leaveCount, 10) + (parseInt(HF, 10) / 2);
+        // const totalWorkingDays = parseInt(NewPresentCount, 10) + parseInt(newHolidayCount, 10) + parseInt(WO, 10) + parseInt(leaveCount, 10) + (parseInt(HF, 10) / 2);
+        // const totalWorkingDays = parseInt(NewPresentCount, 10) + parseInt(newHolidayCount, 10) + parseInt(WO, 10) + parseFloat(leaveCount) + (parseInt(HF, 10) / 2);
+        const totalWorkingDays = (parseFloat(NewPresentCount) || 0) + (parseFloat(newHolidayCount) || 0) + (parseFloat(WO) || 0) + (parseFloat(leaveCount) || 0) + ((parseFloat(HF) || 0) / 2);
 
+        console.log("totalWorkingDays", totalWorkingDays)
         // const dailySalary = ctc / 365;
         const monthSalary = ctc / 12;
         const daysInMonth = getDaysInMonth(month, year);

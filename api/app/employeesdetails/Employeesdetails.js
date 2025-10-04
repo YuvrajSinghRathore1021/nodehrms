@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const db = require("../../../DB/ConnectionSql");
 const { AdminCheck } = require('../../../model/functlity/AdminCheck');
+
 router.post('/api/IdCard', async (req, res) => {
     const { userData } = req.body;
     let decodedUserData = null;
