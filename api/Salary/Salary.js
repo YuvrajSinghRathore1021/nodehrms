@@ -46,7 +46,7 @@ router.post('/api/BankDetails', async (req, res) => {
 });
 
 router.post("/api/UpdateBankDetails", (req, res) => {
-    const { id, bank, branch, city, ifsc, account_number, date_of_Joining,account_holder_name, upi, last_day, userData } = req.body;
+    const { id, bank, branch, city, ifsc, account_number, date_of_Joining, account_holder_name, upi, last_day, userData } = req.body;
 
     // Validate input
     if (!id) {
@@ -67,7 +67,7 @@ router.post("/api/UpdateBankDetails", (req, res) => {
         return res.status(400).json({ status: false, error: "Company ID is missing or invalid" });
     }
     db.query("UPDATE employees SET date_of_Joining=?,bank=?,branch=?,city=?,ifsc=?,account_number=?,account_holder_name=?,upi=?,last_day=? WHERE id = ? AND company_id=?",
-        [date_of_Joining,bank, branch, city, ifsc, account_number, account_holder_name, upi, last_day, id, decodedUserData.company_id],
+        [date_of_Joining, bank, branch, city, ifsc, account_number, account_holder_name, upi, last_day, id, decodedUserData.company_id],
         (err, results) => {
             if (err) {
                 console.error("Database error:", err);

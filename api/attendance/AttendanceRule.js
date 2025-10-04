@@ -381,7 +381,8 @@ router.post('/api/Deleteapi', (req, res) => {
 
 // asine rules
 router.get('/api/data', async (req, res) => {
-    const { userData, data } = req.query;
+    const { userData, data, departmentId = 0, subDepartmentid = 0, employeeStatus=1 } = req.query;
+ 
     let Search = null;
 
     if (data) {
@@ -419,15 +420,31 @@ router.get('/api/data', async (req, res) => {
         SELECT CONCAT(a.first_name, " ", a.last_name,"-",a.employee_id) AS first_name, a.id, a.employee_id, b.rule_name, b.rule_id 
         FROM employees AS a
         LEFT JOIN attendance_rules AS b ON a.attendance_rules_id = b.rule_id
-        WHERE  a.employee_status=1 and a.status=1 and a.delete_status=0 and a.company_id = ?`;
+        WHERE a.company_id = ?`;
 
-    const queryParams = [decodedUserData.company_id];
+    let queryParams = [decodedUserData.company_id];
+
+    if (employeeStatus && employeeStatus == 1) {
+        query += ` AND a.employee_status=1 and a.status=1 and a.delete_status=0 `;
+    } else {
+        query += ` AND (a.employee_status=0 or a.status=0 or a.delete_status=1) `;
+    }
+
+    if (departmentId && departmentId != 0) {
+        query += ` AND a.department = ?`;
+        queryParams.push(departmentId);
+    } else if (subDepartmentid && subDepartmentid != 0) {
+        query += ` AND a.sub_department = ?`;
+        queryParams.push(subDepartmentid);
+    }
+
     // Add Search filter if provided
     if (Search) {
         query += ' AND (a.first_name LIKE ? or a.last_name LIKE ? OR a.employee_id=?)';
         queryParams.push(`%${Search}%`, `%${Search}%`, `%${Search}%`);
     }
-
+    // first_name order by asc
+    query += ' ORDER BY a.first_name ASC';
     // Add pagination
     query += ' LIMIT ? OFFSET ?';
     queryParams.push(limit, offset);

@@ -325,7 +325,7 @@ router.post('/api/Add', async (req, res) => {
 
 
 router.post('/api/Employeesdirectory', async (req, res) => {
-    const { userData, id, platformType, type, limit = 10, page = 1, searchData = "", company_id } = req.body;
+    const { userData, id, platformType, type, limit = 10, page = 1, searchData = "", company_id, departmentId = 0, subDepartmentid = 0, employeeStatus = 1 } = req.body;
     let search = searchData;
 
     let decodedUserData = null;
@@ -352,11 +352,27 @@ router.post('/api/Employeesdirectory', async (req, res) => {
     let query = '';
     let queryParams = [company_idMeen];
     let searchClause = '';
+
     if (search && search.trim() != '') {
         searchClause = ` AND (a.first_name LIKE ? OR a.last_name LIKE ? OR a.employee_id LIKE ? OR a.email_id LIKE ? OR a.contact_number LIKE ?)`;
         const searchValue = `%${search}%`;
         queryParams.push(searchValue, searchValue, searchValue, searchValue, searchValue);
     }
+    if (departmentId && departmentId != 0) {
+        searchClause += ` AND a.department = ?`;
+        queryParams.push(departmentId);
+    } else if (subDepartmentid && subDepartmentid != 0) {
+        searchClause += ` AND a.sub_department = ?`;
+        queryParams.push(subDepartmentid);
+    }
+    if (employeeStatus && employeeStatus == 1) {
+        searchClause += ` AND a.employee_status=1 and a.status=1 and a.delete_status=0 `;
+    } else {
+        searchClause += ` AND (a.employee_status=0 or a.status=0 or a.delete_status=1) `;
+    }
+
+
+
 
     // Case 1: Mobile (iOS/Android) directory list
     if ((platformType == 'ios' || platformType == 'android') && id == '') {
@@ -365,7 +381,7 @@ router.post('/api/Employeesdirectory', async (req, res) => {
                 a.id, a.employee_id, a.first_name, a.last_name, a.designation, a.employee_status,a.email_id,
                 CONCAT(a.first_name, " ", a.last_name) AS reporting_manager_name
             FROM employees AS a
-            WHERE a.company_id = ? AND a.employee_status = 1 AND a.delete_status = 0${searchClause}
+            WHERE a.company_id = ? ${searchClause}
             ORDER BY a.first_name asc LIMIT ? OFFSET ?`;
         queryParams.push(parsedLimit, offset);
     }
@@ -407,7 +423,7 @@ router.post('/api/Employeesdirectory', async (req, res) => {
             LEFT JOIN employees AS e ON e.id = a.reporting_manager
             LEFT JOIN departments AS meenD ON meenD.id = a.department
             LEFT JOIN departments AS subD ON subD.id = a.sub_department
-            WHERE a.company_id = ? AND a.employee_status = 1 AND a.status = 1 AND a.delete_status = 0${searchClause}
+            WHERE a.company_id = ? ${searchClause}
             ORDER BY a.first_name asc LIMIT ? OFFSET ?`;
         queryParams.push(parsedLimit, offset);
     }
@@ -417,12 +433,20 @@ router.post('/api/Employeesdirectory', async (req, res) => {
         const [results] = await db.promise().query(query, queryParams);
 
         // Get total count with search
-        let countQuery = `SELECT COUNT(id) AS total FROM employees a WHERE a.company_id = ? AND a.employee_status = 1 AND a.status = 1 AND a.delete_status = 0${searchClause}`;
-        let countParams = [decodedUserData.company_id];
+        let countQuery = `SELECT COUNT(id) AS total FROM employees a WHERE a.company_id = ? ${searchClause}`;
+        let countParams = [company_idMeen];
         if (search && search.trim() !== '') {
             const searchValue = `%${search}%`;
             countParams.push(searchValue, searchValue, searchValue, searchValue, searchValue);
+        } 
+        if (departmentId && departmentId != 0) {
+            countParams.push(departmentId);
+        } else if (subDepartmentid && subDepartmentid != 0) {
+            countParams.push(subDepartmentid);
         }
+        
+
+
         const [countResults] = await db.promise().query(countQuery, countParams);
 
         const total = countResults[0]?.total || 0;

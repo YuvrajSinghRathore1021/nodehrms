@@ -770,7 +770,7 @@ router.post('/api/AttendanceApprovalLog', async (req, res) => {
 
 
 router.post('/api/Attendancedirectory', async (req, res) => {
-    const { userData, date, filter = 'all', search = '' } = req.body;
+    const { userData, date, filter = 'all', search = '', departmentId = 0, subDepartmentid = 0 } = req.body;
 
     let SearchDate = date || null;
     let decodedUserData = null;
@@ -804,6 +804,15 @@ router.post('/api/Attendancedirectory', async (req, res) => {
         } else {
             employeeFilter += ` AND b.status = 1 AND b.delete_status = 0`;
         }
+        if (departmentId && departmentId != 0) {
+            employeeFilter += ` AND b.department = ?`;
+            filterParams.push(departmentId);
+        } else if (subDepartmentid && subDepartmentid != 0) {
+            employeeFilter += ` AND b.sub_department = ?`;
+            filterParams.push(subDepartmentid);
+        }
+
+
 
         // Add search filter if provided
         if (search && search.trim() !== '') {

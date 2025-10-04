@@ -1016,7 +1016,7 @@ const createAttendanceResponse = (record, status, date) => {
 
 
 router.get('/api/attendance', async (req, res) => {
-    const { data, userData, employeeId } = req.query;
+    const { data, userData, employeeId, departmentId = 0, subDepartmentid = 0, employeeStatus = 1 } = req.query;
     let year = null;
     let month = null;
     let searchData = null;
@@ -1061,8 +1061,23 @@ router.get('/api/attendance', async (req, res) => {
         return res.status(200).json({ status: false, message: 'Invalid employee IDs' });
     }
     try {
-        let empsql = `SELECT id, CONCAT(first_name, " ", last_name,"-",employee_id) AS first_name, work_week_id, employee_id FROM employees WHERE  employee_status=1 and status=1 and delete_status=0 and company_id=? AND id IN (?)`;
+        let empsql = `SELECT id, CONCAT(first_name, " ", last_name,"-",employee_id) AS first_name, work_week_id, employee_id FROM employees WHERE company_id=? AND id IN (?)`;
         let EmpArrayValue = [decodedUserData.company_id, employeeIdsArray];
+        //// filter 
+        if (employeeStatus && employeeStatus == 1) {
+            empsql += ` AND employee_status=1 and status=1 and delete_status=0 `;
+        } else {
+            empsql += ` AND (employee_status=0 or status=0 or delete_status=1) `;
+        }
+
+        if (departmentId && departmentId != 0) {
+            empsql += ` AND department = ?`;
+            EmpArrayValue.push(departmentId);
+        } else if (subDepartmentid && subDepartmentid != 0) {
+            empsql += ` AND sub_department = ?`;
+            EmpArrayValue.push(subDepartmentid);
+        }
+
 
         if (searchData) {
             empsql += ` AND first_name LIKE ?`;
