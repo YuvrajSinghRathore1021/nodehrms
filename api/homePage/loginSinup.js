@@ -45,17 +45,14 @@ const nodemailer = require('nodemailer');
 
 router.post('/login', (req, res) => {
     const { username, password } = req.body;
-
+// console.log(username,password);
     // Validate input
     if (!username || !password) {
         return res.status(400).json({ status: false, message: 'Username and password are required' });
     }
 
-    const query = `
-        SELECT * FROM employees 
-        WHERE employee_status = 1 
-          AND status = 1 
-          AND delete_status = 0  And login_status=1 
+    const query = `SELECT * FROM employees WHERE employee_status = 1 
+          AND status = 1 AND delete_status = 0  And login_status=1 
           AND (employee_id = ? or email_id=? or official_email_id=?)`;
 
     db.query(query, [username,username,username], (err, results) => {

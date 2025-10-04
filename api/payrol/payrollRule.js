@@ -758,7 +758,7 @@ router.post('/api/Update', async (req, res) => {
 
 
 router.get('/api/PayDetails', async (req, res) => {
-    const { userData, data, page = 1, limit = 10, departmentId = 0, subDepartmentid, employeeStatus = 0 } = req.query;
+    const { userData, data, page = 1, limit = 10, departmentId = 0, subDepartmentid, employeeStatus = 1 } = req.query;
     const month = data.month;
     const year = data.year;
     let search = data.search || "";
