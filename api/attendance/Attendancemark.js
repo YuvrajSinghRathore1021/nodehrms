@@ -178,6 +178,7 @@ router.post('/Attendancemark', async (req, res) => {
             if (numericDuration <= maxWorkingHours) { //bug solve
                 attendanceStatus = 0;
             }
+
             let halfDayDuration = halfDayHours + 0.5;
             if (companyId == 10) {
                 //+4:45 hours
@@ -211,23 +212,22 @@ router.post('/Attendancemark', async (req, res) => {
                 //// Whitelist allowed column names (safety check)
                 let query = `SELECT \`${dayKey}\` AS dayValue FROM work_week WHERE id = ? AND company_id = ?`;
 
-                const workWeekResult = await queryDb(
-                    query,
-                    [employeeResults[0].work_week_id, companyId]
-                );
-
+                const workWeekResult = await queryDb(query, [employeeResults[0].work_week_id, companyId]);
+                     
                 if (workWeekResult.length > 0) {
-                    const isWeeklyOff = workWeekResult[0].dayValue == 2;
-
+                    const isWeeklyOff = workWeekResult[0]?.dayValue == 2;
+ 
                     if (isWeeklyOff) {
-                        if (numericDuration <= halfDayHours) {
+
+                        if (numericDuration >= halfDayHours) {
                             attendanceStatus = 1;
                             statusValue = "Present";
                         }
+                    
                     }
                 }
             }
-
+          
             if (rule?.out_time_required == 0) {
                 dailyStatus = 'On  Time';
                 timeCount = '00:00';

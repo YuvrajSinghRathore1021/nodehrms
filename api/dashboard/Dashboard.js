@@ -289,7 +289,25 @@ router.post('/api/attendanceSummary', async (req, res) => {
               AND ? BETWEEN start_date AND end_date
         `, [decodedUserData.company_id, targetDate]);
 
+        // SELECT `id`, `employee_id`, `company_id`, `date`, `holiday`, `status`, `add_stamp` FROM `holiday` WHERE 1
+
+
+        const dateObj = new Date(targetDate);
+        const yearH = dateObj.getFullYear();
+        const monthH = dateObj.getMonth() + 1; // JS months are 0-indexed
+
+        const [holidays] = await db.promise().query(`
+    SELECT COUNT(id) as holiday_count 
+    FROM holiday
+    WHERE status = 1 
+      AND company_id = ? 
+      AND YEAR(date) = ? 
+      AND MONTH(date) = ?
+    ORDER BY date ASC
+`, [decodedUserData.company_id, yearH, monthH]);
+
         const totalEmployees = totalEmp[0]?.total || 0;
+        const totalholidays = holidays[0]?.holiday_count || 0;
         const presentCount = attended[0]?.present || 0;
         const presentCountPercent = totalEmployees > 0 ? ((presentCount / totalEmployees) * 100).toFixed(2) : "0.00";;
         const onTimeCount = onTime[0]?.on_time || 0;
@@ -300,6 +318,7 @@ router.post('/api/attendanceSummary', async (req, res) => {
             status: true,
             date: targetDate,
             totalEmployees,
+            totalholidays,
             presentCount,
             onTimeCount,
             onTimePercent: `${onTimePercent}%`,
