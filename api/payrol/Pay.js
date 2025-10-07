@@ -136,185 +136,185 @@ function getDaysInMonth(month, year) {
 
 
 // working 100 %
-router.post('/api/GenerateSalary', (req, res) => {
-    const { employeeId, presentCount, HF, leaveCount, holidayCount, WO, month, year, PenaltyData, userData } = req.body;
+// router.post('/api/GenerateSalary', (req, res) => {
+//     const { employeeId, presentCount, HF, leaveCount, holidayCount, WO, month, year, PenaltyData, userData } = req.body;
 
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData format' });
-        }
-    }
+//     let decodedUserData = null;
+//     if (userData) {
+//         try {
+//             const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+//             decodedUserData = JSON.parse(decodedString);
+//         } catch (error) {
+//             return res.status(400).json({ status: false, error: 'Invalid userData format' });
+//         }
+//     }
 
-    if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
-        return res.status(400).json({
-            status: false,
-            error: 'Employee ID and Company ID are required',
-        });
-    }
+//     if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+//         return res.status(400).json({
+//             status: false,
+//             error: 'Employee ID and Company ID are required',
+//         });
+//     }
 
-    // Validate required fields
-    if (!employeeId || !presentCount || !HF || !leaveCount || !holidayCount || !WO) {
-        return res.status(200).json({
-            status: false,
-            message: 'Missing required fields: employeeId, presentCount, HF, leaveCount, holidayCount, WO'
-        });
-    }
+//     // Validate required fields
+//     if (!employeeId || !presentCount || !HF || !leaveCount || !holidayCount || !WO) {
+//         return res.status(200).json({
+//             status: false,
+//             message: 'Missing required fields: employeeId, presentCount, HF, leaveCount, holidayCount, WO'
+//         });
+//     }
 
-    let PenaltieHF = 0;
-    let PenaltieLeave = 0;
-    let PenaltieAbsent = 0;
-    let PenaltieFixAmount = 0;
-    let PenaltieSandwichLeave = 0;
-    let PenaltyDatas = JSON.parse(PenaltyData);
+//     let PenaltieHF = 0;
+//     let PenaltieLeave = 0;
+//     let PenaltieAbsent = 0;
+//     let PenaltieFixAmount = 0;
+//     let PenaltieSandwichLeave = 0;
+//     let PenaltyDatas = JSON.parse(PenaltyData);
 
-    if (PenaltyDatas) {
-        PenaltyDatas.forEach((penalty) => {
-            const { penalty_type, penalty_count, penalty_amount } = penalty;
-            if (penalty_type == "half-day") {
-                PenaltieHF += penalty_count;
-            } else if (penalty_type == "leave") {
-                PenaltieLeave += penalty_count;
-            }
-            else if (penalty_type == "absent") {
-                PenaltieAbsent += penalty_count;
-            } else if (penalty_type == "fixamout") {
-                PenaltieFixAmount += penalty_amount;
-            }
-            else if (penalty_type == "Sandwich Leave") {
-                PenaltieSandwichLeave += penalty_count;
+//     if (PenaltyDatas) {
+//         PenaltyDatas.forEach((penalty) => {
+//             const { penalty_type, penalty_count, penalty_amount } = penalty;
+//             if (penalty_type == "half-day") {
+//                 PenaltieHF += penalty_count;
+//             } else if (penalty_type == "leave") {
+//                 PenaltieLeave += penalty_count;
+//             }
+//             else if (penalty_type == "absent") {
+//                 PenaltieAbsent += penalty_count;
+//             } else if (penalty_type == "fixamout") {
+//                 PenaltieFixAmount += penalty_amount;
+//             }
+//             else if (penalty_type == "Sandwich Leave") {
+//                 PenaltieSandwichLeave += penalty_count;
 
-            }
-        });
-    }
+//             }
+//         });
+//     }
 
-    let NewPresentCount = parseInt(presentCount) - (parseInt(PenaltieHF, 10) / 2) - parseInt(PenaltieAbsent, 10);
-    let NewLeaveCount = parseInt(leaveCount) + parseInt(PenaltieLeave, 10);
-    let newHolidayCount = parseInt(holidayCount) - parseInt(PenaltieSandwichLeave, 10);
+//     let NewPresentCount = parseInt(presentCount) - (parseInt(PenaltieHF, 10) / 2) - parseInt(PenaltieAbsent, 10);
+//     let NewLeaveCount = parseInt(leaveCount) + parseInt(PenaltieLeave, 10);
+//     let newHolidayCount = parseInt(holidayCount) - parseInt(PenaltieSandwichLeave, 10);
 
-    if (!month || !year) {
-        return res.status(200).json({
-            status: false,
-            message: 'Missing required fields: month,year'
-        });
-    }
+//     if (!month || !year) {
+//         return res.status(200).json({
+//             status: false,
+//             message: 'Missing required fields: month,year'
+//         });
+//     }
 
 
 
-    // Query to fetch employee details
-    const employeeQuery = `SELECT company_id, first_name, last_name, email_id, ctc, structure_id FROM employees WHERE id = ?`;
-    db.query(employeeQuery, [employeeId], (err, employeeResults) => {
-        if (err) {
-            return res.status(500).json({
-                status: false,
-                message: 'Error fetching employee details',
-                error: err
-            });
-        }
-        if (employeeResults.length === 0) {
-            return res.status(200).json({
-                status: false,
-                message: 'Employee not found'
-            });
-        }
+//     // Query to fetch employee details
+//     const employeeQuery = `SELECT company_id, first_name, last_name, email_id, ctc, structure_id FROM employees WHERE id = ?`;
+//     db.query(employeeQuery, [employeeId], (err, employeeResults) => {
+//         if (err) {
+//             return res.status(500).json({
+//                 status: false,
+//                 message: 'Error fetching employee details',
+//                 error: err
+//             });
+//         }
+//         if (employeeResults.length === 0) {
+//             return res.status(200).json({
+//                 status: false,
+//                 message: 'Employee not found'
+//             });
+//         }
 
-        const employee = employeeResults[0];
-        const ctc = employee.ctc;
-        // Calculate total working days
-        // const totalWorkingDays = parseInt(NewPresentCount, 10) + parseInt(newHolidayCount, 10) + parseInt(WO, 10) + parseInt(leaveCount, 10) + (parseInt(HF, 10) / 2);
-        // const totalWorkingDays = parseInt(NewPresentCount, 10) + parseInt(newHolidayCount, 10) + parseInt(WO, 10) + parseFloat(leaveCount) + (parseInt(HF, 10) / 2);
-        const totalWorkingDays = (parseFloat(NewPresentCount) || 0) + (parseFloat(newHolidayCount) || 0) + (parseFloat(WO) || 0) + (parseFloat(leaveCount) || 0) + ((parseFloat(HF) || 0) / 2);
+//         const employee = employeeResults[0];
+//         const ctc = employee.ctc;
+//         // Calculate total working days
+//         // const totalWorkingDays = parseInt(NewPresentCount, 10) + parseInt(newHolidayCount, 10) + parseInt(WO, 10) + parseInt(leaveCount, 10) + (parseInt(HF, 10) / 2);
+//         // const totalWorkingDays = parseInt(NewPresentCount, 10) + parseInt(newHolidayCount, 10) + parseInt(WO, 10) + parseFloat(leaveCount) + (parseInt(HF, 10) / 2);
+//         const totalWorkingDays = (parseFloat(NewPresentCount) || 0) + (parseFloat(newHolidayCount) || 0) + (parseFloat(WO) || 0) + (parseFloat(leaveCount) || 0) + ((parseFloat(HF) || 0) / 2);
 
-        console.log("totalWorkingDays", totalWorkingDays)
-        // const dailySalary = ctc / 365;
-        const monthSalary = ctc / 12;
-        const daysInMonth = getDaysInMonth(month, year);
-        const dailySalary = monthSalary / daysInMonth
-        let proratedSalary = totalWorkingDays * dailySalary;
-        // PenaltieFixAmount
-        proratedSalary -= PenaltieFixAmount;
+//         // console.log("totalWorkingDays", totalWorkingDays)
+//         // const dailySalary = ctc / 365;
+//         const monthSalary = ctc / 12;
+//         const daysInMonth = getDaysInMonth(month, year);
+//         const dailySalary = monthSalary / daysInMonth
+//         let proratedSalary = totalWorkingDays * dailySalary;
+//         // PenaltieFixAmount
+//         proratedSalary -= PenaltieFixAmount;
 
-        // Initial Basic Pay amount set to prorated salary
-        let BasicPayAmount = proratedSalary;
+//         // Initial Basic Pay amount set to prorated salary
+//         let BasicPayAmount = proratedSalary;
 
-        // Query to fetch salary structure
-        const structureQuery = `SELECT * FROM salary_structure WHERE structure_id = ?`;
+//         // Query to fetch salary structure
+//         const structureQuery = `SELECT * FROM salary_structure WHERE structure_id = ?`;
 
-        db.query(structureQuery, [employee.structure_id], (err, structureResults) => {
-            if (err) {
-                return res.status(500).json({
-                    status: false,
-                    message: 'Error fetching salary structure',
-                    error: err
-                });
-            }
+//         db.query(structureQuery, [employee.structure_id], (err, structureResults) => {
+//             if (err) {
+//                 return res.status(500).json({
+//                     status: false,
+//                     message: 'Error fetching salary structure',
+//                     error: err
+//                 });
+//             }
 
-            if (structureResults.length === 0) {
-                return res.status(200).json({
-                    status: false,
-                    message: 'Salary structure not found'
-                });
-            }
+//             if (structureResults.length === 0) {
+//                 return res.status(200).json({
+//                     status: false,
+//                     message: 'Salary structure not found'
+//                 });
+//             }
 
-            const salaryStructure = structureResults[0];
-            // Query to fetch salary components
-            const componentQuery = `SELECT component_id, company_id, structure_id, component_name, component_type, calculation_method, percentage, fixed_amount FROM salary_component WHERE structure_id = ?`;
-            db.query(componentQuery, [employee.structure_id], (err, componentResults) => {
-                if (err) {
-                    return res.status(500).json({
-                        status: false,
-                        message: 'Error fetching salary components',
-                        error: err
-                    });
-                }
-                if (componentResults.length === 0) {
-                    return res.status(200).json({
-                        status: false,
-                        message: 'Salary components not found for the given structure'
-                    });
-                }
-                // Calculate salary breakdown based on components
-                const salaryBreakdown = componentResults.map(component => {
-                    let amount = 0;
-                    // Handle calculation based on component type
-                    if (component.component_type != 'basic' && component.component_type != 'basic_pay') {
-                        if (component.calculation_method === 'percentage') {
-                            amount = (proratedSalary * component.percentage) / 100;
-                        } else if (component.calculation_method === 'fixed_amount') {
-                            amount = component.fixed_amount;
-                        }
-                        // Deduct from BasicPayAmount
-                        BasicPayAmount = BasicPayAmount - amount;
-                        return {
-                            component_name: component.component_name,
-                            amount: parseFloat(amount)
-                        };
-                    } else {
-                        return {
-                            component_name: component.component_name,
-                            amount: 0
-                        };
-                    }
-                });
-                // Send a well-structured response
-                return res.json({
-                    status: true,
-                    data: {
-                        employee,
-                        salaryStructure,
-                        components: salaryBreakdown,
-                        ctc,
-                        proratedSalary: proratedSalary.toFixed(2),
-                        BasicPayAmount: BasicPayAmount.toFixed(2)
-                    }
-                });
-            });
-        });
-    });
-});
+//             const salaryStructure = structureResults[0];
+//             // Query to fetch salary components
+//             const componentQuery = `SELECT component_id, company_id, structure_id, component_name, component_type, calculation_method, percentage, fixed_amount FROM salary_component WHERE structure_id = ?`;
+//             db.query(componentQuery, [employee.structure_id], (err, componentResults) => {
+//                 if (err) {
+//                     return res.status(500).json({
+//                         status: false,
+//                         message: 'Error fetching salary components',
+//                         error: err
+//                     });
+//                 }
+//                 if (componentResults.length === 0) {
+//                     return res.status(200).json({
+//                         status: false,
+//                         message: 'Salary components not found for the given structure'
+//                     });
+//                 }
+//                 // Calculate salary breakdown based on components
+//                 const salaryBreakdown = componentResults.map(component => {
+//                     let amount = 0;
+//                     // Handle calculation based on component type
+//                     if (component.component_type != 'basic' && component.component_type != 'basic_pay') {
+//                         if (component.calculation_method === 'percentage') {
+//                             amount = (proratedSalary * component.percentage) / 100;
+//                         } else if (component.calculation_method === 'fixed_amount') {
+//                             amount = component.fixed_amount;
+//                         }
+//                         // Deduct from BasicPayAmount
+//                         BasicPayAmount = BasicPayAmount - amount;
+//                         return {
+//                             component_name: component.component_name,
+//                             amount: parseFloat(amount)
+//                         };
+//                     } else {
+//                         return {
+//                             component_name: component.component_name,
+//                             amount: 0
+//                         };
+//                     }
+//                 });
+//                 // Send a well-structured response
+//                 return res.json({
+//                     status: true,
+//                     data: {
+//                         employee,
+//                         salaryStructure,
+//                         components: salaryBreakdown,
+//                         ctc,
+//                         proratedSalary: proratedSalary.toFixed(2),
+//                         BasicPayAmount: BasicPayAmount.toFixed(2)
+//                     }
+//                 });
+//             });
+//         });
+//     });
+// });
 
 const queryDb = (query, params) => {
     return new Promise((resolve, reject) => {
@@ -326,161 +326,161 @@ const queryDb = (query, params) => {
 };
 
 // test new way  work 
-// router.post('/api/GenerateSalary', async (req, res) => {
-//     try {
-//         const { employeeId, presentCount, HF, leaveCount, holidayCount, WO, month, year, PenaltyData, userData } = req.body;
+router.post('/api/GenerateSalary', async (req, res) => {
+    try {
+        const { employeeId, presentCount, HF, leaveCount, holidayCount, WO, month, year, PenaltyData, userData } = req.body;
 
-//         // Decode userData
-//         let decodedUserData = null;
-//         if (userData) {
-//             try {
-//                 decodedUserData = JSON.parse(Buffer.from(userData, 'base64').toString('utf-8'));
-//             } catch (error) {
-//                 return res.status(400).json({ status: false, error: 'Invalid userData format' });
-//             }
-//         }
+        // Decode userData
+        let decodedUserData = null;
+        if (userData) {
+            try {
+                decodedUserData = JSON.parse(Buffer.from(userData, 'base64').toString('utf-8'));
+            } catch (error) {
+                return res.status(400).json({ status: false, error: 'Invalid userData format' });
+            }
+        }
 
-//         if (!decodedUserData?.id || !decodedUserData?.company_id) {
-//             return res.status(400).json({
-//                 status: false,
-//                 error: 'Employee ID and Company ID are required',
-//             });
-//         }
+        if (!decodedUserData?.id || !decodedUserData?.company_id) {
+            return res.status(400).json({
+                status: false,
+                error: 'Employee ID and Company ID are required',
+            });
+        }
 
-//         // Validate required fields
-//         if (!employeeId || !presentCount || !HF || !leaveCount || !holidayCount || !WO) {
-//             return res.status(200).json({
-//                 status: false,
-//                 message: 'Missing required fields: employeeId, presentCount, HF, leaveCount, holidayCount, WO'
-//             });
-//         }
+        // Validate required fields
+        if (!employeeId || !presentCount || !HF || !leaveCount || !holidayCount || !WO) {
+            return res.status(200).json({
+                status: false,
+                message: 'Missing required fields: employeeId, presentCount, HF, leaveCount, holidayCount, WO'
+            });
+        }
 
-//         // Parse penalties
-//         let PenaltieHF = 0, PenaltieLeave = 0, PenaltieAbsent = 0, PenaltieFixAmount = 0, PenaltieSandwichLeave = 0;
-//         let PenaltyDatas = [];
-//         try {
-//             PenaltyDatas = JSON.parse(PenaltyData || "[]");
-//         } catch {
-//             return res.status(400).json({ status: false, message: "Invalid PenaltyData format" });
-//         }
+        // Parse penalties
+        let PenaltieHF = 0, PenaltieLeave = 0, PenaltieAbsent = 0, PenaltieFixAmount = 0, PenaltieSandwichLeave = 0;
+        let PenaltyDatas = [];
+        try {
+            PenaltyDatas = JSON.parse(PenaltyData || "[]");
+        } catch {
+            return res.status(400).json({ status: false, message: "Invalid PenaltyData format" });
+        }
 
-//         PenaltyDatas.forEach(({ penalty_type, penalty_count = 0, penalty_amount = 0 }) => {
-//             if (penalty_type === "half-day") PenaltieHF += penalty_count;
-//             else if (penalty_type === "leave") PenaltieLeave += penalty_count;
-//             else if (penalty_type === "absent") PenaltieAbsent += penalty_count;
-//             else if (penalty_type === "fixamout") PenaltieFixAmount += penalty_amount;
-//             else if (penalty_type === "Sandwich Leave") PenaltieSandwichLeave += penalty_count;
-//         });
+        PenaltyDatas.forEach(({ penalty_type, penalty_count = 0, penalty_amount = 0 }) => {
+            if (penalty_type === "half-day") PenaltieHF += penalty_count;
+            else if (penalty_type === "leave") PenaltieLeave += penalty_count;
+            else if (penalty_type === "absent") PenaltieAbsent += penalty_count;
+            else if (penalty_type === "fixamout") PenaltieFixAmount += penalty_amount;
+            else if (penalty_type === "Sandwich Leave") PenaltieSandwichLeave += penalty_count;
+        });
 
-//         let NewPresentCount = parseInt(presentCount) - (PenaltieHF / 2) - PenaltieAbsent;
-//         let NewLeaveCount = parseInt(leaveCount) + PenaltieLeave;
-//         let newHolidayCount = parseInt(holidayCount) - PenaltieSandwichLeave;
+        let NewPresentCount = parseInt(presentCount) - (PenaltieHF / 2) - PenaltieAbsent;
+        let NewLeaveCount = parseInt(leaveCount) + PenaltieLeave;
+        let newHolidayCount = parseInt(holidayCount) - PenaltieSandwichLeave;
 
-//         if (!month || !year) {
-//             return res.status(200).json({
-//                 status: false,
-//                 message: 'Missing required fields: month,year'
-//             });
-//         }
+        if (!month || !year) {
+            return res.status(200).json({
+                status: false,
+                message: 'Missing required fields: month,year'
+            });
+        }
 
-//         // Fetch employee details
-//         const employeeResults = await queryDb(
-//             `SELECT company_id, first_name, last_name, email_id, ctc, structure_id FROM employees WHERE id = ?`,
-//             [employeeId]
-//         );
+        // Fetch employee details
+        const employeeResults = await queryDb(
+            `SELECT company_id, first_name, last_name, email_id, ctc, structure_id FROM employees WHERE id = ?`,
+            [employeeId]
+        );
 
-//         if (employeeResults.length === 0) {
-//             return res.status(200).json({ status: false, message: 'Employee not found' });
-//         }
+        if (employeeResults.length === 0) {
+            return res.status(200).json({ status: false, message: 'Employee not found' });
+        }
 
-//         const employee = employeeResults[0];
-//         const ctc = employee.ctc;
+        const employee = employeeResults[0];
+        const ctc = employee.ctc;
 
-//         // Salary calculation
-//         const totalWorkingDays = NewPresentCount + newHolidayCount + parseInt(WO) + NewLeaveCount + (parseInt(HF) / 2);
-//         const monthSalary = ctc / 12;
-//         const daysInMonth = getDaysInMonth(month, year);
-//         const dailySalary = monthSalary / daysInMonth;
+        // Salary calculation
+        const totalWorkingDays = NewPresentCount + newHolidayCount + parseInt(WO) + NewLeaveCount + (parseInt(HF) / 2);
+        const monthSalary = ctc / 12;
+        const daysInMonth = getDaysInMonth(month, year);
+        const dailySalary = monthSalary / daysInMonth;
 
-//         let proratedSalary = (totalWorkingDays * dailySalary) - PenaltieFixAmount;
-//         let BasicPayAmount = proratedSalary;
+        let proratedSalary = (totalWorkingDays * dailySalary) - PenaltieFixAmount;
+        let BasicPayAmount = proratedSalary;
 
-//         // Salary structure
-//         const structureResults = await queryDb(
-//             `SELECT * FROM salary_structure WHERE structure_id = ?`,
-//             [employee.structure_id]
-//         );
+        // Salary structure
+        const structureResults = await queryDb(
+            `SELECT * FROM salary_structure WHERE structure_id = ?`,
+            [employee.structure_id]
+        );
 
-//         if (structureResults.length === 0) {
-//             return res.status(200).json({ status: false, message: 'Salary structure not found' });
-//         }
+        if (structureResults.length === 0) {
+            return res.status(200).json({ status: false, message: 'Salary structure not found' });
+        }
 
-//         const salaryStructure = structureResults[0];
+        const salaryStructure = structureResults[0];
 
-//         // Salary components
-//         const componentResults = await queryDb(
-//             `SELECT component_id, company_id, structure_id, component_name, component_type, calculation_method, percentage, fixed_amount 
-//              FROM salary_component WHERE structure_id = ?`,
-//             [employee.structure_id]
-//         );
-//         const expenses = await queryDb(
-//             `SELECT e.id,e.employee_id,e.expense_type,e.amount,e.reason,e.expense_date,e.document,e.added_by,e.rm_id,e.admin_id,e.rm_status,e.admin_status,e.rm_remark,e.admin_remark,e.status,e.created_at,e.updated_at,
-//         e.payment_status,e.scheduled_pay_date,e.is_auto_release,e.payment_released_at,
-//         CONCAT(emp.first_name, ' ', emp.last_name) AS employee_name,
-//         CONCAT(rm.first_name, ' ', rm.last_name) AS rm_name,
-//         CONCAT(admin.first_name, ' ', admin.last_name) AS admin_name,
-//         CONCAT(added.first_name, ' ', added.last_name) AS added_by_name
-//     FROM expenses e 
-//     LEFT JOIN employees emp ON e.employee_id = emp.id
-//     LEFT JOIN employees rm ON e.rm_id = rm.id
-//     LEFT JOIN employees admin ON e.admin_id = admin.id
-//     LEFT JOIN employees added ON e.added_by = added.id
-//     WHERE e.company_id = ? AND e.employee_id = ? and e.admin_status=1 and e.status=1`,
-//             [decodedUserData?.company_id, employeeId]
-//         );
+        // Salary components
+        const componentResults = await queryDb(
+            `SELECT component_id, company_id, structure_id, component_name, component_type, calculation_method, percentage, fixed_amount 
+             FROM salary_component WHERE structure_id = ?`,
+            [employee.structure_id]
+        );
+        const expenses = await queryDb(
+            `SELECT e.id,e.employee_id,e.expense_type,e.amount,e.reason,e.expense_date,e.document,e.added_by,e.rm_id,e.admin_id,e.rm_status,e.admin_status,e.rm_remark,e.admin_remark,e.status,e.created_at,e.updated_at,
+        e.payment_status,e.scheduled_pay_date,e.is_auto_release,e.payment_released_at,
+        CONCAT(emp.first_name, ' ', emp.last_name) AS employee_name,
+        CONCAT(rm.first_name, ' ', rm.last_name) AS rm_name,
+        CONCAT(admin.first_name, ' ', admin.last_name) AS admin_name,
+        CONCAT(added.first_name, ' ', added.last_name) AS added_by_name
+    FROM expenses e 
+    LEFT JOIN employees emp ON e.employee_id = emp.id
+    LEFT JOIN employees rm ON e.rm_id = rm.id
+    LEFT JOIN employees admin ON e.admin_id = admin.id
+    LEFT JOIN employees added ON e.added_by = added.id
+    WHERE e.company_id = ? AND e.employee_id = ? and e.admin_status=1 and e.status=1`,
+            [decodedUserData?.company_id, employeeId]
+        );
 
-//         if (componentResults.length === 0) {
-//             return res.status(200).json({ status: false, message: 'Salary components not found for the given structure' });
-//         }
+        if (componentResults.length === 0) {
+            return res.status(200).json({ status: false, message: 'Salary components not found for the given structure' });
+        }
 
-//         // Calculate salary breakdown
-//         const salaryBreakdown = componentResults.map(component => {
-//             let amount = 0;
-//             if (component.component_type !== 'basic' && component.component_type !== 'basic_pay') {
-//                 if (component.calculation_method === 'percentage') {
-//                     amount = (proratedSalary * component.percentage) / 100;
-//                 } else if (component.calculation_method === 'fixed_amount') {
-//                     amount = component.fixed_amount;
-//                 }
-//                 BasicPayAmount -= amount;
-//             }
-//             return {
-//                 component_name: component.component_name,
-//                 amount: parseFloat(amount.toFixed(2))
-//             };
-//         });
+        // Calculate salary breakdown
+        const salaryBreakdown = componentResults.map(component => {
+            let amount = 0;
+            if (component.component_type !== 'basic' && component.component_type !== 'basic_pay') {
+                if (component.calculation_method === 'percentage') {
+                    amount = (proratedSalary * component.percentage) / 100;
+                } else if (component.calculation_method === 'fixed_amount') {
+                    amount = component.fixed_amount;
+                }
+                BasicPayAmount -= amount;
+            }
+            return {
+                component_name: component.component_name,
+                amount: parseFloat(amount.toFixed(2))
+            };
+        });
 
-//         return res.json({
-//             status: true,
-//             data: {
-//                 employee,
-//                 salaryStructure,
-//                 components: salaryBreakdown,
-//                 ctc,
-//                 proratedSalary: proratedSalary.toFixed(2),
-//                 BasicPayAmount: BasicPayAmount.toFixed(2),
-//                 expenses: expenses
-//             }
-//         });
+        return res.json({
+            status: true,
+            data: {
+                employee,
+                salaryStructure,
+                components: salaryBreakdown,
+                ctc,
+                proratedSalary: proratedSalary.toFixed(2),
+                BasicPayAmount: BasicPayAmount.toFixed(2),
+                expenses: expenses
+            }
+        });
 
-//     } catch (err) {
-//         console.error("GenerateSalary Error:", err);
-//         return res.status(500).json({ status: false, error: "Internal Server Error", details: err.message });
-//     }
-// });
+    } catch (err) {
+        console.error("GenerateSalary Error:", err);
+        return res.status(500).json({ status: false, error: "Internal Server Error", details: err.message });
+    }
+});
 
 router.get('/api/PayEmployeeSalaryDetails', async (req, res) => {
-    const { userData, data } = req.query;
+    const { userData, data, departmentId = 0, subDepartmentid = 0, employeeStatus = 1, salaryStatus } = req.query;
     let month = data.month;
     let year = data.year;
     let search = data.search || "";
@@ -532,6 +532,7 @@ router.get('/api/PayEmployeeSalaryDetails', async (req, res) => {
                 sc.component_name,
                 sc.amount
             FROM employeesalarydetails AS esd
+            inner JOIN employees AS e ON esd.employee_id = e.id
             LEFT JOIN salarycomponents AS sc
             ON esd.id = sc.salary_detail_id WHERE esd.company_id = ? AND esd.month = ? AND esd.year = ?`;
         let values = [decodedUserData.company_id, month, year];
@@ -545,6 +546,26 @@ router.get('/api/PayEmployeeSalaryDetails', async (req, res) => {
             query += ` AND esd.employee_name LIKE ?`;
             values.push(searchQuery);
         }
+        if (departmentId && departmentId != 0) {
+            query += ` AND e.department = ?`;
+            values.push(departmentId);
+        } else if (subDepartmentid && subDepartmentid != 0) {
+            query += ` AND e.sub_department = ?`;
+            values.push(subDepartmentid);
+        }
+        if (employeeStatus && employeeStatus == 1) {
+            query += ` AND e.employee_status=1 and e.status=1 and e.delete_status=0 `;
+        } else {
+            query += ` AND (e.employee_status=0 or e.status=0 or e.delete_status=1) `;
+        }
+
+        // Approved, Pending
+        if (salaryStatus == 'Approved') {
+            query += ` AND esd.status=1 `;
+        } else if (salaryStatus == 'Pending') {
+            query += ` AND esd.status=0 `;
+        }
+
 
         db.query(query, values, (err, results) => {
             if (err) {

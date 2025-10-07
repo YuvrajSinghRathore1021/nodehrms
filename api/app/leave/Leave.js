@@ -80,7 +80,7 @@ router.post("/fetchleave", (req, res) => {
         leaveQuery += ` LIMIT ? OFFSET ?`;
         leaveQueryParams.push(limit, offset);
 
-        
+
         db.query(leaveQuery, leaveQueryParams, (err, results) => {
             if (err) {
                 console.error("Error fetching leave records:", err);
@@ -288,7 +288,7 @@ router.post("/api/leaveApprovalLog", async (req, res) => {
 
 router.post("/api/Review", async (req, res) => {
     try {
-        let { EmployeeId, userData, Search, StartDate, EndDate, LeaveType } = req.body;
+        let { EmployeeId, userData, Search, StartDate, EndDate, LeaveType, departmentId = 0, subDepartmentid = 0, employeeStatus = 1 } = req.body;
 
         const limit = parseInt(req.body.limit, 10) || 10;
         const page = parseInt(req.body.page, 10) || 1;
@@ -298,22 +298,18 @@ router.post("/api/Review", async (req, res) => {
         if (userData) {
             decodedUserData = decodeUserData(userData);
             if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
-                return res
-                    .status(400)
-                    .json({
-                        status: false,
-                        message: "Invalid userData",
-                        error: "Invalid userData"
-                    });
+                return res.status(400).json({
+                    status: false,
+                    message: "Invalid userData",
+                    error: "Invalid userData"
+                });
             }
         } else {
-            return res
-                .status(400)
-                .json({
-                    status: false,
-                    message: "userData is required",
-                    error: "Missing userData"
-                });
+            return res.status(400).json({
+                status: false,
+                message: "userData is required",
+                error: "Missing userData"
+            });
         }
 
         // Parse filters
@@ -406,6 +402,20 @@ router.post("/api/Review", async (req, res) => {
         if (Search) {
             query += ` AND (Emp.first_name LIKE ? OR Emp.last_name LIKE ?)`;
             queryParams.push(`%${Search}%`, `%${Search}%`);
+        }
+
+        // Department and Employee Status Filters
+        if (departmentId && departmentId != 0) {
+            query += ` AND Emp.department = ?`;
+            queryParams.push(departmentId);
+        } else if (subDepartmentid && subDepartmentid != 0) {
+            query += ` AND Emp.sub_department = ?`;
+            queryParams.push(subDepartmentid);
+        }
+        if (employeeStatus && employeeStatus == 1) {
+            query += ` AND Emp.employee_status=1 and Emp.status=1 and Emp.delete_status=0 `;
+        } else {
+            query += ` AND (Emp.employee_status=0 or Emp.status=0 or Emp.delete_status=1) `;
         }
 
         // Pagination
@@ -525,7 +535,7 @@ router.post("/api/Approved", async (req, res) => {
 
     try {
 
-        let { EmployeeId, userData, Search, StartDate, EndDate, LeaveType } = req.body;
+        let { EmployeeId, userData, Search, StartDate, EndDate, LeaveType, departmentId = 0, subDepartmentid = 0, employeeStatus = 1 } = req.body;
 
         const limit = parseInt(req.body.limit, 10) || 10;
         const page = parseInt(req.body.page, 10) || 1;
@@ -647,6 +657,20 @@ router.post("/api/Approved", async (req, res) => {
             queryParams.push(`%${Search}%`, `%${Search}%`);
         }
 
+        // Department and Employee Status Filters
+        if (departmentId && departmentId != 0) {
+            query += ` AND Emp.department = ?`;
+            queryParams.push(departmentId);
+        } else if (subDepartmentid && subDepartmentid != 0) {
+            query += ` AND Emp.sub_department = ?`;
+            queryParams.push(subDepartmentid);
+        }
+        if (employeeStatus && employeeStatus == 1) {
+            query += ` AND Emp.employee_status=1 and Emp.status=1 and Emp.delete_status=0 `;
+        } else {
+            query += ` AND (Emp.employee_status=0 or Emp.status=0 or Emp.delete_status=1) `;
+        }
+
         // Pagination
         query += ` ORDER BY l.leave_id DESC LIMIT ? OFFSET ?`;
         queryParams.push(limit, offset);
@@ -752,7 +776,7 @@ router.post("/api/Rejected", async (req, res) => {
 
     try {
 
-        let { EmployeeId, userData, Search, StartDate, EndDate, LeaveType } = req.body;
+        let { EmployeeId, userData, Search, StartDate, EndDate, LeaveType, departmentId = 0, subDepartmentid = 0, employeeStatus = 1 } = req.body;
 
         const limit = parseInt(req.body.limit, 10) || 10;
         const page = parseInt(req.body.page, 10) || 1;
@@ -873,6 +897,20 @@ router.post("/api/Rejected", async (req, res) => {
             query += ` AND (Emp.first_name LIKE ? OR Emp.last_name LIKE ?)`;
             queryParams.push(`%${Search}%`, `%${Search}%`);
         }
+        // Department and Employee Status Filters
+        if (departmentId && departmentId != 0) {
+            query += ` AND Emp.department = ?`;
+            queryParams.push(departmentId);
+        } else if (subDepartmentid && subDepartmentid != 0) {
+            query += ` AND Emp.sub_department = ?`;
+            queryParams.push(subDepartmentid);
+        }
+        if (employeeStatus && employeeStatus == 1) {
+            query += ` AND Emp.employee_status=1 and Emp.status=1 and Emp.delete_status=0 `;
+        } else {
+            query += ` AND (Emp.employee_status=0 or Emp.status=0 or Emp.delete_status=1) `;
+        }
+
 
         // Pagination
         query += ` ORDER BY l.leave_id DESC LIMIT ? OFFSET ?`;

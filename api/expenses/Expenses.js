@@ -400,11 +400,11 @@ router.post('/expensesEdit', upload.single('document'), async (req, res) => {
         await db.promise().query(updateQuery, [
             expense_type, amount, reason || '', expense_date, document, id, decodedUserData.company_id
         ]);
-        console.log({ status: true, message: 'Expense updated successfully' })
+        // console.log({ status: true, message: 'Expense updated successfully' })
         return res.status(200).json({ status: true, message: 'Expense updated successfully' });
 
     } catch (err) {
-        console.log(err)
+        // console.log(err)
         res.status(500).json({ status: false, message: 'Database error', error: err.message });
     }
 });

@@ -13,7 +13,7 @@ const decodeUserData = (userData) => {
 
 
 function getWorkWeekStatus(workWeekResults, date) {
-    if (!workWeekResults || workWeekResults.length === 0) {
+    if (!workWeekResults || workWeekResults.length == 0) {
         return null;
     }
     const dayOfWeek = new Date(date).getDay(); // 0 (Sunday) - 6 (Saturday)
@@ -24,18 +24,18 @@ function getWorkWeekStatus(workWeekResults, date) {
 }
 
 // function getWorkWeekStatus(workWeekResults, date) {
-//     if (!workWeekResults || workWeekResults.length === 0) {
+//     if (!workWeekResults || workWeekResults.length == 0) {
 //         return null;
 //     }
 //     const dayOfWeek = new Date(date).getDay(); // 0 (Sunday) - 6 (Saturday)
 //     const workWeek = workWeekResults[0];
 //     const workWeekStatusMap = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 //     const statusKey = `${workWeekStatusMap[dayOfWeek]}1`;
-//     return workWeek && workWeek[statusKey] === 3 ? 'WO' : null;
+//     return workWeek && workWeek[statusKey] == 3 ? 'WO' : null;
 // }
 
 const PendingForFunction = async (ReqId) => {
-    if (ReqId === '') {
+    if (ReqId == '') {
         return 'Get Approve';
     }
 
@@ -46,16 +46,16 @@ const PendingForFunction = async (ReqId) => {
         );
 
         // Check if the query returned any result
-        if (PendingFor.length === 0) {
+        if (PendingFor.length == 0) {
             return 'Request not found';
         }
 
         let Type = '';
 
         // Check conditions based on the returned row data
-        if (PendingFor[0].rm_id !== 0 && PendingFor[0].rm_status === 0 && PendingFor[0].admin_id === 0) {
+        if (PendingFor[0].rm_id !== 0 && PendingFor[0].rm_status == 0 && PendingFor[0].admin_id == 0) {
             Type = 'Pending For Rm';
-        } else if ((PendingFor[0].rm_id === 0 || (PendingFor[0].rm_id !== 0 && PendingFor[0].rm_status === 1)) && PendingFor[0].admin_id === 0) {
+        } else if ((PendingFor[0].rm_id == 0 || (PendingFor[0].rm_id !== 0 && PendingFor[0].rm_status == 1)) && PendingFor[0].admin_id == 0) {
             Type = 'Pending For Admin';
         } else {
             Type = 'Approved';
@@ -182,7 +182,7 @@ router.post('/api/data', async (req, res) => {
             const weekNumber = Math.ceil(new Date(date).getDate() / 7); // Determine the week number (1 to 5)
             const dayKey = `${daysOfWeek[dayOfWeek]}${weekNumber}`;
             let isWeeklyOff = false;
-            if (workWeek && workWeek[dayKey] === 3) {
+            if (workWeek && workWeek[dayKey] == 3) {
                 isWeeklyOff = true; // Weekly Off
             }
 
@@ -358,7 +358,7 @@ router.post('/api/AttendanceReqSubmit', async (req, res) => {
             'SELECT multi_level_approve FROM settings WHERE company_id = ?',
             [decodedUserData.company_id]
         );
-        if (SettingMultiLeaveApprove.length === 0) {
+        if (SettingMultiLeaveApprove.length == 0) {
 
         } else {
             if (SettingMultiLeaveApprove[0].multi_level_approve == 1) {
@@ -366,7 +366,7 @@ router.post('/api/AttendanceReqSubmit', async (req, res) => {
                     'SELECT reporting_manager FROM employees WHERE  employee_status=1 and status=1 and delete_status=0 and id = ? AND company_id = ?',
                     [employee_id, decodedUserData.company_id]
                 );
-                if (managerResults.length === 0) {
+                if (managerResults.length == 0) {
                     return res.status(404).json({ status: false, error: 'Employee not found', message: 'Invalid employee ID or company ID' });
                 }
                 RmIdValue = managerResults[0].reporting_manager ? managerResults[0].reporting_manager : 0;
@@ -444,7 +444,7 @@ router.post('/api/AttendancePending', async (req, res) => {
             }
 
             const [empResults] = await db.promise().query(empsql, EmpArrayValue);
-            if (empResults.length === 0) {
+            if (empResults.length == 0) {
                 return res.status(200).json({ status: false, message: 'Employees not found' });
             }
 
@@ -499,7 +499,7 @@ router.post('/api/AttendancePending', async (req, res) => {
                     const weekNumber = Math.ceil(currentDate.getDate() / 7); // Week 1 to 5
                     const dayKey = `${daysOfWeek[dayOfWeek]}${weekNumber}`;
 
-                    const isWeeklyOff = workWeek && workWeek[dayKey] === 3;
+                    const isWeeklyOff = workWeek && workWeek[dayKey] == 3;
                     const isHoliday = holidays.has(formattedDate);
 
                     // ✅ Check if this date is in any approved leave range
@@ -509,8 +509,8 @@ router.post('/api/AttendancePending', async (req, res) => {
                         return currentDate >= leaveStart && currentDate <= leaveEnd;
                     });
 
-                    const attendance = attendanceResults.find(a => new Date(a.attendance_date).toISOString().split('T')[0] === formattedDate);
-                    const ApprovalRequests = attendanceApprovalRequests.find(b => new Date(b.request_date).toISOString().split('T')[0] === formattedDate);
+                    const attendance = attendanceResults.find(a => new Date(a.attendance_date).toISOString().split('T')[0] == formattedDate);
+                    const ApprovalRequests = attendanceApprovalRequests.find(b => new Date(b.request_date).toISOString().split('T')[0] == formattedDate);
 
                     const inTime = attendance ? attendance.check_in_time : ApprovalRequests ? ApprovalRequests.in_time : '';
                     const outTime = attendance ? attendance.check_out_time : ApprovalRequests ? ApprovalRequests.out_time : '';
@@ -529,7 +529,7 @@ router.post('/api/AttendancePending', async (req, res) => {
                     const PendingFor = await PendingForFunction(ApprovalRequests_id);
                     // ✅ Only push pending data if NOT holiday, NOT weekly off, NOT approved leave
 
-                    if (status !== 'WO' && status !== 'H' && !isLeave && attendance_statusCheck !== 1 && request_id === 0) {
+                    if (status !== 'WO' && status !== 'H' && !isLeave && attendance_statusCheck !== 1 && request_id == 0) {
                         monthlyAttendanceLogs.push({
                             name: employee.first_name,
                             userId: employee.employee_id,
@@ -647,12 +647,12 @@ router.post('/api/AttendancePending', async (req, res) => {
         const requestsWithSrnu = results.map((request, index) => {
             let usertype = '';
             let PendingFor = '';
-            if (request.rm_id !== 0 && request.rm_status === 0 && request.admin_id === 0) {
+            if (request.rm_id !== 0 && request.rm_status == 0 && request.admin_id == 0) {
                 usertype = 'Rm';
                 PendingFor = 'Pending For Rm';
             } else if (
-                (request.rm_id === 0 || (request.rm_id !== 0 && request.rm_status === 1)) &&
-                request.admin_id === 0
+                (request.rm_id == 0 || (request.rm_id !== 0 && request.rm_status == 1)) &&
+                request.admin_id == 0
             ) {
                 usertype = 'Admin';
                 PendingFor = 'Pending For Admin';
@@ -797,9 +797,9 @@ router.post('/api/Attendancedirectory', async (req, res) => {
         let employeeFilter = `b.company_id = ?`;
         const filterParams = [decodedUserData.company_id];
 
-        if (filter === 'active') {
+        if (filter == 'active') {
             employeeFilter += ` AND b.status = 1 AND b.delete_status = 0`;
-        } else if (filter === 'inactive') {
+        } else if (filter == 'inactive') {
             employeeFilter += ` AND (b.status = 0 OR b.delete_status = 1)`;
         } else {
             employeeFilter += ` AND b.status = 1 AND b.delete_status = 0`;
@@ -893,7 +893,7 @@ LEFT JOIN branches AS bo
 
         const employeesWithDetails = await Promise.all(
             attendanceResults.map(async (attendance) => {
-                const leave = leaveResults.find(l => l.employee_id === attendance.employee_id);
+                const leave = leaveResults.find(l => l.employee_id == attendance.employee_id);
                 const holiday = holidayResults.length > 0 ? holidayResults[0] : null;
                 ///////
 
@@ -917,20 +917,21 @@ LEFT JOIN branches AS bo
 
                 let status = 'A'; // Default Absent
 
-                if (attendance.check_in_time) {
-                    if (attendance.status === 'Present') {
+                if (attendance?.check_in_time) {
+                    if (attendance?.status == 'Present') {
                         if (workWeekStatus == 1) {
                             status = 'P';
                         } else if (workWeekStatus == 2) {
                             // status = 'P/(WO HF)';
                             status = 'P';
                         } else if (workWeekStatus == 3) {
-                            status = 'WO';
+                            // status = 'WO';
+                            status = 'P';
                         } else {
                             status = 'P';
                         }
 
-                    } else if (attendance.status === 'half-day') {
+                    } else if (attendance.status == 'half-day') {
                         // status = 'HF';
 
                         if (workWeekStatus == 1) {
@@ -939,12 +940,13 @@ LEFT JOIN branches AS bo
                             // status = 'HF/(WO HF)';
                             status = 'HF';
                         } else if (workWeekStatus == 3) {
-                            status = 'WO';
+                            // status = 'WO';
+                            status = 'HF';
                         } else {
                             status = 'P';
                         }
 
-                    } else if (attendance.status === 'absent') {
+                    } else if (attendance.status == 'absent') {
                         // status = 'A';
                         if (workWeekStatus == 1) {
                             status = 'A';
@@ -963,16 +965,17 @@ LEFT JOIN branches AS bo
                         } else if (workWeekStatus == 2) {
                             // status = 'P/(WO HF)';
                             status = 'P';
-                        } else if (workWeekStatus == 3) {
+                        } else if (workWeekStatus == 3 && workWeekStatus != "p") {
                             status = 'WO';
                         } else {
                             status = 'P';
                         }
                     }
+                }
+                else if (leave) {
+                    status = 'L';
                 } else if (holiday) {
                     status = 'H';
-                } else if (leave) {
-                    status = 'L';
                 }
                 // console.log(attendance)
 
@@ -1003,11 +1006,12 @@ LEFT JOIN branches AS bo
         );
 
         // Filter the final data based on `filter`
+        // console.log(employeesWithDetails);
         const filteredData = employeesWithDetails.filter(emp => {
             if (['present', 'absent', 'leave'].includes(filter)) {
-                if (filter === 'present') return emp.status === 'P' || emp.status === 'HF';
-                if (filter === 'absent') return emp.status === 'A';
-                if (filter === 'leave') return emp.status === 'L';
+                if (filter == 'present') return emp.status == 'P' || emp.status == 'HF';
+                if (filter == 'absent') return emp.status == 'A';
+                if (filter == 'leave') return emp.status == 'L';
             }
             return true;
         });
@@ -1016,9 +1020,9 @@ LEFT JOIN branches AS bo
         const totalEmployees = await new Promise((resolve, reject) => {
             let countQuery = `SELECT COUNT(id) AS total FROM employees WHERE company_id = ?`;
             const countParams = [decodedUserData.company_id];
-            if (filter === 'active') {
+            if (filter == 'active') {
                 countQuery += ` AND status = 1 AND delete_status = 0`;
-            } else if (filter === 'inactive') {
+            } else if (filter == 'inactive') {
                 countQuery += ` AND (status = 0 OR delete_status = 1)`;
             } else {
                 countQuery += ` AND status = 1 AND delete_status = 0`;
@@ -1092,9 +1096,9 @@ LEFT JOIN branches AS bo
 //         let employeeFilter = `b.company_id = ?`;
 //         const filterParams = [decodedUserData.company_id];
 
-//         if (filter === 'active') {
+//         if (filter == 'active') {
 //             employeeFilter += ` AND b.status = 1 AND b.delete_status = 0`;
-//         } else if (filter === 'inactive') {
+//         } else if (filter == 'inactive') {
 //             employeeFilter += ` AND (b.status = 0 OR b.delete_status = 1)`;
 //         } else {
 //             employeeFilter += ` AND b.status = 1 AND b.delete_status = 0`;
@@ -1179,7 +1183,7 @@ LEFT JOIN branches AS bo
 
 //         const employeesWithDetails = await Promise.all(
 //             attendanceResults.map(async (attendance) => {
-//                 const leave = leaveResults.find(l => l.employee_id === attendance.employee_id);
+//                 const leave = leaveResults.find(l => l.employee_id == attendance.employee_id);
 //                 const holiday = holidayResults.length > 0 ? holidayResults[0] : null;
 //                 ///////
 
@@ -1204,7 +1208,7 @@ LEFT JOIN branches AS bo
 //                 let status = 'A'; // Default Absent
 
 //                 if (attendance.check_in_time) {
-//                     if (attendance.status === 'Present') {
+//                     if (attendance.status == 'Present') {
 //                         if (workWeekStatus == 1) {
 //                             status = 'P';
 //                         } else if (workWeekStatus == 2) {
@@ -1215,7 +1219,7 @@ LEFT JOIN branches AS bo
 //                             status = 'P';
 //                         }
 
-//                     } else if (attendance.status === 'half-day') {
+//                     } else if (attendance.status == 'half-day') {
 //                         // status = 'HF';
 
 //                         if (workWeekStatus == 1) {
@@ -1228,7 +1232,7 @@ LEFT JOIN branches AS bo
 //                             status = 'P';
 //                         }
 
-//                     } else if (attendance.status === 'absent') {
+//                     } else if (attendance.status == 'absent') {
 //                         // status = 'A';
 //                         if (workWeekStatus == 1) {
 //                             status = 'A';
@@ -1287,9 +1291,9 @@ LEFT JOIN branches AS bo
 //         // Filter the final data based on `filter`
 //         const filteredData = employeesWithDetails.filter(emp => {
 //             if (['present', 'absent', 'leave'].includes(filter)) {
-//                 if (filter === 'present') return emp.status === 'P' || emp.status === 'HF';
-//                 if (filter === 'absent') return emp.status === 'A';
-//                 if (filter === 'leave') return emp.status === 'L';
+//                 if (filter == 'present') return emp.status == 'P' || emp.status == 'HF';
+//                 if (filter == 'absent') return emp.status == 'A';
+//                 if (filter == 'leave') return emp.status == 'L';
 //             }
 //             return true;
 //         });
@@ -1298,9 +1302,9 @@ LEFT JOIN branches AS bo
 //         const totalEmployees = await new Promise((resolve, reject) => {
 //             let countQuery = `SELECT COUNT(id) AS total FROM employees WHERE company_id = ?`;
 //             const countParams = [decodedUserData.company_id];
-//             if (filter === 'active') {
+//             if (filter == 'active') {
 //                 countQuery += ` AND status = 1 AND delete_status = 0`;
-//             } else if (filter === 'inactive') {
+//             } else if (filter == 'inactive') {
 //                 countQuery += ` AND (status = 0 OR delete_status = 1)`;
 //             } else {
 //                 countQuery += ` AND status = 1 AND delete_status = 0`;
@@ -1393,7 +1397,7 @@ router.post('/api/EmployeesUnderRm', async (req, res) => {
                 error: err.message || err
             });
         }
-        if (results.length === 0) {
+        if (results.length == 0) {
             return res.status(200).json({
                 status: false,
                 message: 'No employees found for this company'

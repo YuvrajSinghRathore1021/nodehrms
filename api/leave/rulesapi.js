@@ -80,7 +80,7 @@ const { AdminCheck } = require("../../model/functlity/AdminCheck");
 
 router.get("/fetch-department-employee", async (req, res) => {
   try {
-    const { userData, search = "", page = 1, limit = 10 } = req.query;
+    const { userData, search = "", page = 1, limit = 10, departmentId = 0, subDepartmentid = 0, employeeStatus = 1 } = req.query;
 
     if (!userData) {
       return res.status(400).json({ status: false, message: "UserData is required." });
@@ -113,16 +113,26 @@ router.get("/fetch-department-employee", async (req, res) => {
       params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
     }
 
+    if (departmentId && departmentId != 0) {
+      searchCondition += ` AND e.department = ?`;
+      params.push(departmentId);
+    } else if (subDepartmentid && subDepartmentid != 0) {
+      searchCondition += ` AND e.sub_department = ?`;
+      params.push(subDepartmentid);
+    }
+    if (employeeStatus && employeeStatus == 1) {
+      searchCondition += ` AND e.employee_status=1 and e.status=1 and e.delete_status=0 `;
+    } else {
+      searchCondition += ` AND (e.employee_status=0 or e.status=0 or e.delete_status=1) `;
+    }
+
     // Count total records (for pagination)
     const countQuery = `
       SELECT COUNT(DISTINCT e.id) as totalRecords
       FROM employees e
       LEFT JOIN departments d1 ON e.department = d1.id
       LEFT JOIN departments d2 ON e.sub_department = d2.id
-      WHERE e.employee_status = 1 
-        AND e.status = 1 
-        AND e.delete_status = 0 
-        AND e.company_id = ?
+      WHERE e.company_id = ?
         ${searchCondition}
     `;
 
@@ -139,7 +149,7 @@ router.get("/fetch-department-employee", async (req, res) => {
         e.id,
         e.employee_id,
         e.leave_rule_id,
-        CONCAT(e.first_name, " ", e.last_name) AS employee_name,
+        CONCAT(e.first_name, " ", e.last_name, "-",e.employee_id) AS employee_name,
         e.employee_type,
         COALESCE(d1.name, '') AS department,
         COALESCE(d2.name, '') AS sub_department,
@@ -148,13 +158,10 @@ router.get("/fetch-department-employee", async (req, res) => {
       LEFT JOIN departments d1 ON e.department = d1.id
       LEFT JOIN departments d2 ON e.sub_department = d2.id
       LEFT JOIN leave_rules lr ON FIND_IN_SET(lr.id, e.leave_rule_id)
-      WHERE e.employee_status = 1 
-        AND e.status = 1 
-        AND e.delete_status = 0 
-        AND e.company_id = ?
+      WHERE e.company_id = ?
         ${searchCondition}
       GROUP BY e.id
-      ORDER BY e.id DESC
+      ORDER BY e.first_name ASC
       LIMIT ? OFFSET ?
     `;
 
@@ -986,7 +993,7 @@ router.get("/rulesfetch", (req, res) => {
 ////////////////////////////////////////
 
 router.get("/Balance", (req, res) => {
-  const { page = 1, limit = 10, userData } = req.query;
+  const { page = 1, limit = 10, userData, departmentId = 0, subDepartmentid = 0, employeeStatus = 1,search='' } = req.query;
   const offset = (page - 1) * limit;
 
 
@@ -1006,10 +1013,31 @@ router.get("/Balance", (req, res) => {
       .status(400)
       .json({ status: false, error: "Company ID is missing or invalid" });
   }
-  const query = `
+  let searchCondition = "";
+  let params = [decodedUserData.company_id];
+
+  if (search) {
+    searchCondition = ` AND (e.employee_id LIKE ? OR e.first_name LIKE ? OR e.last_name LIKE ? ) `;
+    params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+  }
+
+  if (departmentId && departmentId != 0) {
+    searchCondition += ` AND e.department = ?`;
+    params.push(departmentId);
+  } else if (subDepartmentid && subDepartmentid != 0) {
+    searchCondition += ` AND e.sub_department = ?`;
+    params.push(subDepartmentid);
+  }
+  if (employeeStatus && employeeStatus == 1) {
+    searchCondition += ` AND e.employee_status=1 and e.status=1 and e.delete_status=0 `;
+  } else {
+    searchCondition += ` AND (e.employee_status=0 or e.status=0 or e.delete_status=1) `;
+  }
+
+  let query = `
     SELECT e.id,
       e.employee_id,
-      e.first_name,
+     CONCAT(e.first_name, " ", e.last_name, "-",e.employee_id) AS first_name,
       lr.leave_type,
       -- Monthly balance leaves: Calculate balance per month
       CASE
@@ -1040,7 +1068,7 @@ router.get("/Balance", (req, res) => {
     LEFT JOIN 
         leaves l ON e.id = l.employee_id  -- Left join to get the applied leave details
     WHERE 
-     e.employee_status=1 AND e.status=1 AND e.delete_status=0 AND e.company_id=?
+      e.company_id=? ${searchCondition}
     GROUP BY 
         e.id, lr.id, lr.leave_type  -- Group by employee and leave type
     ORDER BY 
@@ -1049,16 +1077,16 @@ router.get("/Balance", (req, res) => {
   `;
 
   // Query to count the total number of records (employees)
-  const countQuery = `
+  let countQuery = `
     SELECT COUNT(DISTINCT e.id) AS total
     FROM employees e
     JOIN leave_rules lr ON FIND_IN_SET(lr.id, e.leave_rule_id) > 0
     LEFT JOIN leaves l ON e.id = l.employee_id
-    WHERE e.employee_status = 1 AND e.status = 1 AND e.delete_status = 0 AND e.company_id=?;
+    WHERE e.company_id=? ${searchCondition} ;
   `;
 
   // Execute the queries
-  db.query(query, [decodedUserData.company_id], (err, results) => {
+  db.query(query, params, (err, results) => {
     if (err) {
       console.error("Database query failed:", err.message);
       return res
@@ -1067,7 +1095,7 @@ router.get("/Balance", (req, res) => {
     }
 
     // Execute the count query to get the total number of employees
-    db.query(countQuery, [decodedUserData.company_id], (err, countResults) => {
+    db.query(countQuery, params, (err, countResults) => {
       if (err) {
         console.error("Count query failed:", err.message);
         return res
@@ -1354,7 +1382,7 @@ router.post("/rules", (req, res) => {
   const query = "INSERT INTO leave_rules (leave_type,company_id) VALUES (?,?)";
   db.query(query, [leave_type, decodedUserData.company_id], (err, results) => {
     if (err) {
-      console.log(err);
+      // console.log(err);
       return res.status(200).json({ status: false, error: "Database error" });
     }
     return res.status(200).json({
@@ -1366,7 +1394,7 @@ router.post("/rules", (req, res) => {
 });
 
 router.get("/api/fetchType", async (req, res) => {
-  const { userData, type } = req.query;
+  const { userData, type, searchData = '' } = req.query;
   let decodedUserData = null;
   if (userData) {
     try {
@@ -1397,6 +1425,11 @@ router.get("/api/fetchType", async (req, res) => {
   let queryParams = "";
   queryParams = [decodedUserData.company_id];
   query = `SELECT id, leave_type FROM leave_rules WHERE company_id = ?`;
+  if (searchData) {
+    query += ` AND leave_type LIKE ?`;
+    queryParams.push(`%${searchData}%`);
+  }
+
   db.query(query, queryParams, (err, results) => {
     if (err) {
       console.error("Error fetching data:", err);

@@ -227,7 +227,7 @@ router.post('/api/work_weekEdit', async (req, res) => {
     } catch (error) {
         return res.status(400).json({ status: false, error: 'Invalid Week data format' });
     }
-    console.log(Week);
+    // console.log(Week);
 
     let decodedUserData = null;
 

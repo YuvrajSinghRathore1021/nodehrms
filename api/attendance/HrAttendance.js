@@ -553,8 +553,7 @@ FROM attendance_requests AS ar
 LEFT JOIN employees AS empName ON ar.employee_id = empName.id
 LEFT JOIN employees AS rmName ON ar.rm_id = rmName.id
 LEFT JOIN employees AS adminName ON ar.admin_id = adminName.id
-WHERE ar.company_id=? and ar.employee_id=? and ar.request_date=?;
-`,
+WHERE ar.company_id=? and ar.employee_id=? and ar.request_date=?;`,
             [company_id, employee_Id, attendanceDate]
         );
 

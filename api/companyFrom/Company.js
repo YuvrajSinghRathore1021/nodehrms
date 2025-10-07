@@ -1438,7 +1438,7 @@ router.post("/BranchUpdate", async (req, res) => {
                 return res.status(400).json({ status: false, error: "Invalid branch_employee format" });
             }
 
-            console.log("Parsed employeeIds:", employeeIds);
+            // console.log("Parsed employeeIds:", employeeIds);
 
             // Fetch old employee IDs for this branch
             const [oldEmpResults] = await db.promise().query(

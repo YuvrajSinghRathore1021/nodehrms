@@ -87,7 +87,7 @@ router.get("/autoDeduction", async (req, res) => {
                             [toDeduct, toDeduct, empId, companyId, ruleId]
                         );
 
-                        console.log(`Deducted ${toDeduct} leaves from employee ${empId}`);
+                        // console.log(`Deducted ${toDeduct} leaves from employee ${empId}`);
                     }
                 }
             }

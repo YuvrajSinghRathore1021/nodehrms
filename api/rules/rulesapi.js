@@ -38,7 +38,7 @@ router.get("/fetch-department-employee", async (req, res) => {
     WHERE
       e.company_id = ?                        
   `;
-  console.log(decodedUserData)
+  // console.log(decodedUserData)
   try {
     const [employees] = await db.promise().query(employeeQuery, [companyId]);
     if (employees.length === 0) {

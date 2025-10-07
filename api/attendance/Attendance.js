@@ -23,22 +23,22 @@ router.post('/Attendancemark', async (req, res) => {
     }
     try {
         const employeeResults = await queryDb('SELECT attendance_rules_id FROM employees WHERE  employee_status=1 and status=1 and delete_status=0 And id = ? AND company_id = ?', [decodedUserData.id, decodedUserData.company_id]);
-        if (employeeResults.length === 0) {
+        if (employeeResults.length == 0) {
             return res.status(500).json({ status: false, message: 'Employee not found' });
         }
         const CompanyiPResults = await queryDb('SELECT ip FROM companies WHERE id = ?', [decodedUserData.company_id]);
-        if (CompanyiPResults.length === 0) {
+        if (CompanyiPResults.length == 0) {
             return res.status(403).json({ status: false, message: 'Some error Pls Login' });
         } else {
             // const clientIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.socket.remoteAddress;
             const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-            console.log('Client IP:', ip);
+            // console.log('Client IP:', ip);
         }
         const rulesResults = await queryDb('SELECT * FROM attendance_rules WHERE rule_id = ? AND company_id = ?', [employeeResults[0].attendance_rules_id, decodedUserData.company_id]);
         const rule = rulesResults.length > 0 ? rulesResults[0] : { in_time: '09:30', out_time: '18:30' };
         let dailyStatus = '';
         let timeCount = '';
-        if (type === 'in') {
+        if (type == 'in') {
             const inTimeFormatted = rule.in_time ? `${String(rule.in_time).padStart(5, '0')}` : `${String('09:30').padStart(5, '0')}`;
             if (inTimeFormatted > formattedTime) {
                 dailyStatus = 'Early';
@@ -58,9 +58,9 @@ router.post('/Attendancemark', async (req, res) => {
             await queryDb('INSERT INTO attendance (in_latitude, in_longitude,daily_status_in, daily_status_intime, employee_id, company_id, attendance_date, check_in_time) VALUES (?, ?,?, ?, ?, ?, CURDATE(), ?)',
                 [latitude, longitude, dailyStatus, timeCount, decodedUserData.id, decodedUserData.company_id, formattedTime]);
             return res.status(200).json({ status: true, message: `Attendance marked as 'in' at ${formattedTime}.` });
-        } else if (type === 'out') {
+        } else if (type == 'out') {
             const checkInResults = await queryDb('SELECT check_in_time FROM attendance WHERE employee_id = ? AND company_id = ? AND attendance_date = CURDATE()', [decodedUserData.id, decodedUserData.company_id]);
-            if (checkInResults.length === 0) {
+            if (checkInResults.length == 0) {
                 return res.status(400).json({ status: false, message: 'No check-in found for today. Please check in first.' });
             }
             const checkInTime = checkInResults[0].check_in_time;
@@ -118,7 +118,7 @@ router.post('/Attendancemark', async (req, res) => {
 //             }
 
 //             // If no entry exists for today
-//             if (results.length === 0) {
+//             if (results.length == 0) {
 //                 return res.status(200).json({
 //                     status: false,
 //                     message: 'No check-in record found for today.'
@@ -143,7 +143,7 @@ router.post('/Attendancemark', async (req, res) => {
 //                     }
 
 //                     // If no entry exists for today
-//                     if (resultsData.length === 0) {
+//                     if (resultsData.length == 0) {
 //                         return res.status(200).json({
 //                             status: true,
 //                             message: 'Check-in time retrieved successfully.',
@@ -209,7 +209,7 @@ router.post('/AttendanceGet', (req, res) => {
             return res.status(500).json({ status: false, message: 'Database error.', error: err });
         }
 
-        if (results.length === 0) {
+        if (results.length == 0) {
             return res.status(200).json({ status: false, message: 'No check-in record found for today.' });
         }
 
@@ -309,7 +309,7 @@ router.get('/api/Attendancedirectory', async (req, res) => {
         // Process and combine data
         const employeesWithDetails = await Promise.all(
             attendanceResults.map(async (attendance) => {
-                const leave = leaveResults.find(l => l.employee_id === attendance.employee_id);
+                const leave = leaveResults.find(l => l.employee_id == attendance.employee_id);
                 const holiday = holidayResults.length > 0 ? holidayResults[0] : null;
                 let status = 'A'; // Default to 'Absent'
 
@@ -330,7 +330,7 @@ router.get('/api/Attendancedirectory', async (req, res) => {
                     status = 'H'; // Holiday
                 } else if (leave) {
                     status = 'L'; // Leave
-                } else if (status === 'A' && attendance.work_week_id) {
+                } else if (status == 'A' && attendance.work_week_id) {
                     try {
                         const workWeekResults = await new Promise((resolve, reject) => {
                             db.query(
@@ -381,14 +381,14 @@ router.get('/api/Attendancedirectory', async (req, res) => {
 
 // Helper function to determine work week status
 function getWorkWeekStatus(workWeekResults, date) {
-    if (!workWeekResults || workWeekResults.length === 0) {
+    if (!workWeekResults || workWeekResults.length == 0) {
         return null;
     }
     const dayOfWeek = new Date(date).getDay(); // 0 (Sunday) - 6 (Saturday)
     const workWeek = workWeekResults[0];
     const workWeekStatusMap = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
     const statusKey = `${workWeekStatusMap[dayOfWeek]}1`;
-    return workWeek && workWeek[statusKey] === 3 ? 'WO' : null;
+    return workWeek && workWeek[statusKey] == 3 ? 'WO' : null;
 }
 
 
@@ -629,7 +629,7 @@ const isDateRangeValid = (startDate, endDate) => {
 //             const weekNumber = Math.ceil(new Date(date).getDate() / 7); // Determine the week number (1 to 5)
 //             const dayKey = `${daysOfWeek[dayOfWeek]}${weekNumber}`;
 //             let isWeeklyOff = false;
-//             if (workWeek && workWeek[dayKey] === 3) {
+//             if (workWeek && workWeek[dayKey] == 3) {
 //                 isWeeklyOff = true; // Weekly Off
 //             }
 
@@ -747,7 +747,7 @@ const isDateRangeValid = (startDate, endDate) => {
 //             const dayOfWeek = new Date(date).getDay();
 //             const weekNumber = Math.ceil(new Date(date).getDate() / 7);
 //             const dayKey = `${daysOfWeek[dayOfWeek]}${weekNumber}`;
-//             let isWeeklyOff = workWeek && workWeek[dayKey] === 3;
+//             let isWeeklyOff = workWeek && workWeek[dayKey] == 3;
 
 //             // Default status
 //             let status = "Absent";
@@ -871,7 +871,7 @@ router.post('/api/data', async (req, res) => {
             const dayOfWeek = new Date(date).getDay();
             const weekNumber = Math.ceil(new Date(date).getDate() / 7);
             const dayKey = `${daysOfWeek[dayOfWeek]}${weekNumber}`;
-            let isWeeklyOff = workWeek && workWeek[dayKey] === 3;
+            let isWeeklyOff = workWeek && workWeek[dayKey] == 3;
 
             // Default status
             let status = "Absent";
@@ -1017,6 +1017,7 @@ const createAttendanceResponse = (record, status, date) => {
 
 router.get('/api/attendance', async (req, res) => {
     const { data, userData, employeeId, departmentId = 0, subDepartmentid = 0, employeeStatus = 1 } = req.query;
+
     let year = null;
     let month = null;
     let searchData = null;
@@ -1043,7 +1044,7 @@ router.get('/api/attendance', async (req, res) => {
     // let employeeIds = employeeId || decodedUserData.id.toString();
 
     let employeeIds;
-    if (!employeeId || employeeId.trim() === "" || employeeId.trim().toLowerCase() === "null" || employeeId.trim().toLowerCase() === "undefined" || employeeId.trim() === '""' // 👈 catch "%22%22"
+    if (!employeeId || employeeId.trim() == "" || employeeId.trim().toLowerCase() == "null" || employeeId.trim().toLowerCase() == "undefined" || employeeId.trim() == '""' // 👈 catch "%22%22"
     ) {
         employeeIds = decodedUserData.id.toString();
     } else {
@@ -1057,7 +1058,7 @@ router.get('/api/attendance', async (req, res) => {
         return res.status(200).json({ status: false, message: 'Invalid or missing parameters' });
     }
 
-    if (employeeIdsArray.length === 0) {
+    if (employeeIdsArray.length == 0) {
         return res.status(200).json({ status: false, message: 'Invalid employee IDs' });
     }
     try {
@@ -1078,22 +1079,19 @@ router.get('/api/attendance', async (req, res) => {
             EmpArrayValue.push(subDepartmentid);
         }
 
-
         if (searchData) {
             empsql += ` AND first_name LIKE ?`;
             EmpArrayValue.push(`%${searchData}%`);
         }
 
         const [empResults] = await db.promise().query(empsql, EmpArrayValue);
-        if (empResults.length === 0) {
+        if (empResults.length == 0) {
             return res.status(200).json({ status: false, message: 'Employees not found' });
         }
 
         const [holidayResults] = await db.promise().query(`
-            SELECT date, holiday
-            FROM holiday
-            WHERE company_id=? And status = 1 AND YEAR(date) = ? AND MONTH(date) = ?`,
-            [decodedUserData.company_id, year, month]
+            SELECT date, holiday FROM holiday WHERE company_id=? And status = 1 AND YEAR(date) = ? AND 
+            MONTH(date) = ?`, [decodedUserData.company_id, year, month]
         );
 
         // const holidays = new Set(holidayResults.map(holiday => new Date(holiday.date).toISOString().split('T')[0]));
@@ -1103,6 +1101,7 @@ router.get('/api/attendance', async (req, res) => {
             holidays[dateKey] = h.holiday;
         });
         const employeesAttendanceData = [];
+
         for (const employee of empResults) {
             const [WorkWeek] = await db.promise().query(
                 `SELECT id, mon1, tue1, wed1, thu1, fri1, sat1, sun1, mon2, tue2, wed2, thu2, fri2, sat2, sun2, 
@@ -1149,13 +1148,13 @@ router.get('/api/attendance', async (req, res) => {
                 const weekNumber = Math.ceil(dayNo / 7);
                 const dayKey = `${daysOfWeek[dayOfWeek]}${weekNumber}`;
                 // console.log(dayKey);
-                const isWeeklyOff = workWeekData && workWeekData[dayKey] === 3;
+                const isWeeklyOff = workWeekData && workWeekData[dayKey] == 3;
                 // const isHoliday = holidays.has(date.toISOString().split('T')[0]);
 
 
                 const attendance = attendanceResults.find(a => {
                     const attDate = new Date(a.attendance_date);
-                    return attDate.getDate() === dayNo && attDate.getMonth() === month - 1;
+                    return attDate.getDate() == dayNo && attDate.getMonth() == month - 1;
                 });
                 const formattedDate = new Date(date).toISOString().split("T")[0];
                 const isHoliday = holidays[formattedDate];
@@ -1169,15 +1168,10 @@ router.get('/api/attendance', async (req, res) => {
                 let status = '';
                 let label = '';
 
-                if (isWeeklyOff) {
-                    status = 'WO';
-                    label = 'Weekly Off';
-                } else if (isHoliday) {
-                    status = 'H';
-                    // label = `Holiday`;                   
-                    label = `Holiday - ${isHoliday}`;
-                } else if (attendance) {
-                    if (attendance.status.toLowerCase() === 'present') {
+
+
+                if (attendance) {
+                    if (attendance.status.toLowerCase() == 'present') {
                         status = 'P';
                         const checkInTime = new Date(`1970-01-01T${attendance.check_in_time}Z`);
                         const checkOutTime = attendance.check_out_time ? new Date(`1970-01-01T${attendance.check_out_time}Z`) : null;
@@ -1192,10 +1186,10 @@ router.get('/api/attendance', async (req, res) => {
                             status = 'NCO';
                             label = 'Not Checked Out';
                         }
-                    } else if (attendance.status.toLowerCase() === 'half-day') {
+                    } else if (attendance.status.toLowerCase() == 'half-day') {
                         status = 'HF';
                         label = 'Half Day';
-                    } else if (attendance.status.toLowerCase() === 'absent') {
+                    } else if (attendance.status.toLowerCase() == 'absent') {
                         status = 'A';
                         label = 'Absent (Applied)';
                     }
@@ -1204,6 +1198,13 @@ router.get('/api/attendance', async (req, res) => {
                     status = "L";
                     // label = 'Leave';
                     label = `Leave - ${leaveRecord.leave_type}`;
+                } else if (isWeeklyOff) {
+                    status = 'WO';
+                    label = 'Weekly Off';
+                } else if (isHoliday) {
+                    status = 'H';
+                    // label = `Holiday`;                   
+                    label = `Holiday - ${isHoliday}`;
                 }
 
                 else {
@@ -1358,7 +1359,7 @@ router.post('/api/BreakDetails', async (req, res) => {
 
 //         const employeesWithDetails = await Promise.all(
 //             attendanceResults.map(async (attendance, index) => {
-//                 const leave = leaveResults.find(l => l.employee_id === attendance.employee_id);
+//                 const leave = leaveResults.find(l => l.employee_id == attendance.employee_id);
 //                 const holiday = holidayResults.length > 0 ? holidayResults[0] : null;
 //                 let status = 'A'; // Default
 
@@ -1378,7 +1379,7 @@ router.post('/api/BreakDetails', async (req, res) => {
 //                     status = 'H';
 //                 } else if (leave) {
 //                     status = 'L';
-//                 } else if (status === 'A' && attendance.work_week_id) {
+//                 } else if (status == 'A' && attendance.work_week_id) {
 //                     try {
 //                         const workWeekResults = await new Promise((resolve, reject) => {
 //                             db.query(
@@ -1396,7 +1397,7 @@ router.post('/api/BreakDetails', async (req, res) => {
 //                     }
 //                 }
 //                 let BreckDetails = null;
-//                 if (attendance.attendance_id && status === 'P') {
+//                 if (attendance.attendance_id && status == 'P') {
 //                     BreckDetails = await new Promise((resolve, reject) => {
 //                         db.query('SELECT break_id,start_time, end_time, duration, in_ip, out_ip, in_latitude, in_longitude, out_latitude, out_longitude, created FROM break_logs WHERE attendance_id=?', [attendance.attendance_id], (err, results) => {
 //                             if (err) reject(err);
@@ -1428,12 +1429,12 @@ router.post('/api/BreakDetails', async (req, res) => {
 //         // Now filter based on "type"
 //         let filteredEmployees = employeesWithDetails;
 
-//         if (type === 'persent') {
-//             filteredEmployees = employeesWithDetails.filter(emp => emp.status === 'P' || emp.status === 'HF');
-//         } else if (type === 'apsent') {
-//             filteredEmployees = employeesWithDetails.filter(emp => emp.status === 'A');
-//         } else if (type === 'leave') {
-//             filteredEmployees = employeesWithDetails.filter(emp => emp.status === 'L');
+//         if (type == 'persent') {
+//             filteredEmployees = employeesWithDetails.filter(emp => emp.status == 'P' || emp.status == 'HF');
+//         } else if (type == 'apsent') {
+//             filteredEmployees = employeesWithDetails.filter(emp => emp.status == 'A');
+//         } else if (type == 'leave') {
+//             filteredEmployees = employeesWithDetails.filter(emp => emp.status == 'L');
 //         }
 
 //         // Respond
@@ -1536,7 +1537,7 @@ router.post('/api/AttendanceTypeDetails', async (req, res) => {
         // Process and combine data
         const employeesWithDetails = await Promise.all(
             attendanceResults.map(async (attendance) => {
-                const leave = leaveResults.find(l => l.employee_id === attendance.employee_id);
+                const leave = leaveResults.find(l => l.employee_id == attendance.employee_id);
                 const holiday = holidayResults.length > 0 ? holidayResults[0] : null;
                 let status = 'A'; // Default to 'Absent'
 
@@ -1557,7 +1558,7 @@ router.post('/api/AttendanceTypeDetails', async (req, res) => {
                     status = 'H'; // Holiday
                 } else if (leave) {
                     status = 'L'; // Leave
-                } else if (status === 'A' && attendance.work_week_id) {
+                } else if (status == 'A' && attendance.work_week_id) {
                     try {
                         const workWeekResults = await new Promise((resolve, reject) => {
                             db.query(
@@ -1575,7 +1576,7 @@ router.post('/api/AttendanceTypeDetails', async (req, res) => {
                     }
                 }
                 let BreckDetails = null;
-                if (status === 'P') {
+                if (status == 'P') {
                     BreckDetails = await new Promise((resolve, reject) => {
                         db.query('SELECT break_id,start_time, end_time, duration, in_ip, out_ip, in_latitude, in_longitude, out_latitude, out_longitude, created FROM break_logs WHERE attendance_id=?', [attendance.attendance_id], (err, results) => {
                             if (err) reject(err);

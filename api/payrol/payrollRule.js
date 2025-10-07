@@ -65,7 +65,7 @@ router.post('/api/fetchDetails', async (req, res) => {
 
 // done 
 router.get('/api/fetchType', async (req, res) => {
-    const { userData, type } = req.query;
+    const { userData, type, searchData } = req.query;
     let decodedUserData = null;
     // Decode userData
     if (userData) {
@@ -93,6 +93,14 @@ router.get('/api/fetchType', async (req, res) => {
     let queryParams = '';
     queryParams = [decodedUserData.company_id];
     query = `SELECT * FROM salary_structure WHERE company_id = ?`;
+    if (searchData) {
+        query += ' AND structure_name LIKE ?';
+        queryParams.push(`%${searchData}%`);
+    }
+    // oreder by structure_name asc 
+    query += ' ORDER BY structure_name ASC';
+
+
     db.query(query, queryParams, (err, results) => {
         // db.query(query, (err, results) => {
         if (err) {
@@ -335,7 +343,7 @@ function executeQuery(query, values) {
 // asine rules page API 
 
 router.get('/api/data', async (req, res) => {
-    const { userData, data } = req.query;
+    const { userData, data, departmentId = 0, subDepartmentid = 0, employeeStatus = 1 } = req.query;
     let Search = null;
     if (data) { Search = data['Search'] ? data['Search'] : null; }
     let decodedUserData = null;
@@ -370,13 +378,26 @@ router.get('/api/data', async (req, res) => {
         SELECT CONCAT(a.first_name, " ", a.last_name) AS first_name, a.id, a.employee_id, SS.structure_name, SS.structure_id 
         FROM employees AS a
         LEFT JOIN salary_structure AS SS ON a.structure_id = SS.structure_id
-        WHERE  a.employee_status=1 and a.status=1 and a.delete_status=0 and a.company_id = ?`;
+        WHERE a.company_id = ?`;
 
     const queryParams = [decodedUserData.company_id];
     // Add Search filter if provided
     if (Search) {
         query += ' AND a.first_name LIKE ?';
         queryParams.push(`%${Search}%`); // Wildcard search
+    }
+
+    if (departmentId && departmentId != 0) {
+        query += ` AND a.department = ?`;
+        queryParams.push(departmentId);
+    } else if (subDepartmentid && subDepartmentid != 0) {
+        query += ` AND a.sub_department = ?`;
+        queryParams.push(subDepartmentid);
+    }
+    if (employeeStatus && employeeStatus == 1) {
+        query += ` AND a.employee_status=1 and a.status=1 and a.delete_status=0 `;
+    } else {
+        query += ` AND (a.employee_status=0 or a.status=0 or a.delete_status=1) `;
     }
 
     // Add pagination
@@ -919,7 +940,7 @@ router.get('/api/PayDetails', async (req, res) => {
                 formatDate(adjustedStartDate), formatDate(adjustedEndDate),
                 formatDate(adjustedStartDate), formatDate(adjustedEndDate)]
             );
-            console.log('leaveResults', leaveResults);
+            // console.log('leaveResults', leaveResults);
 
             // leaveResults.forEach(leave => {
             //     const leaveStart = new Date(leave.start_date);
@@ -942,14 +963,14 @@ router.get('/api/PayDetails', async (req, res) => {
                 const adjStart = leaveStart < adjustedStartDate ? adjustedStartDate : leaveStart;
                 const adjEnd = leaveEnd > adjustedEndDate ? adjustedEndDate : leaveEnd;
 
-                console.log('adjEnd =', adjEnd, 'adjStart =', adjStart);
+                // console.log('adjEnd =', adjEnd, 'adjStart =', adjStart);
 
                 let totalLeaveDays = (adjEnd - adjStart) / (1000 * 60 * 60 * 24) + 1;
 
                 if (leave.start_half === 'Second Half') totalLeaveDays -= 0.5;
                 if (leave.end_half === 'First Half') totalLeaveDays -= 0.5;
 
-                console.log('totalLeaveDays', totalLeaveDays);
+                // console.log('totalLeaveDays', totalLeaveDays);
 
                 leaveCount += totalLeaveDays;
                 leaveRequestCount += totalLeaveDays;

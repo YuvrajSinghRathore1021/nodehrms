@@ -175,7 +175,7 @@ router.get('/api/fetchDetails', async (req, res) => {
         return res.status(400).json({ status: false, error: 'Employee ID is required' });
     }
     const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
-    console.log(isAdmin);
+    // console.log(isAdmin);
     let query;
     let queryParams = [];
 
@@ -372,7 +372,7 @@ router.post('/api/Deleteapi', (req, res) => {
             if (results.affectedRows === 0) {
                 return res.status(200).json({ status: false, message: 'Type not found or no changes made.' });
             }
-            console.log('Data deleted successfully');
+            // console.log('Data deleted successfully');
             return res.status(200).json({ status: true, message: 'Data deleted successfully' });
         }
     );

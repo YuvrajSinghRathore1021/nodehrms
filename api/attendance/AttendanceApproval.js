@@ -85,7 +85,7 @@ router.get('/api/AttendanceApproval', async (req, res) => {
                  FROM attendance WHERE employee_id = ? AND attendance_date BETWEEN ? AND ?`,
                 [employee.id, startDate, endDate]
             );
-            console.log(attendanceResults);
+            // console.log(attendanceResults);
             const [attendanceApprovalRequests] = await db.promise().query(
                 `SELECT id, request_date
                  FROM attendance_requests
@@ -155,7 +155,7 @@ const decodeUserData = (userData) => {
 };
 
 router.get('/api/companyEmployeeName', async (req, res) => {
-    const { userData } = req.query;
+    const { userData, searchData = '' } = req.query;
     let decodedUserData = null;
     if (userData) {
         try {
@@ -208,7 +208,7 @@ router.get('/api/companyEmployeeName', async (req, res) => {
     AND status = 1 
     AND delete_status = 0 
     AND company_id = ?
-    ORDER BY first_name ASC
+   
 `;
         dataArray.push(company_id);
 
@@ -228,13 +228,18 @@ router.get('/api/companyEmployeeName', async (req, res) => {
     AND delete_status = 0 
     AND company_id = ? 
     AND reporting_manager = ?
-    ORDER BY first_name ASC
+
+ 
 `;
         dataArray.push(company_id, decodedUserData.id);
 
     }
+    if (searchData) {
+        query += ` AND (first_name LIKE ? OR last_name LIKE ? Or employee_id LIKE ?)`;
+        dataArray.push(`%${searchData}%`, `%${searchData}%`, `%${searchData}%`);
+    }
 
-
+    query += ` ORDER BY first_name ASC`;
 
     db.query(query, dataArray, (err, results) => {
         if (err) {
@@ -259,7 +264,7 @@ router.get('/api/companyEmployeeName', async (req, res) => {
 });
 
 router.post('/api/companyEmployeeName', async (req, res) => {
-    const { userData } = req.body;
+    const { userData, searchData = '' } = req.body;
     let decodedUserData = null;
     if (userData) {
         try {
@@ -312,7 +317,7 @@ router.post('/api/companyEmployeeName', async (req, res) => {
     AND status = 1 
     AND delete_status = 0 
     AND company_id = ?
-    ORDER BY first_name ASC
+  
 `;
         dataArray.push(company_id);
 
@@ -332,11 +337,17 @@ router.post('/api/companyEmployeeName', async (req, res) => {
     AND delete_status = 0 
     AND company_id = ? 
     AND reporting_manager = ?
-    ORDER BY first_name ASC
+  
 `;
         dataArray.push(company_id, decodedUserData.id);
 
     }
+     if (searchData) {
+        query += ` AND (first_name LIKE ? OR last_name LIKE ? Or employee_id LIKE ?)`;
+        dataArray.push(`%${searchData}%`, `%${searchData}%`, `%${searchData}%`);
+    }
+
+    query += ` ORDER BY first_name ASC`;
     db.query(query, dataArray, (err, results) => {
         if (err) {
             return res.status(500).json({

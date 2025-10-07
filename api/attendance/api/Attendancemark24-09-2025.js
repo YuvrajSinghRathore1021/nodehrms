@@ -130,7 +130,7 @@ router.post('/Attendancemark', async (req, res) => {
                         'SELECT start_time, end_time FROM break_logs WHERE attendance_id = ? AND start_time IS NOT NULL AND end_time IS NOT NULL',
                         [attendanceId]
                     );
-                    console.log("Fetched break logs:", breakLogs);
+                    // console.log("Fetched break logs:", breakLogs);
 
                     // Check if any active break is still running
                     const activeBreak = await queryDb(

@@ -281,7 +281,7 @@ router.post('/api/UrlGet', async (req, res) => {
         let menuItems = [];
         let ValidUrl = [];
         if (adminCheck == true) {
-            ValidUrl = ['CompanyView', 'expenses','setting', 'Company_Profile', 'profile', 'attendanceadd', 'attendancelist', 'rule', 'assignrules', 'attendance_admin', 'attendance_calendar', 'attendance_approval', 'attendance_approval_log', 'employeesdirectory', 'logs', 'Holidayupdate', 'holidaycalender', 'attendance_setting', 'rules', 'assign_leave', 'balance', 'documents_view'];
+            ValidUrl = ['CompanyView', 'expenses','setting','hrattendance', 'Company_Profile', 'profile', 'attendanceadd', 'attendancelist', 'rule', 'assignrules', 'attendance_admin', 'attendance_calendar', 'attendance_approval', 'attendance_approval_log', 'employeesdirectory', 'logs', 'Holidayupdate', 'holidaycalender', 'attendance_setting', 'rules', 'assign_leave', 'balance', 'documents_view'];
             menuItems = [
                 {
                     title: 'Company Profile',
@@ -306,7 +306,8 @@ router.post('/api/UrlGet', async (req, res) => {
                         { to: '/rule', icon: 'fas fa-circle', label: 'Attendance Rule' },
                         { to: '/assignrules', icon: 'fas fa-circle', label: 'Assign Rules' },
                         // { to: '/attendance_admin', icon: 'fas fa-circle', label: 'Attendance Admin' },
-                        { to: '/attendance_calendar', icon: 'fas fa-circle', label: 'Attendance Calendar' }
+                        { to: '/attendance_calendar', icon: 'fas fa-circle', label: 'Attendance Calendar' },
+                        { to: '/hrattendance', icon: 'fas fa-circle', label: 'HR Attendance' }
                         // { to: '/attendance_approval', icon: 'fas fa-circle', label: 'Attendance Approval' },
                         // { to: '/attendance_approval_log', icon: 'fas fa-circle', label: 'Attendance Approval Log' }
                     ]

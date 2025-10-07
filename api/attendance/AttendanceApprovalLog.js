@@ -311,8 +311,8 @@ router.post('/api/ApprovalSubmit', async (req, res) => {
                     , employee_id, company_id, attendanceRequestType[0].attendance_id];
 
                 actionType = 'update';
-                console.log(insertQuery);
-                console.log(insertParams);
+                // console.log(insertQuery);
+                // console.log(insertParams);
             } else {
                 insertQuery = `
                 INSERT INTO attendance (request_id,daily_status_in, daily_status_intime, daily_status_out, daily_status_outtime, 

@@ -183,6 +183,7 @@
 // // face 
 // app.use('/Face', authenticateToken, FaceUplode);
 
+
 // // // Pdf Make for app
 // app.use('/PDFdow', Salaryslip);
 // // app.use('/PDFdow', authenticateToken, Salaryslip);

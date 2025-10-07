@@ -401,7 +401,7 @@ router.post("/update-leave-type", (req, res) => {
   const sql = `UPDATE employees SET leave_rule_id = ? WHERE id = ?`;
 
   const updatedLeaveRuleId = leaveTypes.join(",");
-  console.log(updatedLeaveRuleId);
+  // console.log(updatedLeaveRuleId);
   db.query(sql, [updatedLeaveRuleId, id], (err, results) => {
     if (err) {
       console.error("SQL Error:", err);
@@ -690,7 +690,7 @@ router.post("/rules", (req, res) => {
   const query = "INSERT INTO leave_rules (leave_type,company_id) VALUES (?,?)";
   db.query(query, [leave_type, decodedUserData.company_id], (err, results) => {
     if (err) {
-      console.log(err)
+      // console.log(err)
       return res.status(200).json({ status: false, error: "Database error" });
     }
     return res.status(200).json({

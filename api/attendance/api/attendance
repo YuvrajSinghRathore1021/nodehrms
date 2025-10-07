@@ -232,7 +232,7 @@ router.post('/Attendancemark', async (req, res) => {
         } else {
             // const clientIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.socket.remoteAddress;
             const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-            console.log('Client IP:', ip);
+            // console.log('Client IP:', ip);
             // console.log('Client IP:', clientIp);
         }
 

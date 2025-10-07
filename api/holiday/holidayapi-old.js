@@ -191,7 +191,7 @@ router.get("/HolidayCalender", (req, res) => {
     currentYear = data['currentYear'] ? data['currentYear'] : null;
   }
 
-  console.log(currentMonth);
+  // console.log(currentMonth);
   let decodedUserData = null;
   if (userData) {
     try {

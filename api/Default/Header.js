@@ -355,7 +355,7 @@ router.post('/api/Deleteapi', (req, res) => {
             if (results.affectedRows === 0) {
                 return res.status(200).json({ status: false, message: 'Type not found or no changes made.' });
             }
-            console.log('Data deleted successfully');
+            // console.log('Data deleted successfully');
             return res.status(200).json({ status: true, message: 'Profile Image deleted successfully' });
         }
     );

@@ -118,11 +118,11 @@ router.post('/delete', (req, res) => {
                 console.error('Database error:', err);
                 return res.status(500).json({ status: false, message: 'Error updating leave.', error: err.message });
             }
-            console.log('Update Results:', results);
+            // console.log('Update Results:', results);
             if (results.affectedRows === 0) {
                 return res.status(404).json({ status: false, message: 'Leave not found or no changes made.' });
             }
-            console.log('Data deleted successfully');
+            // console.log('Data deleted successfully');
             return res.status(200).json({ status: true, message: 'Data deleted successfully' });
         }
     );

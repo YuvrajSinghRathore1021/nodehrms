@@ -213,7 +213,7 @@ router.post('/api/onboarding/update', upload.single('file'), async (req, res) =>
     let failed = [];
 
     for (let row of sheetData) {
-        console.log(row.date_of_Joining, row.dob, row.last_day)
+        // console.log(row.date_of_Joining, row.dob, row.last_day)
         const empId = row.employee_id;
 
         if (!empId) {
@@ -241,12 +241,12 @@ router.post('/api/onboarding/update', upload.single('file'), async (req, res) =>
             failed.push({ ...row, error: 'No valid update fields present in row' });
             continue;
         }
-        console.log(keys)
+        // console.log(keys)
 
         const setClause = keys.map(k => `\`${k}\` = ?`).join(', ');
         const query = `UPDATE employees SET ${setClause} WHERE employee_id = ? AND company_id = ?`;
-        console.log(setClause)
-        console.log(values)
+        // console.log(setClause)
+        // console.log(values)
 
         try {
             const [result] = await db.promise().query(query, [...values, empId, decodedUserData.company_id]);
@@ -338,8 +338,8 @@ router.post('/api/onboarding/update-dates', upload.single('file'), async (req, r
 
 
 
-        console.log(query)
-        console.log(values)
+        // console.log(query)
+        // console.log(values)
         try {
             const [result] = await db.promise().query(query, [...values, empId, decodedUserData.company_id]);
             if (result.affectedRows > 0) {

@@ -59,7 +59,7 @@ router.post("/holiday", (req, res) => {
           message: "Work week data not found for the company.",
         });
       }
-      console.log(dayOfWeek);
+      // console.log(dayOfWeek);
       const weekNumber = Math.ceil(selectedDate.getDate() / 7);
       const dayKey = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][dayOfWeek];
       const columnKey = `${dayKey}${weekNumber}`;
