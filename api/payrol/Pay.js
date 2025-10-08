@@ -442,18 +442,43 @@ router.post('/api/GenerateSalary', async (req, res) => {
         if (componentResults.length === 0) {
             return res.status(200).json({ status: false, message: 'Salary components not found for the given structure' });
         }
-
+        let deductionAmount = 0;
         // Calculate salary breakdown
         const salaryBreakdown = componentResults.map(component => {
             let amount = 0;
-            if (component.component_type !== 'basic' && component.component_type !== 'basic_pay') {
+            let amountDeduction = 0;
+            // // proper handal for basic and basic_pay and working change for 
+            // if (component.component_type !== 'basic' && component.component_type !== 'basic_pay') {
+            //     if (component.calculation_method === 'percentage') {
+            //         amount = (proratedSalary * component.percentage) / 100;
+            //     } else if (component.calculation_method === 'fixed_amount') {
+            //         amount = component.fixed_amount;
+            //     }
+            //     BasicPayAmount -= amount;
+            // }
+
+            if (component.component_type == 'expand') {
+                if (component.component_name != 'basic' && component.component_name != 'basic_pay') {
+                    if (component.calculation_method === 'percentage') {
+                        amount = (proratedSalary * component.percentage) / 100;
+                    } else if (component.calculation_method === 'fixed_amount') {
+                        amount = component.fixed_amount;
+                    }
+                    BasicPayAmount -= amount;
+                }
+            }
+            else if (component.component_type == 'deduction') {
                 if (component.calculation_method === 'percentage') {
+                    amountDeduction = (proratedSalary * component.percentage) / 100;
                     amount = (proratedSalary * component.percentage) / 100;
                 } else if (component.calculation_method === 'fixed_amount') {
+                    amountDeduction = component.fixed_amount;
                     amount = component.fixed_amount;
                 }
+                deductionAmount += amountDeduction;
                 BasicPayAmount -= amount;
             }
+
             return {
                 component_name: component.component_name,
                 // amount: parseFloat(amount.toFixed(2))
@@ -461,6 +486,8 @@ router.post('/api/GenerateSalary', async (req, res) => {
 
             };
         });
+        // deductionAmount
+        let NewproratedSalary = proratedSalary - deductionAmount;
 
         return res.json({
             status: true,
@@ -469,7 +496,7 @@ router.post('/api/GenerateSalary', async (req, res) => {
                 salaryStructure,
                 components: salaryBreakdown,
                 ctc,
-                proratedSalary: proratedSalary.toFixed(2),
+                proratedSalary: NewproratedSalary.toFixed(2),
                 BasicPayAmount: BasicPayAmount.toFixed(2),
                 expenses: expenses
             }
