@@ -863,11 +863,11 @@ router.get('/api/PayDetails', async (req, res) => {
 
         if (departmentId && departmentId != 0) {
             queryCount += " AND department = ?";
-            queryParams.push(departmentId);
+            queryCountParams.push(departmentId);
         }
         if (subDepartmentid && subDepartmentid != 0) {
             queryCount += " AND sub_department = ?";
-            queryParams.push(subDepartmentid);
+            queryCountParams.push(subDepartmentid);
         }
         if (employeeStatus == 0) {
             // Fetch inactive/terminated employees
