@@ -456,7 +456,9 @@ router.post('/api/GenerateSalary', async (req, res) => {
             }
             return {
                 component_name: component.component_name,
-                amount: parseFloat(amount.toFixed(2))
+                // amount: parseFloat(amount.toFixed(2))
+                amount: parseFloat(parseFloat(amount).toFixed(2))
+
             };
         });
 
