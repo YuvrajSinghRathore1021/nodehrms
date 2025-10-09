@@ -125,8 +125,10 @@ const db = require('../../DB/ConnectionSql');
 const transporter = nodemailer.createTransport({
     service: "Gmail",
     auth: {
-        user: "yuvrajsinghrathore1021@gmail.com",
-        pass: "ledawabbxuseiuxa"
+        // user: "yuvrajsinghrathore1021@gmail.com",
+        // pass: "ledawabbxuseiuxa"
+        user: "indiadeals2004@gmail.com",
+        pass: "iwfxsrvhmnwjpxmk"
     }
 });
 

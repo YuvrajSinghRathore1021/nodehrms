@@ -26,7 +26,7 @@ router.post("/send-notification", async (req, res) => {
             },
             token: fcmToken,
             data: {
-                type: type || "default", // your custom type
+                type: type || "default", 
             },
             android: {
                 notification: {
