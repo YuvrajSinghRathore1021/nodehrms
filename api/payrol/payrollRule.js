@@ -1091,5 +1091,42 @@ router.post('/api/AddType', async (req, res) => {
 
 
 
+
+// Deleteapi    
+router.post('/api/deleteSalaryComponent', (req, res) => {
+    const { componentId, userData } = req.body;
+    let decodedUserData = null;
+
+    // Decode userData
+    if (userData) {
+        try {
+            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+            decodedUserData = JSON.parse(decodedString);
+        } catch (error) {
+            return res.status(400).json({ status: false, error: 'Invalid userData' });
+        }
+    }
+
+    const company_id = decodedUserData.company_id;
+
+    if (!componentId || !company_id) {
+        return res.status(400).json({ status: false, message: 'ID is required.' });
+    }
+
+    db.query(
+        'DELETE FROM salary_component WHERE component_id = ? AND company_id=?',
+        [componentId, company_id],
+        (err, results) => {
+            if (err) {
+                return res.status(500).json({ status: false, message: 'Error updating leave.', error: err.message });
+            }
+            if (results.affectedRows === 0) {
+                return res.status(200).json({ status: false, message: 'Type not found or no changes made.' });
+            }
+            return res.status(200).json({ status: true, message: 'Data deleted successfully' });
+        }
+    );
+});
+
 // Export the router
 module.exports = router;

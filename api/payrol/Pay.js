@@ -799,6 +799,10 @@ router.get('/api/PayEmployeeSalaryDetails', async (req, res) => {
         } else if (salaryStatus == 'Pending') {
             query += ` AND esd.status=0 `;
         }
+        else if (salaryStatus == 'Hold') {
+            query += ` AND esd.status=2 `;
+        }
+
 
 
         db.query(query, values, (err, results) => {
@@ -857,7 +861,7 @@ router.get('/api/PayEmployeeSalaryDetails', async (req, res) => {
 
 
 router.post("/api/Upadate", (req, res) => {
-    const { id, userData } = req.body;
+    const { id, userData, paymentStatus = 1 } = req.body;
     let decodedUserData = null;
 
     // Decode and validate userData
@@ -877,8 +881,8 @@ router.post("/api/Upadate", (req, res) => {
     }
 
     db.query(
-        "UPDATE employeesalarydetails SET status = 1 WHERE id = ? And company_id=?",
-        [id, decodedUserData.company_id],
+        "UPDATE employeesalarydetails SET status = ? WHERE id = ? And company_id=?",
+        [paymentStatus, id, decodedUserData.company_id],
         (err, results) => {
             if (err) {
                 console.error("Database error:", err);
@@ -894,7 +898,8 @@ router.post("/api/Upadate", (req, res) => {
                     message: "Value not found or no changes made."
                 });
             }
-            return res.status(200).json({ status: true, message: "Payment Done successfully" });
+            let massage = paymentStatus == 1 ? "Payment Done successfully" : paymentStatus == 2 ? "Payment Hold successfully" : "Payment status updated successfully";
+            return res.status(200).json({ status: true, message: massage });
         }
     );
 });

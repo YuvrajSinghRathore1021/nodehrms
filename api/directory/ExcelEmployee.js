@@ -557,5 +557,57 @@ router.post('/api/onboarding/updateCTC', upload.single('file'), async (req, res)
     res.json({ status: true, message: `${successCount} employees updated successfully` });
 });
 
+
+
+router.get('/api/salaryExcel', async (req, res) => {
+    try {
+        // Fetch salary details for company
+        const [data] = await db.promise().query(`
+            SELECT esd.month, esd.year, esd.employee_name, esd.present_days, esd.absentee_days, esd.ctc_yearly,
+                  sc.amount as monthly_salary, esd.total_monthly_salary, esd.status
+            FROM employeesalarydetails as esd
+            LEFT JOIN salarycomponents AS sc
+            ON esd.id = sc.salary_detail_id
+            WHERE esd.company_id = 10 AND esd.month = 9 AND esd.year = 2025 and sc.component_name ="NET SALARY"
+        `);
+
+        // If no data esd.found, create blank structure
+        let exportData = [];
+        if (data.length === 0) {
+            exportData = [
+                {
+                    month: "", year: "", employee_name: "", present_days: "", absentee_days: "",
+                    ctc_yearly: "", monthly_salary: "",
+                    total_monthly_salary: "", status: "", hold: "", addvance: "", deduction: ""
+                }
+            ];
+        } else {
+            exportData = data.map(row => ({
+                ...row,
+                hold: "",
+                addvance: "",
+                deduction: ""
+            }));
+        }
+
+        // Create Excel file
+        const ws = xlsx.utils.json_to_sheet(exportData);
+        const wb = xlsx.utils.book_new();
+        xlsx.utils.book_append_sheet(wb, ws, 'SalaryTemplate');
+
+        const filePath = path.join(__dirname, '../../uploads/salary.xlsx');
+        xlsx.writeFile(wb, filePath);
+
+        res.download(filePath, 'Employee_Salary.xlsx', (err) => {
+            if (err) console.error('Download error:', err);
+            // Optionally delete file after download
+            // fs.unlinkSync(filePath);
+        });
+
+    } catch (error) {
+        console.error('Error generating salary Excel:', error);
+        res.status(500).json({ status: false, error: 'Server error while generating Excel' });
+    }
+});
 // Export the router
 module.exports = router;

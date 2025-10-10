@@ -271,4 +271,7 @@ io.on("connection", async (socket) => {
 });
 
 
-server.listen(3001, () => console.log("Server running on port 3001"));
+// server.listen(3001, () => console.log("Server running on port 3001"));
+app.listen(3001, '0.0.0.0', () => {
+    console.log('✅ Server is running on http://0.0.0.0:3001');
+});
