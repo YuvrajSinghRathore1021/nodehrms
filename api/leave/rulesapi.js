@@ -6,77 +6,6 @@ const { AdminCheck } = require("../../model/functlity/AdminCheck");
 
 ////// Fetch Department Employee //////////
 
-// router.get("/fetch-department-employee", async (req, res) => {
-//   try {
-//     const { userData, search ,page=1,limit=10} = req.query;
-//     if (!userData) {
-//       return res.status(400).json({ status: false, message: "UserData is required." });
-//     }
-
-//     let decodedUserData;
-//     try {
-//       const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-//       decodedUserData = JSON.parse(decodedString);
-//     } catch (error) {
-//       return res.status(400).json({ status: false, message: "Invalid UserData format." });
-//     }
-
-//     const companyId = decodedUserData?.company_id;
-//     if (!companyId) {
-//       return res.status(400).json({ status: false, message: "Company ID is required." });
-//     }
-
-//     const employeeQuery = `
-//       SELECT 
-//         e.id,
-//         e.employee_id,
-//         e.leave_rule_id ,
-//         CONCAT(e.first_name, " ", e.last_name) AS employee_name,
-//         e.employee_type,
-//         COALESCE(d1.name, '') AS department,
-//         COALESCE(d2.name, '') AS sub_department,
-//         COALESCE(GROUP_CONCAT(lr.leave_type), 'Unknown') AS leave_type
-//       FROM 
-//         employees e
-//       LEFT JOIN 
-//         departments d1 ON e.department = d1.id
-//       LEFT JOIN 
-//         departments d2 ON e.sub_department = d2.id
-//       LEFT JOIN 
-//         leave_rules lr ON FIND_IN_SET(lr.id, e.leave_rule_id)
-//       WHERE
-//         e.employee_status = 1 AND 
-//         e.status = 1 AND 
-//         e.delete_status = 0 AND 
-//         e.company_id = ?
-//       GROUP BY 
-//         e.id
-//     `;
-
-//     const [employees] = await db.promise().query(employeeQuery, [companyId]);
-
-//     if (employees.length === 0) {
-//       return res
-//         .status(404)
-//         .json({ status: false, message: "No employee data found." });
-//     }
-
-//     return res.status(200).json({
-//       status: true,
-//       message: "Employee data fetched successfully.",
-//       data: employees,
-//       totalRecords: employees.length
-//     });
-//   } catch (err) {
-//     console.error("Error fetching data:", err.message);
-//     return res.status(500).json({
-//       status: false,
-//       message: "Error fetching department and employee data.",
-//       error: err.message
-//     });
-//   }
-// });
-
 
 router.get("/fetch-department-employee", async (req, res) => {
   try {
@@ -387,395 +316,6 @@ router.get("/Assign_Rules", (req, res) => {
   });
 });
 
-///////////////////////////////////////////
-/////////// Rules Fetch Api //////////////
-//////////////////////////////////////////
-
-// router.post("/update-leave-type", (req, res) => {
-//   const { id, leave_rule_id, userData } = req.body;
-//   let decodedUserData = "";
-//   if (userData) {
-//     try {
-//       const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-//       decodedUserData = JSON.parse(decodedString);
-//     } catch (error) {
-//       return res.status(200).json({ status: false, error: "Invalid userData" });
-//     }
-//   } else {
-//     return res.status(200).json({ status: false, error: "Invalid userData" });
-//   }
-//   if (!decodedUserData || !decodedUserData.company_id) {
-//     return res.status(200).json({ status: false, error: "ID is required" });
-//   }
-//   const company_id = decodedUserData.company_id;
-//   if (!id || !leave_rule_id || !company_id) {
-//     return res.status(200).json({
-//       status: false,
-//       message: "Employee ID, leave_rule_id, and company ID are required."
-//     });
-//   }
-
-//   let leaveTypes;
-
-//   try {
-//     leaveTypes =
-//       typeof leave_rule_id === "string"
-//         ? JSON.parse(leave_rule_id)
-//         : leave_rule_id;
-//   } catch (err) {
-//     console.error("Invalid format for leave_rule_id:", err);
-//     return res.status(200).json({
-//       status: false,
-//       message:
-//         "Invalid format for leave_rule_id. It must be a valid JSON array."
-//     });
-//   }
-
-//   if (!Array.isArray(leaveTypes) || leaveTypes.length === 0) {
-//     return res.status(200).json({
-//       status: false,
-//       message: "leave_rule_id must be a non-empty array."
-//     });
-//   }
-
-//   const sql = `UPDATE employees SET leave_rule_id = ? WHERE id = ?`;
-
-//   const updatedLeaveRuleId = leaveTypes.join(",");
-//   console.log(updatedLeaveRuleId);
-//   db.query(sql, [updatedLeaveRuleId, id], (err, results) => {
-//     if (err) {
-//       console.error("SQL Error:", err);
-//       return res.status(500).json({
-//         status: false,
-//         message: "Error updating leave record.",
-//         error: err.message
-//       });
-//     }
-
-//     if (results.affectedRows == 0) {
-//       return res.status(200).json({
-//         status: false,
-//         message:
-//           "No changes made. The data might be identical to the existing record."
-//       });
-//     }
-
-//     res.status(200).json({
-//       status: true,
-//       message: "Data updated successfully.",
-//       affectedRows: results.affectedRows
-//     });
-//   });
-// });
-
-// router.post("/update-leave-type", (req, res) => {
-//   const { id, leave_rule_id, userData } = req.body;
-//   let decodedUserData = "";
-
-//   if (userData) {
-//     try {
-//       const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-//       decodedUserData = JSON.parse(decodedString);
-//     } catch (error) {
-//       return res.status(200).json({ status: false, error: "Invalid userData" });
-//     }
-//   } else {
-//     return res.status(200).json({ status: false, error: "Invalid userData" });
-//   }
-
-//   if (!decodedUserData || !decodedUserData.company_id) {
-//     return res.status(200).json({ status: false, error: "ID is required" });
-//   }
-
-//   const company_id = decodedUserData.company_id;
-//   if (!id || !leave_rule_id || !company_id) {
-//     return res.status(200).json({
-//       status: false,
-//       message: "Employee ID, leave_rule_id, and company ID are required."
-//     });
-//   }
-
-//   let leaveTypes;
-//   try {
-//     leaveTypes =
-//       typeof leave_rule_id === "string"
-//         ? JSON.parse(leave_rule_id)
-//         : leave_rule_id;
-//   } catch (err) {
-//     console.error("Invalid format for leave_rule_id:", err);
-//     return res.status(200).json({
-//       status: false,
-//       message:
-//         "Invalid format for leave_rule_id. It must be a valid JSON array."
-//     });
-//   }
-
-//   if (!Array.isArray(leaveTypes) || leaveTypes.length === 0) {
-//     return res.status(200).json({
-//       status: false,
-//       message: "leave_rule_id must be a non-empty array."
-//     });
-//   }
-
-//   const updatedLeaveRuleId = leaveTypes.join(",");
-
-//   // Step 1: Update employee record
-//   const sql = `UPDATE employees SET leave_rule_id = ? WHERE id = ?`;
-//   db.query(sql, [updatedLeaveRuleId, id], (err, results) => {
-//     if (err) {
-//       console.error("SQL Error:", err);
-//       return res.status(500).json({
-//         status: false,
-//         message: "Error updating leave record.",
-//         error: err.message
-//       });
-//     }
-
-//     if (results.affectedRows == 0) {
-//       return res.status(200).json({
-//         status: false,
-//         message:
-//           "No changes made. The data might be identical to the existing record."
-//       });
-//     }
-
-//     // Step 2: Handle leave_balance for each assigned rule
-//     const currentYear = new Date().getFullYear();
-
-//     leaveTypes.forEach((ruleId) => {
-//       // Fetch leave rule details
-//       db.query(
-//         "SELECT * FROM leave_rules WHERE id = ? AND company_id = ?",
-//         [ruleId, company_id],
-//         (err, ruleResults) => {
-//           if (err || ruleResults.length === 0) return;
-//           const rule = ruleResults[0];
-
-//           // Check if leave_balance already exists
-//           db.query(
-//             "SELECT * FROM leave_balance WHERE employee_id = ? AND leave_rules_id = ? AND year = ?",
-//             [id, ruleId, currentYear],
-//             (err, balResults) => {
-//               if (err) return;
-
-//               if (balResults.length === 0) {
-//                 // Insert new leave balance
-//                 const insertQuery = `
-//                   INSERT INTO leave_balance 
-//                   (company_id, employee_id, leave_rules_id, year, total_leaves, used_leaves, remaining_leaves, assign_date, add_stamp, last_updated) 
-//                   VALUES (?, ?, ?, ?, ?, 0, ?, NOW(), NOW(), NOW())
-//                 `;
-//                 db.query(
-//                   insertQuery,
-//                   [
-//                     company_id,
-//                     id,
-//                     ruleId,
-//                     currentYear,
-//                     rule.leaves_allowed_year,
-//                     rule.leaves_allowed_year
-//                   ]
-//                 );
-//               } else {
-//                 // Update existing balance (respect carry_forward or reset logic)
-//                 const balance = balResults[0];
-//                 let newRemaining = balance.remaining_leaves;
-
-//                 if (!rule.carry_forward) {
-//                   newRemaining = rule.leaves_allowed_year - balance.used_leaves;
-//                   if (newRemaining < 0) newRemaining = 0;
-//                 }
-
-//                 const updateQuery = `
-//                   UPDATE leave_balance 
-//                   SET total_leaves = ?, remaining_leaves = ?, last_updated = NOW()
-//                   WHERE id = ?
-//                 `;
-//                 db.query(updateQuery, [
-//                   rule.leaves_allowed_year,
-//                   newRemaining,
-//                   balance.id
-//                 ]);
-//               }
-//             }
-//           );
-//         }
-//       );
-//     });
-
-//     res.status(200).json({
-//       status: true,
-//       message: "Leave rules assigned & leave balance updated successfully.",
-//       affectedRows: results.affectedRows
-//     });
-//   });
-// });
-
-
-// router.post("/update-leave-type", (req, res) => {
-//   const { id, leave_rule_id, userData, assign_date } = req.body;
-//   let decodedUserData = "";
-
-//   if (userData) {
-//     try {
-//       const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-//       decodedUserData = JSON.parse(decodedString);
-//     } catch (error) {
-//       return res.status(200).json({ status: false, error: "Invalid userData" });
-//     }
-//   } else {
-//     return res.status(200).json({ status: false, error: "Invalid userData" });
-//   }
-
-//   if (!decodedUserData || !decodedUserData.company_id) {
-//     return res.status(200).json({ status: false, error: "Company ID missing" });
-//   }
-
-//   const company_id = decodedUserData.company_id;
-//   if (!id || !leave_rule_id || !company_id) {
-//     return res.status(200).json({
-//       status: false,
-//       message: "Employee ID, leave_rule_id, and company ID are required."
-//     });
-//   }
-
-//   let leaveTypes;
-//   try {
-//     leaveTypes = typeof leave_rule_id === "string" ? JSON.parse(leave_rule_id) : leave_rule_id;
-//   } catch (err) {
-//     return res.status(200).json({
-//       status: false,
-//       message: "leave_rule_id must be valid JSON array"
-//     });
-//   }
-
-//   if (!Array.isArray(leaveTypes) || leaveTypes.length === 0) {
-//     return res.status(200).json({
-//       status: false,
-//       message: "leave_rule_id must be a non-empty array."
-//     });
-//   }
-
-//   const updatedLeaveRuleId = leaveTypes.join(",");
-
-//   // Step 1: Update employee record
-//   const sql = `UPDATE employees SET leave_rule_id = ? WHERE id = ?`;
-//   db.query(sql, [updatedLeaveRuleId, id], (err, results) => {
-//     if (err) {
-//       return res.status(500).json({
-//         status: false,
-//         message: "Error updating leave record.",
-//         error: err.message
-//       });
-//     }
-
-//     if (results.affectedRows == 0) {
-//       return res.status(200).json({
-//         status: false,
-//         message: "No changes made."
-//       });
-//     }
-
-//     const currentYear = new Date().getFullYear();
-
-//     // Fetch employee joining date
-//     db.query("SELECT date_of_Joining FROM employees WHERE id = ?", [id], (err, empResults) => {
-//       if (err || empResults.length === 0) return;
-
-//       const joiningDate = new Date(empResults[0].date_of_Joining);
-//       const effectiveAssignDate = assign_date ? new Date(assign_date) : joiningDate;
-//       const startOfYear = new Date(currentYear, 0, 1);
-//       const endOfYear = new Date(currentYear, 11, 31);
-
-//       // Use whichever is later: joining date or assign date
-//       const effectiveDate = effectiveAssignDate > joiningDate ? effectiveAssignDate : joiningDate;
-
-//       leaveTypes.forEach((ruleId) => {
-//         db.query(
-//           "SELECT * FROM leave_rules WHERE id = ? AND company_id = ?",
-//           [ruleId, company_id],
-//           (err, ruleResults) => {
-//             if (err || ruleResults.length === 0) return;
-//             const rule = ruleResults[0];
-
-//             db.query(
-//               "SELECT * FROM leave_balance WHERE employee_id = ? AND leave_rules_id = ? AND year = ?",
-//               [id, ruleId, currentYear],
-//               (err, balResults) => {
-//                 if (err) return;
-
-//                 // Calculate prorated leaves
-//                 const monthsRemaining = (endOfYear.getMonth() - effectiveDate.getMonth()) + 1;
-
-//                 const proratedLeaves = Math.round((rule.leaves_allowed_year / 12) * monthsRemaining);
-
-//                 if (balResults.length === 0) {
-//                   // Insert prorated leave balance
-//                   const insertQuery = `
-//                     INSERT INTO leave_balance 
-//                     (company_id, employee_id, leave_rules_id, year, total_leaves, used_leaves, remaining_leaves, assign_date, add_stamp, last_updated) 
-//                     VALUES (?, ?, ?, ?, ?, 0, ?, ?, NOW(), NOW())
-//                   `;
-//                   db.query(insertQuery, [
-//                     company_id,
-//                     id,
-//                     ruleId,
-//                     currentYear,
-//                     proratedLeaves,
-//                     proratedLeaves,
-//                     effectiveDate
-//                   ]);
-//                 } else {
-//                   // Update existing balance
-//                   const balance = balResults[0];
-//                   let newRemaining = balance.remaining_leaves;
-
-//                   if (!rule.carry_forward) {
-//                     newRemaining = proratedLeaves - balance.used_leaves;
-//                     if (newRemaining < 0) newRemaining = 0;
-//                   }
-
-//                   const updateQuery = `
-//                     UPDATE leave_balance 
-//                     SET total_leaves = ?, remaining_leaves = ?, assign_date=?, last_updated = NOW()
-//                     WHERE id = ?
-//                   `;
-//                   db.query(updateQuery, [
-//                     proratedLeaves,
-//                     newRemaining,
-//                     effectiveDate,
-//                     balance.id
-//                   ]);
-//                 }
-//               }
-//             );
-//           }
-//         );
-//       });
-//     });
-
-//     res.status(200).json({
-//       status: true,
-//       message: "Leave rules assigned & leave balance updated successfully.",
-//       affectedRows: results.affectedRows
-//     });
-//   });
-// });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 router.post("/update-leave-type", (req, res) => {
   const { id, leave_rule_id, userData, assign_date } = req.body;
   let decodedUserData = "";
@@ -988,339 +528,8 @@ router.get("/rulesfetch", (req, res) => {
   });
 });
 
-//////////////////////////////////////////
-//////////// Leave Balance //////////////
-////////////////////////////////////////
-
-router.get("/Balance", (req, res) => {
-  const { page = 1, limit = 10, userData, departmentId = 0, subDepartmentid = 0, employeeStatus = 1,search='' } = req.query;
-  const offset = (page - 1) * limit;
 
 
-  let decodedUserData = null;
-
-  if (userData) {
-    try {
-      const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-      decodedUserData = JSON.parse(decodedString);
-    } catch (error) {
-      return res.status(400).json({ status: false, error: "Invalid userData" });
-    }
-  }
-
-  if (!decodedUserData.company_id) {
-    return res
-      .status(400)
-      .json({ status: false, error: "Company ID is missing or invalid" });
-  }
-  let searchCondition = "";
-  let params = [decodedUserData.company_id];
-
-  if (search) {
-    searchCondition = ` AND (e.employee_id LIKE ? OR e.first_name LIKE ? OR e.last_name LIKE ? ) `;
-    params.push(`%${search}%`, `%${search}%`, `%${search}%`);
-  }
-
-  if (departmentId && departmentId != 0) {
-    searchCondition += ` AND e.department = ?`;
-    params.push(departmentId);
-  } else if (subDepartmentid && subDepartmentid != 0) {
-    searchCondition += ` AND e.sub_department = ?`;
-    params.push(subDepartmentid);
-  }
-  if (employeeStatus && employeeStatus == 1) {
-    searchCondition += ` AND e.employee_status=1 and e.status=1 and e.delete_status=0 `;
-  } else {
-    searchCondition += ` AND (e.employee_status=0 or e.status=0 or e.delete_status=1) `;
-  }
-
-  let query = `
-    SELECT e.id,
-      e.employee_id,
-     CONCAT(e.first_name, " ", e.last_name, "-",e.employee_id) AS first_name,
-      lr.leave_type,
-      -- Monthly balance leaves: Calculate balance per month
-      CASE
-          -- If no leaves are applied in the current month
-          WHEN COALESCE(SUM(CASE 
-                              WHEN l.leave_type = lr.leave_type 
-                              AND YEAR(l.start_date) = YEAR(CURDATE()) 
-                              AND MONTH(l.start_date) = MONTH(CURDATE()) 
-                              THEN DATEDIFF(l.end_date, l.start_date) + 1
-                              ELSE 0
-                            END), 0) = 0 
-          THEN lr.max_leaves_month  -- If no leaves applied, full max leaves for the month
-          ELSE 
-              -- If leaves are applied in the current month, subtract applied leave from max leaves per month
-              lr.max_leaves_month - 
-              COALESCE(SUM(CASE 
-                            WHEN l.leave_type = lr.leave_type 
-                            AND YEAR(l.start_date) = YEAR(CURDATE()) 
-                            AND MONTH(l.start_date) = MONTH(CURDATE()) 
-                            THEN DATEDIFF(l.end_date, l.start_date) + 1
-                            ELSE 0
-                          END), 0)
-      END AS monthly_balance_leave
-    FROM 
-        employees e
-    JOIN 
-        leave_rules lr ON FIND_IN_SET(lr.id, e.leave_rule_id) > 0  -- Join to fetch the leave rules assigned to the employee
-    LEFT JOIN 
-        leaves l ON e.id = l.employee_id  -- Left join to get the applied leave details
-    WHERE 
-      e.company_id=? ${searchCondition}
-    GROUP BY 
-        e.id, lr.id, lr.leave_type  -- Group by employee and leave type
-    ORDER BY 
-        e.first_name, lr.leave_type
-    LIMIT ${db.escape(parseInt(limit))} OFFSET ${db.escape(parseInt(offset))};
-  `;
-
-  // Query to count the total number of records (employees)
-  let countQuery = `
-    SELECT COUNT(DISTINCT e.id) AS total
-    FROM employees e
-    JOIN leave_rules lr ON FIND_IN_SET(lr.id, e.leave_rule_id) > 0
-    LEFT JOIN leaves l ON e.id = l.employee_id
-    WHERE e.company_id=? ${searchCondition} ;
-  `;
-
-  // Execute the queries
-  db.query(query, params, (err, results) => {
-    if (err) {
-      console.error("Database query failed:", err.message);
-      return res
-        .status(500)
-        .json({ status: false, error: "Database query failed" });
-    }
-
-    // Execute the count query to get the total number of employees
-    db.query(countQuery, params, (err, countResults) => {
-      if (err) {
-        console.error("Count query failed:", err.message);
-        return res
-          .status(500)
-          .json({ status: false, error: "Total count query failed" });
-      }
-
-      // Transform results into the desired format
-      const result = {};
-      results.forEach((item) => {
-        // Create a unique key based on id and employee_id
-        const key = `${item.id}-${item.employee_id}`;
-
-        // Check if this key already exists in the result object
-        if (!result[key]) {
-          result[key] = {
-            id: item.id,
-            employee_id: item.employee_id,
-            first_name: item.first_name
-          };
-        }
-
-        result[key][item.leave_type] = item.monthly_balance_leave;
-      });
-
-      // Convert the result object back to an array
-      const transformedData = Object.values(result);
-
-      // Send the response with the transformed data and total count
-      return res.status(200).json({
-        status: true,
-        data: transformedData,
-        total: countResults[0].total // Use the total from the count query
-      });
-    });
-  });
-});
-
-// router.get("/Balance", (req, res) => {
-//   const {userData, page = 1, limit = 10 } = req.query;
-//   const offset = (page - 1) * limit;
-
-//   if (!userData) {
-//     return res
-//       .status(400)
-//       .json({ status: false, message: "UserData is required." });
-//   }
-//   let decodedUserData;
-//   try {
-//     const decodedData = Buffer.from(userData, "base64").toString("utf-8");
-//     decodedUserData = JSON.parse(decodedData);
-//   } catch (error) {
-//     return res
-//       .status(400)
-//       .json({ status: false, message: "Invalid UserData format." });
-//   }
-//   const companyId = decodedUserData?.company_id;
-//   if (!companyId) {
-//     return res
-//       .status(400)
-//       .json({ status: false, message: "Company ID is required." });
-//   }
-//   const query = `
-//     SELECT
-//         e.id,
-//         e.employee_id,
-//         e.first_name,
-//         lr.leave_type,
-//         CASE
-//             WHEN COALESCE(SUM(CASE
-//                                 WHEN l.leave_type = lr.leave_type
-//                                 AND YEAR(l.start_date) = YEAR(CURDATE())
-//                                 AND MONTH(l.start_date) = MONTH(CURDATE())
-//                                 THEN DATEDIFF(l.end_date, l.start_date) + 1
-//                                 ELSE 0
-//                               END), 0) = 0
-//             THEN lr.max_leaves_month
-//             ELSE
-//                 lr.max_leaves_month -
-//                 COALESCE(SUM(CASE
-//                               WHEN l.leave_type = lr.leave_type
-//                               AND YEAR(l.start_date) = YEAR(CURDATE())
-//                               AND MONTH(l.start_date) = MONTH(CURDATE())
-//                               THEN DATEDIFF(l.end_date, l.start_date) + 1
-//                               ELSE 0
-//                             END), 0)
-//         END AS monthly_balance_leave
-//     FROM
-//         employees e
-//     JOIN
-//         leave_rules lr ON FIND_IN_SET(lr.id, e.leave_rule_id) > 0
-//     LEFT JOIN
-//         leaves l ON e.id = l.employee_id
-//     WHERE
-//         e.employee_status = 1
-//         AND e.status = 1
-//         AND e.delete_status = 0
-//         AND e.company_id = ${db.escape(companyId)} -- Filter by company ID
-//     GROUP BY
-//         e.id, lr.id, lr.leave_type
-//     ORDER BY
-//         e.first_name, lr.leave_type
-//     LIMIT ${db.escape(parseInt(limit))} OFFSET ${db.escape(parseInt(offset))};
-//   `;
-
-//   db.query(query, (err, results) => {
-//     if (err) {
-//       console.error("Database query failed:", err.message);
-//       return res
-//         .status(500)
-//         .json({ status: false, error: "Database query failed" });
-//     }
-//     const result = {};
-//     results.forEach((item) => {
-//       const key = item.employee_id;
-//       if (!result[key]) {
-//         result[key] = {
-//           id: item.id,
-//           employee_id: item.employee_id,
-//           first_name: item.first_name,
-//           leave_balances: [],
-//         };
-//       }
-//       result[key].leave_balances.push({
-//         leave_type: item.leave_type,
-//         monthly_balance_leave: item.monthly_balance_leave,
-//       });
-//     });
-
-//     const transformedData = Object.values(result);
-//     return res.status(200).json({
-//       status: true,
-//       data: transformedData,
-//       total: results.length, // Dynamic total for pagination
-//     });
-//   });
-// });
-
-// Balance route
-// router.get("/Balance", (req, res) => {
-//   const { userData, page = 1, limit = 10 } = req.query; // Default page=1 and limit=10
-
-//   let decodedUserData;
-//   if (userData) {
-//     try {
-//       const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-//       decodedUserData = JSON.parse(decodedString);
-//     } catch (error) {
-//       return res.status(400).json({ status: false, error: "Invalid userData" });
-//     }
-//   }
-//   // Calculate OFFSET for pagination
-//   const offset = (page - 1) * limit;
-//   // Main query with LIMIT and OFFSET
-//   const query = `
-//     SELECT
-//       e.employee_id,
-//       e.first_name,
-//       lr.leave_type,
-//       lr.leaves_allowed_year AS totalleave,
-//       lr.leaves_allowed_year - COALESCE(SUM(CASE
-//                   WHEN l.leave_type = lr.leave_type THEN DATEDIFF(l.end_date, l.start_date) + 1
-//                   ELSE 0
-//                 END), 0) AS balance_leave,
-//       COALESCE(SUM(CASE
-//                   WHEN l.leave_type = lr.leave_type THEN DATEDIFF(l.end_date, l.start_date) + 1
-//                   ELSE 0
-//                 END), 0) AS apply_leave
-//     FROM
-//       employees e
-//     JOIN
-//       leave_rules lr ON FIND_IN_SET(lr.id, e.leave_rule_id) > 0
-//     LEFT JOIN
-//       leaves l ON e.id = l.employee_id
-//     WHERE
-//       1 = 1
-//     GROUP BY
-//       e.id, lr.id, lr.leave_type
-//     ORDER BY
-//       e.first_name
-//     LIMIT ${db.escape(parseInt(limit))} OFFSET ${db.escape(parseInt(offset))};
-//   `;
-//   const countQuery = `
-//     SELECT COUNT(*) AS total
-//     FROM employees e
-//     JOIN leave_rules lr ON FIND_IN_SET(lr.id, e.leave_rule_id) > 0
-//     LEFT JOIN leaves l ON e.id = l.employee_id;
-//   `;
-//   // Execute the queries
-//   db.query(query, (err, results) => {
-//     if (err) {
-//       console.error("Database query failed:", err.message);
-//       return res
-//         .status(500)
-//         .json({ status: false, error: "Database query failed" });
-//     }
-//     db.query(countQuery, (countErr, countResults) => {
-//       if (countErr) {
-//         console.error("Count query failed:", countErr.message);
-//         return res
-//           .status(500)
-//           .json({ status: false, error: "Count query failed" });
-//       }
-//       const totalRecords = countResults[0]?.total || 0;
-//       // Add serial number (srnu) to each result
-//       const data = results.map((record, index) => ({
-//         srnu: offset + index + 1, // Serial number starts from 1
-//         ...record
-//       }));
-//       // Send the response
-//       return res.status(200).json({
-//         status: true,
-//         data, // Paginated data
-//         total: totalRecords, // Total number of records
-//         page: parseInt(page),
-//         limit: parseInt(limit),
-//         totalPages: Math.ceil(totalRecords / limit)
-//       });
-//     });
-//   });
-// });
-
-////////////////////////////////////////////
-///// GET LeavType For SelectBox //////////
-///////////////////////////////////////////
 
 router.get("/leavesTypes", (req, res) => {
   const { leave_type, userData } = req.query;
@@ -1486,5 +695,412 @@ router.post("/api/Deleteapi", (req, res) => {
     }
   );
 });
+
+
+
+
+//////////////////////////////////////////
+//////////// Leave Balance //////////////
+////////////////////////////////////////
+//// workig fine //
+
+// router.get("/Balance", (req, res) => {
+//   const { page = 1, limit = 10, userData, departmentId = 0, subDepartmentid = 0, employeeStatus = 1, search = '' } = req.query;
+//   const offset = (page - 1) * limit;
+
+
+//   let decodedUserData = null;
+
+//   if (userData) {
+//     try {
+//       const decodedString = Buffer.from(userData, "base64").toString("utf-8");
+//       decodedUserData = JSON.parse(decodedString);
+//     } catch (error) {
+//       return res.status(400).json({ status: false, error: "Invalid userData" });
+//     }
+//   }
+
+//   if (!decodedUserData.company_id) {
+//     return res
+//       .status(400)
+//       .json({ status: false, error: "Company ID is missing or invalid" });
+//   }
+//   let searchCondition = "";
+//   let params = [decodedUserData.company_id];
+
+//   if (search) {
+//     searchCondition = ` AND (e.employee_id LIKE ? OR e.first_name LIKE ? OR e.last_name LIKE ? ) `;
+//     params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+//   }
+
+//   if (departmentId && departmentId != 0) {
+//     searchCondition += ` AND e.department = ?`;
+//     params.push(departmentId);
+//   } else if (subDepartmentid && subDepartmentid != 0) {
+//     searchCondition += ` AND e.sub_department = ?`;
+//     params.push(subDepartmentid);
+//   }
+//   if (employeeStatus && employeeStatus == 1) {
+//     searchCondition += ` AND e.employee_status=1 and e.status=1 and e.delete_status=0 `;
+//   } else {
+//     searchCondition += ` AND (e.employee_status=0 or e.status=0 or e.delete_status=1) `;
+//   }
+
+//   let query = `
+//       SELECT e.id,
+//         e.employee_id,
+//       CONCAT(e.first_name, " ", e.last_name, "-",e.employee_id) AS first_name,
+//         lr.leave_type,
+//         -- Monthly balance leaves: Calculate balance per month
+//         CASE
+//             -- If no leaves are applied in the current month
+//             WHEN COALESCE(SUM(CASE 
+//                                 WHEN l.leave_type = lr.leave_type 
+//                                 AND YEAR(l.start_date) = YEAR(CURDATE()) 
+//                                 AND MONTH(l.start_date) = MONTH(CURDATE()) 
+//                                 THEN DATEDIFF(l.end_date, l.start_date) + 1
+//                                 ELSE 0
+//                               END), 0) = 0 
+//             THEN lr.max_leaves_month  -- If no leaves applied, full max leaves for the month
+//             ELSE 
+//                 -- If leaves are applied in the current month, subtract applied leave from max leaves per month
+//                 lr.max_leaves_month - 
+//                 COALESCE(SUM(CASE 
+//                               WHEN l.leave_type = lr.leave_type 
+//                               AND YEAR(l.start_date) = YEAR(CURDATE()) 
+//                               AND MONTH(l.start_date) = MONTH(CURDATE()) 
+//                               THEN DATEDIFF(l.end_date, l.start_date) + 1
+//                               ELSE 0
+//                             END), 0)
+//         END AS monthly_balance_leave
+//       FROM 
+//           employees e
+//       JOIN 
+//           leave_rules lr ON FIND_IN_SET(lr.id, e.leave_rule_id) > 0  -- Join to fetch the leave rules assigned to the employee
+//       LEFT JOIN 
+//           leaves l ON e.id = l.employee_id  -- Left join to get the applied leave details
+//       WHERE 
+//         e.company_id=? ${searchCondition}
+//       GROUP BY 
+//           e.id, lr.id, lr.leave_type  -- Group by employee and leave type
+//       ORDER BY 
+//           e.first_name, lr.leave_type
+//       LIMIT ${db.escape(parseInt(limit))} OFFSET ${db.escape(parseInt(offset))};
+//   `;
+
+//   // Query to count the total number of records (employees)
+//   let countQuery = `
+//     SELECT COUNT(DISTINCT e.id) AS total
+//     FROM employees e
+//     JOIN leave_rules lr ON FIND_IN_SET(lr.id, e.leave_rule_id) > 0
+//     LEFT JOIN leaves l ON e.id = l.employee_id
+//     WHERE e.company_id=? ${searchCondition} ;
+//   `;
+
+//   // Execute the queries
+//   db.query(query, params, (err, results) => {
+//     if (err) {
+//       console.error("Database query failed:", err.message);
+//       return res
+//         .status(500)
+//         .json({ status: false, error: "Database query failed" });
+//     }
+
+//     // Execute the count query to get the total number of employees
+//     db.query(countQuery, params, (err, countResults) => {
+//       if (err) {
+//         console.error("Count query failed:", err.message);
+//         return res
+//           .status(500)
+//           .json({ status: false, error: "Total count query failed" });
+//       }
+
+//       // Transform results into the desired format
+//       const result = {};
+//       results.forEach((item) => {
+//         // Create a unique key based on id and employee_id
+//         const key = `${item.id}-${item.employee_id}`;
+
+//         // Check if this key already exists in the result object
+//         if (!result[key]) {
+//           result[key] = {
+//             id: item.id,
+//             employee_id: item.employee_id,
+//             first_name: item.first_name
+//           };
+//         }
+
+//         result[key][item.leave_type] = item.monthly_balance_leave;
+//       });
+
+//       // Convert the result object back to an array
+//       const transformedData = Object.values(result);
+
+//       // Send the response with the transformed data and total count
+//       return res.status(200).json({
+//         status: true,
+//         data: transformedData,
+//         total: countResults[0].total // Use the total from the count query
+//       });
+//     });
+//   });
+// });
+
+
+// leaveBalanceUpdate
+// key =deductionValue :  "2"
+// employee_id : 10
+// leave_rule_id :  22
+// type :  "Increase"
+
+
+router.post("/leaveBalanceUpdate", (req, res) => {
+  const { employee_id, leave_rule_id, deductionValue, type, userData } = req.body;
+  let decodedUserData = null;
+
+  try {
+    if (userData) {
+      const decodedString = Buffer.from(userData, "base64").toString("utf-8");
+      decodedUserData = JSON.parse(decodedString);
+    }
+  } catch (error) {
+    return res.status(400).json({ status: false, error: "Invalid userData" });
+  }
+
+  if (!decodedUserData?.company_id) {
+    return res.status(400).json({ status: false, error: "Company ID is missing or invalid" });
+  }
+
+  if (!employee_id || !leave_rule_id || deductionValue === undefined || !type) {
+    return res.status(400).json({ status: false, message: "All fields are required." });
+  }
+
+  const currentYear = new Date().getFullYear();
+
+  const fetchQuery = `
+    SELECT id, old_balance 
+    FROM leave_balance
+    WHERE employee_id = ? AND leave_rules_id = ? AND year = ?
+  `;
+
+  db.query(fetchQuery, [employee_id, leave_rule_id, currentYear], (err, results) => {
+    if (err) {
+      console.error("Error fetching leave balance:", err);
+      return res.status(500).json({ status: false, message: "Database error while fetching leave balance." });
+    }
+
+    if (results.length === 0) {
+      return res.status(404).json({ status: false, message: "Leave balance record not found." });
+    }
+
+    const balanceRecord = results[0];
+    const currentBalance = parseFloat(balanceRecord.old_balance) || 0;
+    const value = parseFloat(deductionValue) || 0;
+    let newBalance = currentBalance;
+
+    if (type === "Increase") {
+      newBalance = currentBalance + value;
+    } else if (type === "Decrease") {
+      newBalance = currentBalance - value;
+    } else {
+      return res.status(400).json({ status: false, message: "Invalid type. Must be 'Increase' or 'Decrease'." });
+    }
+
+    // Round to 1 decimal place for DECIMAL(10,1)
+    newBalance = parseFloat(newBalance.toFixed(1));
+
+    const updateQuery = `
+      UPDATE leave_balance
+      SET old_balance = ?, last_updated = NOW()
+      WHERE id = ?
+    `;
+
+    db.query(updateQuery, [newBalance, balanceRecord.id], (err, updateResults) => {
+      if (err) {
+        console.error("Error updating leave balance:", err);
+        return res.status(500).json({ status: false, message: "Database error while updating leave balance." });
+      }
+
+      return res.status(200).json({
+        status: true,
+        message: "Leave balance updated successfully.",
+        newBalance,
+      });
+    });
+  });
+});
+
+
+
+
+
+// new balance
+router.get("/Balance", async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      userData,
+      departmentId = 0,
+      subDepartmentid = 0,
+      employeeStatus = 1,
+      search = ''
+    } = req.query;
+
+    const offset = (page - 1) * limit;
+
+    if (!userData) {
+      return res.status(400).json({ status: false, message: "userData is required" });
+    }
+
+    // --- Decode userData
+    let decodedUserData;
+    try {
+      decodedUserData = JSON.parse(Buffer.from(userData, "base64").toString("utf-8"));
+    } catch {
+      return res.status(400).json({ status: false, message: "Invalid userData" });
+    }
+
+    if (!decodedUserData.company_id) {
+      return res.status(400).json({ status: false, message: "Invalid company_id" });
+    }
+
+    let whereCond = ` WHERE e.company_id=? `;
+    const params = [decodedUserData.company_id];
+
+    if (search) {
+      whereCond += ` AND (e.employee_id LIKE ? OR e.first_name LIKE ? OR e.last_name LIKE ?) `;
+      params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+    }
+
+    if (departmentId && departmentId != 0) {
+      whereCond += ` AND e.department=? `;
+      params.push(departmentId);
+    } else if (subDepartmentid && subDepartmentid != 0) {
+      whereCond += ` AND e.sub_department=? `;
+      params.push(subDepartmentid);
+    }
+
+    if (employeeStatus && employeeStatus == 1) {
+      whereCond += ` AND e.employee_status=1 AND e.status=1 AND e.delete_status=0 `;
+    } else {
+      whereCond += ` AND (e.employee_status=0 OR e.status=0 OR e.delete_status=1) `;
+    }
+
+    // --- Get paginated employee list
+    const [employees] = await db.promise().query(`
+      SELECT e.id, e.employee_id, CONCAT(e.first_name, ' ', e.last_name, '-', e.employee_id) AS employee_name
+      FROM employees e
+      ${whereCond}
+      ORDER BY e.first_name ASC
+      LIMIT ${parseInt(limit)} OFFSET ${parseInt(offset)};
+    `, params);
+
+    // --- Get total employees count
+    const [countRows] = await db.promise().query(`
+      SELECT COUNT(DISTINCT e.id) AS total
+      FROM employees e
+      ${whereCond};
+    `, params);
+
+    // --- Prepare final data
+    const finalResult = [];
+
+    for (const emp of employees) {
+      // --- Get leave balance data per rule (like FetchLeaveCount logic)
+      const [rules] = await db.promise().query(`
+        SELECT lr.id AS leave_rule_id, lr.leave_type, lr.leaves_allowed_year, lr.accrual_frequency, 
+               lr.eligible_after_days, lr.apply_leaves_next_year, 
+               lb.used_leaves, lb.old_balance, lb.assign_date
+        FROM leave_rules lr
+        INNER JOIN leave_balance lb ON lr.id = lb.leave_rules_id 
+        WHERE lb.employee_id=? AND lb.company_id=? AND lb.year=YEAR(CURDATE())
+      `, [emp.id, decodedUserData.company_id]);
+
+      const [pendingLeaves] = await db.promise().query(`
+        SELECT leave_rule_id, start_date, end_date, start_half, end_half
+        FROM leaves
+        WHERE employee_id=? AND company_id=? AND admin_status=0 AND deletestatus=0
+      `, [emp.id, decodedUserData.company_id]);
+
+      // Group pending leave days
+      const pendingByRule = {};
+      for (const lv of pendingLeaves) {
+        const days = calculateLeaveDays(lv.start_date, lv.end_date, lv.start_half, lv.end_half);
+        pendingByRule[lv.leave_rule_id] = (pendingByRule[lv.leave_rule_id] || 0) + days;
+      }
+
+      const empData = {
+        id: emp.id,
+        employee_id: emp.employee_id,
+        first_name: emp.employee_name
+      };
+
+      for (const rule of rules) {
+        const today = new Date();
+        const joiningDate = new Date(rule.assign_date || today);
+        const eligibleDate = new Date(joiningDate);
+        eligibleDate.setDate(eligibleDate.getDate() + (rule.eligible_after_days || 0));
+
+        if (today < eligibleDate) {
+          empData[rule.leave_type] = { total: 0, used: 0, old_balance: 0, balance: 0 };
+          continue;
+        }
+
+        let periodsPerYear = 1;
+        switch (rule.accrual_frequency) {
+          case "monthly": periodsPerYear = 12; break;
+          case "quarterly": periodsPerYear = 4; break;
+          case "half-yearly": periodsPerYear = 2; break;
+          default: periodsPerYear = 1;
+        }
+
+        const leavesPerPeriod = rule.leaves_allowed_year / periodsPerYear;
+        const assignDate = new Date(rule.assign_date || joiningDate);
+        const monthsDiff = (today.getFullYear() - assignDate.getFullYear()) * 12 + (today.getMonth() - assignDate.getMonth());
+        let creditedPeriods = 0;
+        if (rule.accrual_frequency === "monthly") creditedPeriods = monthsDiff + 1;
+        else if (rule.accrual_frequency === "quarterly") creditedPeriods = Math.floor(monthsDiff / 3) + 1;
+        else if (rule.accrual_frequency === "half-yearly") creditedPeriods = Math.floor(monthsDiff / 6) + 1;
+        else creditedPeriods = today >= assignDate ? 1 : 0;
+        if (creditedPeriods > periodsPerYear) creditedPeriods = periodsPerYear;
+
+        const totalCredited = leavesPerPeriod * creditedPeriods;
+        const used = parseFloat(rule.used_leaves || 0);
+        const oldBalance = parseFloat(rule.old_balance || 0);
+        const pending = parseFloat(pendingByRule[rule.leave_rule_id] || 0);
+        const balance = (totalCredited + oldBalance - used - pending).toFixed(1);
+
+        empData[rule.leave_type] = {
+          total: parseFloat(totalCredited.toFixed(1)),
+          used,
+          old_balance: oldBalance,
+          balance: parseFloat(balance)
+        };
+      }
+
+      finalResult.push(empData);
+    }
+
+    return res.status(200).json({
+      status: true,
+      total: countRows[0].total,
+      data: finalResult
+    });
+
+  } catch (error) {
+    console.error("Error in /Balance:", error);
+    return res.status(500).json({ status: false, error: error.message });
+  }
+});
+
+function calculateLeaveDays(startDate, endDate, startHalf, endHalf) {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  let totalDays = (end - start) / (1000 * 60 * 60 * 24) + 1;
+  if (startHalf === "Second Half") totalDays -= 0.5;
+  if (endHalf === "First Half") totalDays -= 0.5;
+  return totalDays;
+}
 
 module.exports = router;
