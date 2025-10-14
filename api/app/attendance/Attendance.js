@@ -807,7 +807,7 @@ router.post('/api/Attendancedirectory', async (req, res) => {
         if (departmentId && departmentId != 0) {
             employeeFilter += ` AND b.department = ?`;
             filterParams.push(departmentId);
-        } else if (subDepartmentid && subDepartmentid != 0) {
+        }  if (subDepartmentid && subDepartmentid != 0) {
             employeeFilter += ` AND b.sub_department = ?`;
             filterParams.push(subDepartmentid);
         }

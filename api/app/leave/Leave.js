@@ -408,7 +408,8 @@ router.post("/api/Review", async (req, res) => {
         if (departmentId && departmentId != 0) {
             query += ` AND Emp.department = ?`;
             queryParams.push(departmentId);
-        } else if (subDepartmentid && subDepartmentid != 0) {
+        } 
+        if (subDepartmentid && subDepartmentid != 0) {
             query += ` AND Emp.sub_department = ?`;
             queryParams.push(subDepartmentid);
         }
@@ -661,7 +662,7 @@ router.post("/api/Approved", async (req, res) => {
         if (departmentId && departmentId != 0) {
             query += ` AND Emp.department = ?`;
             queryParams.push(departmentId);
-        } else if (subDepartmentid && subDepartmentid != 0) {
+        }  if (subDepartmentid && subDepartmentid != 0) {
             query += ` AND Emp.sub_department = ?`;
             queryParams.push(subDepartmentid);
         }
@@ -901,7 +902,7 @@ router.post("/api/Rejected", async (req, res) => {
         if (departmentId && departmentId != 0) {
             query += ` AND Emp.department = ?`;
             queryParams.push(departmentId);
-        } else if (subDepartmentid && subDepartmentid != 0) {
+        }  if (subDepartmentid && subDepartmentid != 0) {
             query += ` AND Emp.sub_department = ?`;
             queryParams.push(subDepartmentid);
         }

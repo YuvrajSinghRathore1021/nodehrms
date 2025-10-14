@@ -2,14 +2,7 @@ const db = require('./DB/ConnectionSql');
 
 module.exports = {
     sendNotification: function ({
-        company_id,
-        sender_id,
-        receiver_id,
-        page_url,
-        img_url,
-        title,
-        message,
-        notification_type
+        company_id, sender_id, receiver_id, page_url, img_url, title, message, notification_type
     }) {
         return new Promise((resolve, reject) => {
             // Validate required fields
@@ -17,20 +10,9 @@ module.exports = {
                 return reject(new Error('Missing required notification fields'));
             }
 
-            db.query(
-                `INSERT INTO notifications 
-         (company_id, sender_id, receiver_id, page_url, img_url, title, message, is_read, notification_type) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)`,
-                [
-                    company_id || null,
-                    sender_id || null,
-                    receiver_id,
-                    page_url || null,
-                    img_url || null,
-                    title,
-                    message,
-                    notification_type || 'general'
-                ],
+            db.query(`INSERT INTO notifications(company_id, sender_id, receiver_id, page_url, img_url, 
+                title, message, is_read, notification_type) VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)`,
+                [company_id || null, sender_id || null, receiver_id, page_url || null, img_url || null, title, message, notification_type || 'general'],
                 (err, result) => {
                     if (err) return reject(err);
                     resolve(result.insertId);

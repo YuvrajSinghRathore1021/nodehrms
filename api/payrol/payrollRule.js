@@ -390,7 +390,7 @@ router.get('/api/data', async (req, res) => {
     if (departmentId && departmentId != 0) {
         query += ` AND a.department = ?`;
         queryParams.push(departmentId);
-    } else if (subDepartmentid && subDepartmentid != 0) {
+    }  if (subDepartmentid && subDepartmentid != 0) {
         query += ` AND a.sub_department = ?`;
         queryParams.push(subDepartmentid);
     }

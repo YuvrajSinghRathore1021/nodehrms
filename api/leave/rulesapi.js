@@ -45,7 +45,7 @@ router.get("/fetch-department-employee", async (req, res) => {
     if (departmentId && departmentId != 0) {
       searchCondition += ` AND e.department = ?`;
       params.push(departmentId);
-    } else if (subDepartmentid && subDepartmentid != 0) {
+    }  if (subDepartmentid && subDepartmentid != 0) {
       searchCondition += ` AND e.sub_department = ?`;
       params.push(subDepartmentid);
     }
@@ -736,7 +736,7 @@ router.post("/api/Deleteapi", (req, res) => {
 //   if (departmentId && departmentId != 0) {
 //     searchCondition += ` AND e.department = ?`;
 //     params.push(departmentId);
-//   } else if (subDepartmentid && subDepartmentid != 0) {
+//   }  if (subDepartmentid && subDepartmentid != 0) {
 //     searchCondition += ` AND e.sub_department = ?`;
 //     params.push(subDepartmentid);
 //   }
@@ -976,7 +976,7 @@ router.get("/Balance", async (req, res) => {
     if (departmentId && departmentId != 0) {
       whereCond += ` AND e.department=? `;
       params.push(departmentId);
-    } else if (subDepartmentid && subDepartmentid != 0) {
+    }  if (subDepartmentid && subDepartmentid != 0) {
       whereCond += ` AND e.sub_department=? `;
       params.push(subDepartmentid);
     }

@@ -6,11 +6,17 @@
 // const jwt = require('jsonwebtoken');
 // const path = require('path');
 // const app = express();
-// const server = http.createServer(app);
+
 // const { Server } = require('socket.io');
+// const server = http.createServer(app);
 // const db = require('./DB/ConnectionSql');
+
+
+
+
 // // Import cron jobs
 // require("./autorun/cron");
+
 // const io = new Server(server, {
 //     cors: {
 //         origin: "*",
@@ -108,6 +114,8 @@
 // };
 
 
+
+
 // const url = require("url");
 // app.use((req, res, next) => {
 //     const start = Date.now();
@@ -140,7 +148,8 @@
 
 //     next();
 // });
-
+// const notificationRoutes = require("./api/firebase/firebasenotification");
+// app.use("/api/notification", notificationRoutes);
 
 // // Apply authentication middleware to all routes except /userapi
 // app.use('/api1', authenticateToken, api1);
@@ -178,7 +187,8 @@
 // app.use('/WorkWeekApp', authenticateToken, WorkWeek);
 // app.use('/PayDetailsApp', authenticateToken, PayDetails);
 // app.use('/Employeesdetails', authenticateToken, Employeesdetails);
-// app.use('/Excel', authenticateToken, ExcelEmployee);
+// // app.use('/Excel', authenticateToken, ExcelEmployee);
+// app.use('/Excel', ExcelEmployee);
 
 // // face 
 // app.use('/Face', authenticateToken, FaceUplode);
@@ -211,21 +221,34 @@
 // app.use('/Salary', authenticateToken, Salary);
 // app.use('/Expenses', authenticateToken, Expenses);
 // app.use('/hrAttendance', authenticateToken, HrAttendance);
+
+// // io.on("connection", (socket) => {  
+// //     socket.on("join", (userId) => {
+// //         console.log("User joined room:", userId);
+// //         socket.join(userId?.toString());
+// //     });
+// //     socket.on("disconnect", () => {
+// //     });
+// // });
+
 // io.on("connection", (socket) => {
-//     console.log("User connected:", socket.id);
-//     socket.on("join", (userId) => {
-//         console.log("User joined room:", userId);
-//         socket.join(userId.toString());
+//     socket.on("join", ({ userId, company_id }) => {
+//         socket.join(userId?.toString());
+//         socket.join(company_id?.toString());
+//         console.log(`User ${userId} joined personal & company ${company_id} rooms`);
 //     });
 //     socket.on("disconnect", () => {
-//         console.log("User disconnected:", socket.id);
 //     });
 // });
 
 // const PORT = process.env.PORT || 2100;
 
-// app.listen(2200, '0.0.0.0', () => {
-//     console.log('✅ Server is running on http://0.0.0.0:2200');
+// // app.listen(2200, '0.0.0.0', () => {
+// //     console.log('✅ Server is running on http://0.0.0.0:2200');
+// // });
+
+// server.listen(2200, '0.0.0.0', () => {
+//     console.log('✅ Server is running on http://localhost:2200');
 // });
 
 
@@ -421,14 +444,24 @@ app.use('/EmployeeLocation', authenticateToken, EmployeeLocationTracking);
 app.use('/Salary', authenticateToken, Salary);
 app.use('/Expenses', authenticateToken, Expenses);
 app.use('/hrAttendance', authenticateToken, HrAttendance);
+// io.on("connection", (socket) => {
+//     //// console.log("User connected:", socket.id);
+//     socket.on("join", (userId) => {
+//         //// console.log("User joined room:", userId);
+//         socket.join(userId.toString());
+//     });
+//     socket.on("disconnect", () => {
+//         //// console.log("User disconnected:", socket.id);
+//     });
+// });
+
 io.on("connection", (socket) => {
-    // console.log("User connected:", socket.id);
-    socket.on("join", (userId) => {
-        // console.log("User joined room:", userId);
-        socket.join(userId.toString());
+    socket.on("join", ({ userId, company_id }) => {
+        socket.join(userId?.toString());
+        socket.join(company_id?.toString());
+        console.log(`User ${userId} joined personal & company ${company_id} rooms`);
     });
     socket.on("disconnect", () => {
-        // console.log("User disconnected:", socket.id);
     });
 });
 

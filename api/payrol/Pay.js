@@ -783,7 +783,7 @@ router.get('/api/PayEmployeeSalaryDetails', async (req, res) => {
         if (departmentId && departmentId != 0) {
             query += ` AND e.department = ?`;
             values.push(departmentId);
-        } else if (subDepartmentid && subDepartmentid != 0) {
+        }  if (subDepartmentid && subDepartmentid != 0) {
             query += ` AND e.sub_department = ?`;
             values.push(subDepartmentid);
         }

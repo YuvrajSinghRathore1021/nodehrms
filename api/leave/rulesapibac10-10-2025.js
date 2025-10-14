@@ -116,7 +116,7 @@ router.get("/fetch-department-employee", async (req, res) => {
     if (departmentId && departmentId != 0) {
       searchCondition += ` AND e.department = ?`;
       params.push(departmentId);
-    } else if (subDepartmentid && subDepartmentid != 0) {
+    }  if (subDepartmentid && subDepartmentid != 0) {
       searchCondition += ` AND e.sub_department = ?`;
       params.push(subDepartmentid);
     }
@@ -1025,7 +1025,7 @@ router.get("/rulesfetch", (req, res) => {
 //     if (departmentId && departmentId != 0) {
 //       searchCondition += ` AND e.department = ?`;
 //       params.push(departmentId);
-//     } else if (subDepartmentid && subDepartmentid != 0) {
+//     }  if (subDepartmentid && subDepartmentid != 0) {
 //       searchCondition += ` AND e.sub_department = ?`;
 //       params.push(subDepartmentid);
 //     }

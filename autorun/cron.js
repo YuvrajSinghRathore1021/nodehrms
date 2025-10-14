@@ -16,3 +16,7 @@ cron.schedule("54 16 * * *", async () => {
         console.error("Error in auto deduction:", err.message);
     }
 });
+
+// cron.schedule("10 10 * * *", async () => {
+//   await axios.post("http://localhost:5000/api/check-miss-punch-in");
+// });

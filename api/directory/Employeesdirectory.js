@@ -361,7 +361,7 @@ router.post('/api/Employeesdirectory', async (req, res) => {
     if (departmentId && departmentId != 0) {
         searchClause += ` AND a.department = ?`;
         queryParams.push(departmentId);
-    } else if (subDepartmentid && subDepartmentid != 0) {
+    }  if (subDepartmentid && subDepartmentid != 0) {
         searchClause += ` AND a.sub_department = ?`;
         queryParams.push(subDepartmentid);
     }
@@ -441,7 +441,7 @@ router.post('/api/Employeesdirectory', async (req, res) => {
         } 
         if (departmentId && departmentId != 0) {
             countParams.push(departmentId);
-        } else if (subDepartmentid && subDepartmentid != 0) {
+        }  if (subDepartmentid && subDepartmentid != 0) {
             countParams.push(subDepartmentid);
         }
         

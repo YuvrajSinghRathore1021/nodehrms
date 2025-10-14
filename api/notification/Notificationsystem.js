@@ -2,96 +2,20 @@ const express = require('express');
 require('dotenv').config();
 const router = express.Router();
 const mysql = require('mysql2');
+const { ConsoleMessage } = require('puppeteer');
+const db = require('../../DB/ConnectionSql');
 
-// DB Connection
-const db = mysql.createConnection({
+// // DB Connection
+// const db = mysql.createConnection({
+//   // new  rds connection    // 
+//   host: 'database-1.c564ew8oajmx.ap-south-1.rds.amazonaws.com',
+//   user: 'hrmsadmin',
+//   password: 'HrmsAdmin123Latest',
+//   database: 'hrms',
+//   port: 3306
 
-  // host: process.env.host || 'localhost',
-  // user: process.env.user || 'hrmsadmin',
-  // password: process.env.password || 'Hrms@Admin123!',
-  // database: process.env.database || 'hrmsnew'
-
-  // host: process.env.host || 'localhost',
-  // user: process.env.user || 'hrmsadminnew',
-  // password: process.env.password || '!Hrms@Admin!123@Latest!',
-  // database: process.env.database || 'hrmsnewlatest',
-  // port: 3306
-
-
-  // host: 'localhost',
-  // user: 'root',
-  // password: '',
-  // database: 'hrmslatest',
-
-
-  // ////// on aws live
-  // host: process.env.host || 'localhost',
-  // user: process.env.user || 'hrmsadminnew',
-  // password: process.env.password || '!Hrms@Admin!123@Latest!',
-  // database: process.env.database || 'hrmsnewlatest',
-  // port: 3306
-
-
-  // host: '13.204.128.230',
-  // user: 'hrmsadminnew',
-  // password: '!Hrms@Admin!123@Latest!',
-  // database: 'hrmsnewlatest',
-  // port: 3306
-
-
-
-  // new  rds connection    // 
-  host: 'database-1.c564ew8oajmx.ap-south-1.rds.amazonaws.com',
-  user: 'hrmsadmin',
-  password: 'HrmsAdmin123Latest',
-  database: 'hrms',
-  port: 3306
-
-});
-
-// Send Notification
-// router.post('/send', (req, res) => {
-//   const { userData, receiver_id, page_url, img_url, title, message, notification_type } = req.body;
-//   let decodedUserData = null;
-//   if (userData) {
-
-//     try {
-//       const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-//       decodedUserData = JSON.parse(decodedString);
-//     } catch (error) {
-//       return res.status(400).json({ status: false, error: "Invalid userData" });
-//     }
-//   } else {
-//     return res.status(400).json({ status: false, error: "Missing userData" });
-//   }
-
-//   if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
-//     return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
-//   }
-//   const sql = `INSERT INTO notifications 
-//     (company_id, sender_id, receiver_id, page_url, img_url, title, message, notification_type)
-//     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
-
-//   db.query(sql, [decodedUserData.company_id, decodedUserData.id, receiver_id, page_url, img_url, title, message, notification_type], (err, result) => {
-//     if (err) return res.status(500).send(err);
-//     const notification = {
-//       id: result.insertId,
-//       company_id: decodedUserData.company_id,
-//       sender_id: decodedUserData.id,
-//       receiver_id,
-//       page_url,
-//       img_url,
-//       title,
-//       message,
-//       is_read: false,
-//       created_at: new Date(),
-//       notification_type
-//     };
-//     // Emit real-time notification using Socket.IO
-//     req.io.to(receiver_id.toString()).emit("receive-notification", notification);
-//     res.status(200).send({ success: true, notification });
-//   });
 // });
+
 
 
 router.post('/send', (req, res) => {
@@ -201,6 +125,8 @@ router.post('/read', (req, res) => {
 
 router.post('/SendLocation', (req, res) => {
   const { userData, latitude, longitude } = req.body;
+
+  let decodedUserData = null;
   if (userData) {
     try {
       const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
@@ -213,6 +139,7 @@ router.post('/SendLocation', (req, res) => {
   if (!decodedUserData || !decodedUserData.company_id || !decodedUserData.id) {
     return res.status(400).json({ status: false, error: 'company_id and id required' });
   }
+
 
   let employee_id = decodedUserData.id;
   let company_id = decodedUserData.company_id;
@@ -239,7 +166,8 @@ router.post('/SendLocation', (req, res) => {
         db.query(sqlUpdate, [latitude, longitude, timestamp, employee_id], (err) => {
           if (err) return res.status(500).json({ status: false, error: 'Update failed', err });
 
-          req.io.to(company_id.toString()).emit('receive-Loaction', locationData);
+          req.io.to(company_id.toString()).emit('receive-Location', locationData);
+
           res.json({ status: true, message: 'Location updated', data: locationData });
         });
       } else {
@@ -248,7 +176,7 @@ router.post('/SendLocation', (req, res) => {
         db.query(sqlInsert, [employee_id, company_id, latitude, longitude, timestamp], (err) => {
           if (err) return res.status(500).json({ status: false, error: 'Insert failed', err });
 
-          req.io.to(company_id.toString()).emit('receive-Loaction', locationData);
+          req.io.to(company_id.toString()).emit('receive-Location', locationData);
           res.json({ status: true, message: 'Location inserted', data: locationData });
         });
       }
@@ -262,57 +190,5 @@ router.post('/SendLocation', (req, res) => {
 
 
 
-// router.post('/SendLocation', (req, res) => {
-//   const { userData, latitude, longitude } = req.body;
-//   let decodedUserData = null;
-
-//   if (userData) {
-//     try {
-//       const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-//       decodedUserData = JSON.parse(decodedString);
-//     } catch (error) {
-//       return res.status(400).json({ status: false, error: 'Invalid userData' });
-//     }
-//   }
-
-//   if (!decodedUserData || !decodedUserData.company_id || !decodedUserData.id) {
-//     return res.status(400).json({ status: false, error: 'company_id and id required' });
-//   }
-
-//   let employee_id = decodedUserData.id;
-//   let company_id = decodedUserData.company_id;
-
-//   const timestamp = new Date();
-
-
-
-//   const sqlCheck = 'SELECT id FROM locations WHERE employee_id = ?';
-//   // const sqlCheck = `SELECT e.profile_image,l.employee_id,CONCAT(e.first_name,' ',e.last_name) as name FROM locations l INNER JOIN employees e ON e.id=l.employee_id WHERE l.company_id=? And l.type=1 AND e.id=?`;
-//   db.query(sqlCheck, [company_id, employee_id], (err, results) => {
-//     if (err) return res.status(500).json({ status: false, error: 'DB error', err });
-
-//     const locationData = { employee_id, company_id, latitude, longitude, timestamp };
-
-//     if (results.length > 0) {
-//       // Update
-//       const sqlUpdate = `UPDATE locations SET latitude = ?, longitude = ?, timestamp = ? WHERE employee_id = ?`;
-//       db.query(sqlUpdate, [latitude, longitude, timestamp, employee_id], (err) => {
-//         if (err) return res.status(500).json({ status: false, error: 'Update failed', err });
-
-//         req.io.to(company_id.toString()).emit('receive-Loaction', locationData);
-//         res.json({ status: true, message: 'Location updated', data: locationData });
-//       });
-//     } else {
-//       // Insert
-//       const sqlInsert = `INSERT INTO locations (employee_id, company_id, latitude, longitude, timestamp, type) VALUES (?, ?, ?, ?, ?, 1)`;
-//       db.query(sqlInsert, [employee_id, company_id, latitude, longitude, timestamp], (err) => {
-//         if (err) return res.status(500).json({ status: false, error: 'Insert failed', err });
-
-//         req.io.to(company_id.toString()).emit('receive-Loaction', locationData);
-//         res.json({ status: true, message: 'Location inserted', data: locationData });
-//       });
-//     }
-//   });
-// });
 
 module.exports = router;

@@ -153,7 +153,7 @@ io.on("connection", (socket) => {
 
   socket.on("join", (userId) => {
     console.log("User joined room:", userId);
-    socket.join(userId.toString());
+    socket.join(userId?.toString());
   });
 
   socket.on("disconnect", () => {

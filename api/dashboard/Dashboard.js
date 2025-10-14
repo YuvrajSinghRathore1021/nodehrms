@@ -798,4 +798,42 @@ router.post('/api/LeaveStats', async (req, res) => {
     }
 });
 
+
+// fcmUpdate 
+
+router.post('/fcmUpdate', async (req, res) => {
+    const { userData, fcm } = req.body;
+    let decodedUserData = null;
+    console.log(req.body)
+    if (userData) {
+        try {
+            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+            decodedUserData = JSON.parse(decodedString);
+        } catch (error) {
+            return res.status(400).json({ status: false, error: 'Invalid userData format' });
+        }
+    }
+
+    if (!decodedUserData || !decodedUserData.company_id) {
+        return res.status(400).json({ status: false, error: 'Company ID is required' });
+    }
+    try {
+
+        const [fcmUpdate] = await db.promise().query(`
+            UPDATE employees SET fcm_token = ? WHERE id = ? AND company_id = ?
+        `, [fcm, decodedUserData.id, decodedUserData.company_id]);
+
+        if (fcmUpdate.affectedRows == 0) {
+            return res.status(400).json({ status: false, error: 'No matching employee found or update failed' });
+        }
+
+        res.json({ status: true, message: 'FCM token updated successfully' });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server error');
+    }
+});
+
+
 module.exports = router;

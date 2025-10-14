@@ -1074,7 +1074,7 @@ router.get('/api/attendance', async (req, res) => {
         if (departmentId && departmentId != 0) {
             empsql += ` AND department = ?`;
             EmpArrayValue.push(departmentId);
-        } else if (subDepartmentid && subDepartmentid != 0) {
+        }  if (subDepartmentid && subDepartmentid != 0) {
             empsql += ` AND sub_department = ?`;
             EmpArrayValue.push(subDepartmentid);
         }

@@ -1,64 +1,121 @@
-const mysql = require('mysql2');
-require('dotenv').config();
-// Create a MySQL connection
-////live Time
+// const mysql = require('mysql2');
+// require('dotenv').config();
+// // Create a MySQL connection
+// ////live Time
+// // const db = mysql.createConnection({
+// //     host: 'localhost',
+// //     user: 'hrmsnewyuvraj',
+// //     password: 'hrms@india',
+// //     database: 'hrmsnew'
+// // });
+
+// ////localhost Time
+
 // const db = mysql.createConnection({
-//     host: 'localhost',
-//     user: 'hrmsnewyuvraj',
-//     password: 'hrms@india',
-//     database: 'hrmsnew'
+//     // host: process.env.host || 'localhost',
+//     // user: process.env.user || 'root',
+//     // password: process.env.password || '',
+//     // database: process.env.database || 'hrmsnewlive'
+//     // port: 3306
+
+//     // host: 'localhost',
+//     // user: 'root',
+//     // password: '',
+//     // database: 'hrmslatest',
+
+//     // //////on aws loacalhost on live server
+//     // host: process.env.host || 'localhost',
+//     // user: process.env.user || 'hrmsadminnew',
+//     // password: process.env.password || '!Hrms@Admin!123@Latest!',
+//     // database: process.env.database || 'hrmsnewlatest',
+//     // port: 3306
+
+//     // host: '13.204.128.230',
+//     // user: 'hrmsadminnew',///hrmsadmin
+//     // password: '!Hrms@Admin!123@Latest!',////Hrms@Admin@Latest@   ////@Hrms@Admin@123@Latest@ ///HrmsAdmin123Latest
+//     // database: 'hrmsnewlatest',
+//     // port: 3306
+
+
+
+//     // new  rds connection    // 
+//     host: 'database-1.c564ew8oajmx.ap-south-1.rds.amazonaws.com',
+//     user: 'hrmsadmin',
+//     password: 'HrmsAdmin123Latest',
+//     database: 'hrms',
+//     port: 3306
 // });
 
-////localhost Time
+// db.connect(err => {
+//     if (err) {
+//         console.error('Database connection failed:', err);
+//         return;
+//     }
+//     console.log('Connected to the MySQL database.');
+// });
 
-const db = mysql.createConnection({
-    // host: process.env.host || 'localhost',
-    // user: process.env.user || 'root',
-    // password: process.env.password || '',
-    // database: process.env.database || 'hrmsnewlive'
-    // port: 3306
+// // Export the connection
+// module.exports = db;
 
-    // host: 'localhost',
-    // user: 'root',
-    // password: '',
-    // database: 'hrmslatest',
 
-    // //////on aws loacalhost on live server
-    // host: process.env.host || 'localhost',
-    // user: process.env.user || 'hrmsadminnew',
-    // password: process.env.password || '!Hrms@Admin!123@Latest!',
-    // database: process.env.database || 'hrmsnewlatest',
-    // port: 3306
-
-    // host: '13.204.128.230',
-    // user: 'hrmsadminnew',///hrmsadmin
-    // password: '!Hrms@Admin!123@Latest!',////Hrms@Admin@Latest@   ////@Hrms@Admin@123@Latest@ ///HrmsAdmin123Latest
-    // database: 'hrmsnewlatest',
-    // port: 3306
+// //  host: '13.204.128.230',
+// //     user: 'hrmsadminnew',
+// //     password: '!Hrms@Admin!123@Latest!',
+// //     database: 'hrmsnewlatest'
 
 
 
-    // new  rds connection    // 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// new 
+const mysql = require('mysql2');
+require('dotenv').config();
+// ✅ Create a MySQL connection pool
+const pool = mysql.createPool({
     host: 'database-1.c564ew8oajmx.ap-south-1.rds.amazonaws.com',
     user: 'hrmsadmin',
     password: 'HrmsAdmin123Latest',
     database: 'hrms',
-    port: 3306
+    port: 3306,
+    waitForConnections: true,
+    connectionLimit: 10,   // You can adjust based on load
+    queueLimit: 0
 });
 
-db.connect(err => {
+// ✅ Test initial connection and handle errors
+pool.getConnection((err, connection) => {
     if (err) {
-        console.error('Database connection failed:', err);
-        return;
+        console.error('❌ Database connection failed:', err);
+    } else {
+        console.log('✅ Connected to MySQL database.');
+        connection.release(); // release back to pool
     }
-    console.log('Connected to the MySQL database.');
 });
 
-// Export the connection
-module.exports = db;
+// ✅ Handle unexpected MySQL disconnections gracefully
+pool.on('error', (err) => {
+    console.error('MySQL Pool Error:', err);
+    if (err.code === 'PROTOCOL_CONNECTION_LOST') {
+        console.log('Reconnecting MySQL pool...');
+    } else {
+        throw err;
+    }
+});
+
+// ✅ Export promise-based pool for async/await usage
+module.exports = pool;
 
 
-//  host: '13.204.128.230',
-//     user: 'hrmsadminnew',
-//     password: '!Hrms@Admin!123@Latest!',
-//     database: 'hrmsnewlatest'

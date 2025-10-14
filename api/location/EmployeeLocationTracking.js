@@ -39,7 +39,7 @@ const db = require('../../DB/ConnectionSql');
 // });
 
 router.post('/EmployeeLocationGet', (req, res) => {
-  const { userData } = req.body;
+  const { userData, searchData = "", departmentId = 0, subDepartmentid = 0 } = req.body;
   let decodedUserData = null;
 
   if (userData) {
@@ -57,10 +57,7 @@ router.post('/EmployeeLocationGet', (req, res) => {
 
   const { company_id, id: viewer_id } = decodedUserData;
 
-  const permissionSql = `
-      SELECT target_id FROM location_permissions 
-      WHERE company_id = ? AND viewer_id = ? AND can_view = 1
-  `;
+  const permissionSql = `SELECT target_id FROM location_permissions WHERE company_id = ? AND viewer_id = ? AND can_view = 1`;
 
   db.query(permissionSql, [company_id, viewer_id], (err, permissionResults) => {
     if (err) {
@@ -72,16 +69,33 @@ router.post('/EmployeeLocationGet', (req, res) => {
       return res.status(200).json({ status: true, data: [] }); // No allowed targets
     }
     const placeholders = targetIds.join(',');
-    const locationSql = `
+    let locationSql = `
           SELECT l.id, e.profile_image, l.employee_id,
               CONCAT(e.first_name, ' ', e.last_name) AS name,
               l.latitude, l.longitude, l.timestamp 
           FROM locations l
           INNER JOIN employees e ON e.id = l.employee_id
-          WHERE l.company_id = ? AND l.type = 1 AND l.employee_id IN (${placeholders})
+          WHERE e.employee_status=1 and e.status=1 and e.delete_status=0 and l.company_id = ? AND l.type = 1 AND l.employee_id IN (${placeholders})
       `;
+    let queryParams = [company_id];
+    if (searchData) {
+      locationSql += ` AND (e.first_name LIKE ? OR e.last_name LIKE ? Or e.employee_id LIKE ?)`;
+      queryParams.push(`%${searchData}%`, `%${searchData}%`, `%${searchData}%`);
+    }
 
-    db.query(locationSql, [company_id], (err, results) => {
+    // Department and Employee Status Filters
+    if (departmentId && departmentId != 0) {
+      locationSql += ` AND e.department = ?`;
+      queryParams.push(departmentId);
+    }
+    if (subDepartmentid && subDepartmentid != 0) {
+      locationSql += ` AND e.sub_department = ?`;
+      queryParams.push(subDepartmentid);
+    }
+    // name order by as 
+    locationSql += ` ORDER BY e.first_name ASC`;
+
+    db.query(locationSql, queryParams, (err, results) => {
       if (err) {
         return res.status(500).json({ status: false, message: 'Location fetch error', error: err });
       }
@@ -261,7 +275,7 @@ router.get('/api/FetchLocationPermissions', async (req, res) => {
 });
 
 
-// get loaction 
+// get Location 
 router.post('/Get', async (req, res) => {
   const { userData, type = 'in', startDate, endDate, employeeId } = req.body;
   let decodedUserData = null;
