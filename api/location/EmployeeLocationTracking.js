@@ -69,14 +69,23 @@ router.post('/EmployeeLocationGet', (req, res) => {
       return res.status(200).json({ status: true, data: [] }); // No allowed targets
     }
     const placeholders = targetIds.join(',');
+    console.log(placeholders)
     let locationSql = `
-          SELECT l.id, e.profile_image, l.employee_id,
+          SELECT e.id,e.profile_image, e.id as employee_id,
               CONCAT(e.first_name, ' ', e.last_name) AS name,
               l.latitude, l.longitude, l.timestamp 
-          FROM locations l
-          INNER JOIN employees e ON e.id = l.employee_id
-          WHERE e.employee_status=1 and e.status=1 and e.delete_status=0 and l.company_id = ? AND l.type = 1 AND l.employee_id IN (${placeholders})
+          FROM employees e 
+          left JOIN locations l ON e.id = l.employee_id
+          WHERE e.employee_status=1 and e.status=1 and e.delete_status=0 and e.company_id = ?  AND e.id IN (${placeholders})
       `;
+    // let locationSql = `
+    //       SELECT l.id, e.profile_image, l.employee_id,
+    //           CONCAT(e.first_name, ' ', e.last_name) AS name,
+    //           l.latitude, l.longitude, l.timestamp 
+    //       FROM locations l
+    //       left JOIN employees e ON e.id = l.employee_id
+    //       WHERE e.employee_status=1 and e.status=1 and e.delete_status=0 and l.company_id = ? AND l.type = 1 AND l.employee_id IN (${placeholders})
+    //   `;
     let queryParams = [company_id];
     if (searchData) {
       locationSql += ` AND (e.first_name LIKE ? OR e.last_name LIKE ? Or e.employee_id LIKE ?)`;

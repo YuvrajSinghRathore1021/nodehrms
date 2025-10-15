@@ -6,6 +6,8 @@ const path = require('path');
 const { AdminCheck } = require('.././../model/functlity/AdminCheck');
 const uploadFile = require('../../model/functlity/uploadfunclite')
 router.use(cors());
+const { getEmployeeProfile } = require('../../helpers/getEmployeeProfile');
+
 
 router.post('/api/UploadLogo', uploadFile, async (req, res) => {
     const { userData, folderName, CheckId } = req.body;
@@ -57,10 +59,9 @@ router.post('/api/UploadLogo', uploadFile, async (req, res) => {
 });
 
 
-// get logo 
 // router.post('/api/GetEmployeesProfile', async (req, res) => {
 //     try {
-//         const { userData, } = req.body;
+//         const { userData } = req.body;
 //         let decodedUserData = null;
 //         let CheckId = req.body.CheckId || null;
 //         if (!CheckId || CheckId === 'undefined' || CheckId === 'null') {
@@ -85,18 +86,27 @@ router.post('/api/UploadLogo', uploadFile, async (req, res) => {
 //         const employeeId = CheckId || decodedUserData.id;
 
 //         // Fetch employee data
-//         db.query(
-//             `SELECT 
-//                 profile_image, type, attendance_rules_id,
-//                 CONCAT(first_name, ' ', last_name) AS full_name,
-//                     CONCAT(first_name, ' ', last_name) AS first_name,
-//                 email_id, official_email_id,
-//                 face_detection
-//             FROM employees 
-//             WHERE employee_status = 1 
-//               AND status = 1 
-//               AND delete_status = 0 
-//               AND id = ?`,
+//         db.query(`SELECT 
+//         e.profile_image, 
+//         e.type, 
+//         e.attendance_rules_id,
+//         e.branch_id,
+//         CONCAT_WS(' ', e.first_name, e.last_name) AS full_name,
+//         CONCAT_WS(' ', e.first_name, e.last_name) AS first_name,
+//         e.email_id, 
+//         e.official_email_id,
+//         e.face_detection,
+//         e.login_status,
+//         e.location_access,
+//         b.latitude,
+//         b.longitude,
+//         b.radius
+//      FROM employees e
+//      LEFT JOIN branches b ON e.branch_id = b.id AND b.company_id = e.company_id
+//      WHERE e.employee_status = 1 
+//        AND e.status = 1 
+//        AND e.delete_status = 0 
+//        AND e.id = ?`,
 //             [employeeId],
 //             (err, results) => {
 //                 if (err) {
@@ -137,7 +147,7 @@ router.post('/api/UploadLogo', uploadFile, async (req, res) => {
 //                             const rule = ruleResults[0];
 //                             in_time = rule.in_time || in_time;
 //                             out_time = rule.out_time || out_time;
-//                             half_day_time = rule.half_day || half_day;
+//                             half_day_time = rule.half_day || half_day_time;
 //                             working_hours = rule.max_working_hours || working_hours;
 //                         }
 //                         const today = new Date();
@@ -152,22 +162,29 @@ router.post('/api/UploadLogo', uploadFile, async (req, res) => {
 //                         const inIST = new Date(inDateTime.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
 //                         const outIST = new Date(outDateTime.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
 
-
+//                         // const inIST = formatToIST(inDateTime);
+//                         // const outIST = formatToIST(outDateTime);
+//                         if (employee.login_status != 1) {
+//                             return res.status(403).json({ status: false, message: 'Invalid token.' });
+//                         }
 
 //                         return res.status(200).json({
 //                             status: true,
-//                             data: employee,
+//                             // data: employee,
 //                             face_detection: employee.face_detection || 0,
+//                             location_access: employee.location_access || 0,
 //                             message: 'Profile fetched successfully',
 //                             profile_image: employee.profile_image || '',
 //                             data: results,
 //                             isAdmin: isAdmin,
 //                             in_time: inIST,
 //                             out_time: outIST,
-
 //                             half_day_time,
-//                             working_hours
-
+//                             working_hours,
+//                             latitude: employee.latitude || '',
+//                             longitude: employee.longitude || '',
+//                             brachSwitch: true,
+//                             radius: employee.radius || 0
 //                         });
 //                     }
 //                 );
@@ -183,150 +200,8 @@ router.post('/api/UploadLogo', uploadFile, async (req, res) => {
 // });
 
 router.post('/api/GetEmployeesProfile', async (req, res) => {
-    try {
-        const { userData, } = req.body;
-        let decodedUserData = null;
-        let CheckId = req.body.CheckId || null;
-        if (!CheckId || CheckId === 'undefined' || CheckId === 'null') {
-            CheckId = null;
-        }
-        // Decode base64 userData
-        if (userData) {
-            try {
-                const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-                decodedUserData = JSON.parse(decodedString);
-            } catch (err) {
-                return res.status(400).json({ status: false, error: 'Invalid userData format' });
-            }
-        }
-
-        // Check for valid company_id
-        if (!decodedUserData || !decodedUserData.company_id) {
-            return res.status(400).json({ status: false, error: 'Company ID is missing or invalid' });
-        }
-
-        const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
-        const employeeId = CheckId || decodedUserData.id;
-
-        // Fetch employee data
-        // db.query(
-        //     `SELECT profile_image, type, attendance_rules_id,branch_id , CONCAT_WS(' ', first_name, last_name) AS full_name, CONCAT_WS(' ', first_name, last_name) AS first_name,
-        //         email_id, official_email_id, face_detection,login_status
-        //     FROM employees 
-        //     WHERE employee_status = 1 
-        //       AND status = 1 
-        //       AND delete_status = 0 
-        //       AND id = ?`,
-        //     [employeeId],
-        db.query(`SELECT 
-        e.profile_image, 
-        e.type, 
-        e.attendance_rules_id,
-        e.branch_id,
-        CONCAT_WS(' ', e.first_name, e.last_name) AS full_name,
-        CONCAT_WS(' ', e.first_name, e.last_name) AS first_name,
-        e.email_id, 
-        e.official_email_id,
-        e.face_detection,
-        e.login_status,
-        b.latitude,
-        b.longitude,
-        b.radius
-     FROM employees e
-     LEFT JOIN branches b ON e.branch_id = b.id AND b.company_id = e.company_id
-     WHERE e.employee_status = 1 
-       AND e.status = 1 
-       AND e.delete_status = 0 
-       AND e.id = ?`,
-            [employeeId],
-            (err, results) => {
-                if (err) {
-                    return res.status(500).json({
-                        status: false,
-                        message: 'Database error occurred while fetching employee details',
-                        error: err.message
-                    });
-                }
-
-                if (results.length === 0) {
-                    return res.status(404).json({ status: false, message: 'Employee not found' });
-                }
-
-                const employee = results[0];
-                const ruleId = employee.attendance_rules_id;
-                let in_time = '09:30';
-                let out_time = '18:30';
-                let half_day_time = '04:30';
-                let working_hours = '09:00';
-
-                // Fetch attendance rules
-                db.query(
-                    `SELECT in_time, out_time, half_day, max_working_hours 
-                     FROM attendance_rules 
-                     WHERE rule_id = ? AND company_id = ?`,
-                    [ruleId, decodedUserData.company_id],
-                    (err, ruleResults) => {
-                        if (err) {
-                            return res.status(500).json({
-                                status: false,
-                                message: 'Database error occurred while fetching attendance rules',
-                                error: err.message
-                            });
-                        }
-
-                        if (ruleResults.length > 0) {
-                            const rule = ruleResults[0];
-                            in_time = rule.in_time || in_time;
-                            out_time = rule.out_time || out_time;
-                            half_day_time = rule.half_day || half_day_time;
-                            working_hours = rule.max_working_hours || working_hours;
-                        }
-                        const today = new Date();
-                        const [inHours, inMinutes] = in_time.split(':').map(Number);
-                        const [outHours, outMinutes] = out_time.split(':').map(Number);
-
-                        // Create Date objects with today's date and given times
-                        const inDateTime = new Date(today.getFullYear(), today.getMonth(), today.getDate(), inHours, inMinutes);
-                        const outDateTime = new Date(today.getFullYear(), today.getMonth(), today.getDate(), outHours, outMinutes);
-
-                        // Convert to IST explicitly (if your server runs in another timezone)
-                        const inIST = new Date(inDateTime.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
-                        const outIST = new Date(outDateTime.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
-
-                        // const inIST = formatToIST(inDateTime);
-                        // const outIST = formatToIST(outDateTime);
-                        if (employee.login_status != 1) {
-                            return res.status(403).json({ status: false, message: 'Invalid token.' });
-                        }
-
-                        return res.status(200).json({
-                            status: true,
-                            // data: employee,
-                            face_detection: employee.face_detection || 0,
-                            message: 'Profile fetched successfully',
-                            profile_image: employee.profile_image || '',
-                            data: results,
-                            isAdmin: isAdmin,
-                            in_time: inIST,
-                            out_time: outIST,
-                            half_day_time,
-                            working_hours,
-                            latitude: employee.latitude || '',
-                            longitude: employee.longitude || '',
-                            brachSwitch: true,
-                            radius: employee.radius || 0
-                        });
-                    }
-                );
-            }
-        );
-    } catch (error) {
-        return res.status(500).json({
-            status: false,
-            message: 'Unexpected error occurred',
-            error: error.message
-        });
-    }
+    const result = await getEmployeeProfile(req.body);
+    res.status(result.status ? 200 : 400).json(result);
 });
 
 router.post('/api/Deleteapi', (req, res) => {

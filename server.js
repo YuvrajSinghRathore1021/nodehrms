@@ -236,7 +236,39 @@
 //         socket.join(userId?.toString());
 //         socket.join(company_id?.toString());
 //         console.log(`User ${userId} joined personal & company ${company_id} rooms`);
-//     });
+//     });   
+
+//     socket.on("getProfile", async (payload) => {
+//     const result = await getEmployeeProfile(payload);
+//     socket.emit("profileResponse", result);
+//   });
+
+//    // 🔄 Receive and broadcast live location
+//   socket.on('sendLocation', async (data) => {
+//     try {
+//       const { latitude, longitude } = data;
+//       if (!latitude || !longitude || !socket.employee_id || !socket.company_id) return;
+
+//       const timestamp = new Date().toISOString();
+//       const locationData = {
+//         employee_id: socket.employee_id,
+//         company_id: socket.company_id,
+//         latitude,
+//         longitude,
+//         timestamp,
+//       };
+
+//       // ✅ Save current location in Redis (fast cache)
+//       await redisClient.hSet(`employee:${socket.employee_id}`, locationData);
+
+//       // ✅ Broadcast to all employees in same company
+//     //   io.to(`company_${socket.company_id}`).emit('receiveLocation', locationData);
+//     io.to(socket.company_id.toString()).emit('receive-Location', locationData);
+//     } catch (err) {
+//       console.error('sendLocation Error:', err);
+//     }
+//   });
+
 //     socket.on("disconnect", () => {
 //     });
 // });
@@ -250,6 +282,12 @@
 // server.listen(2200, '0.0.0.0', () => {
 //     console.log('✅ Server is running on http://localhost:2200');
 // });
+
+
+
+
+
+
 
 
 
@@ -461,6 +499,7 @@ io.on("connection", (socket) => {
         socket.join(company_id?.toString());
         console.log(`User ${userId} joined personal & company ${company_id} rooms`);
     });
+    
     socket.on("disconnect", () => {
     });
 });
