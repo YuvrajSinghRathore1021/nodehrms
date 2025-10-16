@@ -62,6 +62,7 @@ exports.getEmployeeProfile = async ({ userData, CheckId }) => {
        WHERE rule_id = ? AND company_id = ?`,
             [emp.attendance_rules_id, decodedUserData.company_id]
         );
+        
 
         if (rules.length > 0) {
             const rule = rules[0];
@@ -77,6 +78,7 @@ exports.getEmployeeProfile = async ({ userData, CheckId }) => {
         const inIST = new Date(today.getFullYear(), today.getMonth(), today.getDate(), inHours, inMinutes);
         const outIST = new Date(today.getFullYear(), today.getMonth(), today.getDate(), outHours, outMinutes);
 
+      
         return {
             status: true,
             message: "Profile fetched successfully",
@@ -92,7 +94,9 @@ exports.getEmployeeProfile = async ({ userData, CheckId }) => {
             latitude: emp.latitude || '',
             longitude: emp.longitude || '',
             brachSwitch: true,
-            radius: emp.radius || 0
+            radius: emp.radius || 0,
+            intervalMs: 60000
+
         };
     } catch (err) {
         return { status: false, message: err.message };

@@ -712,7 +712,6 @@ router.post('/api/ApprovalSubmit', async (req, res) => {
             'SELECT request_type,in_time,out_time FROM attendance_requests WHERE id = ? AND company_id = ?',
             [ApprovalRequests_id, company_id]
         );
-        console.log('y====', attendanceRequestType)
 
         if (ApprovalStatus == 1) {
             const employeeResults = await queryDb(

@@ -804,7 +804,7 @@ router.post('/api/LeaveStats', async (req, res) => {
 router.post('/fcmUpdate', async (req, res) => {
     const { userData, fcm } = req.body;
     let decodedUserData = null;
-    console.log(req.body)
+    // console.log(req.body)
     if (userData) {
         try {
             const decodedString = Buffer.from(userData, 'base64').toString('utf-8');

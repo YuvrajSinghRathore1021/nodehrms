@@ -4,18 +4,7 @@ const router = express.Router();
 const mysql = require('mysql2');
 const { ConsoleMessage } = require('puppeteer');
 const db = require('../../DB/ConnectionSql');
-
-// // DB Connection
-// const db = mysql.createConnection({
-//   // new  rds connection    // 
-//   host: 'database-1.c564ew8oajmx.ap-south-1.rds.amazonaws.com',
-//   user: 'hrmsadmin',
-//   password: 'HrmsAdmin123Latest',
-//   database: 'hrms',
-//   port: 3306
-
-// });
-
+const Redis = require('redis');
 
 
 router.post('/send', (req, res) => {
@@ -122,68 +111,145 @@ router.post('/read', (req, res) => {
 });
 
 
+//////// working code 
+// router.post('/SendLocation', (req, res) => {
+//     const { userData, latitude, longitude } = req.body;
 
-router.post('/SendLocation', (req, res) => {
-    const { userData, latitude, longitude } = req.body;
+//     let decodedUserData = null;
+//     if (userData) {
+//         try {
+//             const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+//             decodedUserData = JSON.parse(decodedString);
+//         } catch (error) {
+//             return res.status(400).json({ status: false, error: 'Invalid userData' });
+//         }
+//     }
 
-    let decodedUserData = null;
-    if (userData) {
+//     if (!decodedUserData || !decodedUserData.company_id || !decodedUserData.id) {
+//         return res.status(400).json({ status: false, error: 'company_id and id required' });
+//     }
+
+
+//     let employee_id = decodedUserData.id;
+//     let company_id = decodedUserData.company_id;
+
+//     const timestamp = new Date();
+//     const sqlCheckEmp = `SELECT profile_image,CONCAT(first_name,' ',last_name) as name FROM employees WHERE company_id=? And id = ?`;
+//     db.query(sqlCheckEmp, [company_id, employee_id], (err, Employeeresults) => {
+//         if (err) return res.status(500).json({ status: false, error: 'DB error', err });
+
+//         let profile_image = Employeeresults[0].profile_image;
+//         let name = Employeeresults[0].name;
+
+
+//         const sqlCheck = 'SELECT id FROM locations WHERE employee_id = ?';
+//         db.query(sqlCheck, [employee_id], (err, results) => {
+//             if (err) return res.status(500).json({ status: false, error: 'DB error', err });
+
+//             const locationData = { profile_image, name, employee_id, company_id, latitude, longitude, timestamp };
+
+//             if (results.length > 0) {
+
+//                 // Update
+//                 const sqlUpdate = `UPDATE locations SET latitude = ?, longitude = ?, timestamp = ? WHERE employee_id = ?`;
+//                 db.query(sqlUpdate, [latitude, longitude, timestamp, employee_id], (err) => {
+//                     if (err) return res.status(500).json({ status: false, error: 'Update failed', err });
+
+//                     req.io.to(company_id.toString()).emit('receive-Location', locationData);
+
+//                     res.json({ status: true, message: 'Location updated', data: locationData });
+//                 });
+//             } else {
+//                 // Insert
+//                 const sqlInsert = `INSERT INTO locations (employee_id, company_id, latitude, longitude, timestamp, type) VALUES (?, ?, ?, ?, ?, 1)`;
+//                 db.query(sqlInsert, [employee_id, company_id, latitude, longitude, timestamp], (err) => {
+//                     if (err) return res.status(500).json({ status: false, error: 'Insert failed', err });
+
+//                     req.io.to(company_id.toString()).emit('receive-Location', locationData);
+//                     res.json({ status: true, message: 'Location inserted', data: locationData });
+//                 });
+//             }
+//         });
+//     });
+// });
+
+
+
+// 🧠 Optional: Redis cache for live location
+const redisClient = Redis.createClient({ url: process.env.REDIS_URL || 'redis://127.0.0.1:6379' });
+redisClient.connect().then(() => console.log('✅ Redis connected')).catch(() => console.log('⚠️ Redis not connected, using in-memory fallback'));
+
+// 🧠 In-memory fallback map if Redis is down
+const liveLocations = new Map();
+
+// ✅ API: Receive and broadcast employee location (no DB insert/update)
+router.post('/SendLocation', async (req, res) => {
+    try {
+        const { userData, latitude, longitude } = req.body;
+
+        // 🛑 Validate request data
+        if (!userData || !latitude || !longitude) {
+            return res.status(400).json({ status: false, error: 'Missing required fields' });
+        }
+
+        // 🧩 Decode userData
+        let decodedUserData;
         try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
+            decodedUserData = JSON.parse(Buffer.from(userData, 'base64').toString('utf-8'));
         } catch (error) {
             return res.status(400).json({ status: false, error: 'Invalid userData' });
         }
-    }
 
-    if (!decodedUserData || !decodedUserData.company_id || !decodedUserData.id) {
-        return res.status(400).json({ status: false, error: 'company_id and id required' });
-    }
+        const { id: employee_id, company_id } = decodedUserData;
+        if (!employee_id || !company_id) {
+            return res.status(400).json({ status: false, error: 'company_id and id required' });
+        }
 
+        const lat = parseFloat(latitude);
+        const lng = parseFloat(longitude);
+        if (isNaN(lat) || isNaN(lng)) {
+            return res.status(400).json({ status: false, error: 'Invalid latitude/longitude' });
+        }
 
-    let employee_id = decodedUserData.id;
-    let company_id = decodedUserData.company_id;
+        // 🕒 Current timestamp
+        const timestamp = new Date().toISOString();
 
-    const timestamp = new Date();
-    const sqlCheckEmp = `SELECT profile_image,CONCAT(first_name,' ',last_name) as name FROM employees WHERE company_id=? And id = ?`;
-    db.query(sqlCheckEmp, [company_id, employee_id], (err, Employeeresults) => {
-        if (err) return res.status(500).json({ status: false, error: 'DB error', err });
+        const locationData = { employee_id, company_id, latitude: lat, longitude: lng, timestamp };
 
-        let profile_image = Employeeresults[0].profile_image;
-        let name = Employeeresults[0].name;
-
-
-        const sqlCheck = 'SELECT id FROM locations WHERE employee_id = ?';
-        db.query(sqlCheck, [employee_id], (err, results) => {
-            if (err) return res.status(500).json({ status: false, error: 'DB error', err });
-
-            const locationData = { profile_image, name, employee_id, company_id, latitude, longitude, timestamp };
-
-            if (results.length > 0) {
-
-                // Update
-                const sqlUpdate = `UPDATE locations SET latitude = ?, longitude = ?, timestamp = ? WHERE employee_id = ?`;
-                db.query(sqlUpdate, [latitude, longitude, timestamp, employee_id], (err) => {
-                    if (err) return res.status(500).json({ status: false, error: 'Update failed', err });
-
-                    req.io.to(company_id.toString()).emit('receive-Location', locationData);
-
-                    res.json({ status: true, message: 'Location updated', data: locationData });
+        // ✅ Save latest location (no DB — only cache)
+        try {
+            if (redisClient.isReady) {
+                await redisClient.hSet(`employee:${employee_id}`, {
+                    latitude: lat,
+                    longitude: lng,
+                    timestamp,
+                    company_id
                 });
+                await redisClient.expire(`employee:${employee_id}`, 600); // 10 min TTL
             } else {
-                // Insert
-                const sqlInsert = `INSERT INTO locations (employee_id, company_id, latitude, longitude, timestamp, type) VALUES (?, ?, ?, ?, ?, 1)`;
-                db.query(sqlInsert, [employee_id, company_id, latitude, longitude, timestamp], (err) => {
-                    if (err) return res.status(500).json({ status: false, error: 'Insert failed', err });
-
-                    req.io.to(company_id.toString()).emit('receive-Location', locationData);
-                    res.json({ status: true, message: 'Location inserted', data: locationData });
-                });
+                liveLocations.set(employee_id, locationData);
             }
-        });
-    });
-});
+        } catch (cacheErr) {
+            console.error('Redis save error:', cacheErr);
+            liveLocations.set(employee_id, locationData);
+        }
 
+        // ✅ Broadcast real-time update
+        if (req.io) {
+            req.io.to(company_id.toString()).emit('receive-Location', locationData);
+        }
+
+        // ✅ Send success response
+        return res.json({
+            status: true,
+            message: 'Live location broadcasted (not stored in DB)',
+            data: locationData,
+        });
+    } catch (error) {
+        console.error('SendLocation Error:', error);
+        res.status(500).json({ status: false, error: 'Server error', details: error.message });
+    }
+});
 
 
 
@@ -226,7 +292,7 @@ module.exports = router;
 // // Track last sync per employee (to avoid too frequent DB writes)
 // const lastSyncMap = new Map();
 
-// // Save in DB every 2–5 minutes (adjust as needed)  
+// // Save in DB every 2–5 minutes (adjust as needed)
 // const SYNC_INTERVAL_MS = 2 * 60 * 1000; // 2 minutes
 
 // // ✅ API to handle live location updates
@@ -346,7 +412,7 @@ module.exports = router;
 //   // Store as string in DB
 //   const receiverIdStr = receiver_id.toString();
 
-//   const sql = `INSERT INTO notifications 
+//   const sql = `INSERT INTO notifications
 //         (company_id, sender_id, receiver_id, page_url, img_url, title, message, notification_type)
 //         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
 

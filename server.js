@@ -11,9 +11,15 @@
 // const server = http.createServer(app);
 // const db = require('./DB/ConnectionSql');
 
+// const Redis = require('redis');
+// // 🧠 Optional: Redis cache for live location
+// const redisClient = Redis.createClient({ url: process.env.REDIS_URL || 'redis://127.0.0.1:6379' });
+// redisClient.connect().then(() => console.log('✅ Redis connected')).catch(() => console.log('⚠️ Redis not connected, using in-memory fallback'));
 
+// // 🧠 In-memory fallback map if Redis is down
+// const liveLocations = new Map();
 
-
+// const { getEmployeeProfile } = require('./helpers/getEmployeeProfile');
 // // Import cron jobs
 // require("./autorun/cron");
 
@@ -134,8 +140,7 @@
 
 //         const sql = `
 //       INSERT INTO api_sql_logs (method, url, status_code, duration_ms, user_id)
-//       VALUES (?, ?, ?, ?, ?)
-//     `;
+//       VALUES (?, ?, ?, ?, ?) `;
 //         const values = [method, cleanUrl, statusCode, duration, userId];
 
 //         db.query(sql, values, (err) => {
@@ -233,51 +238,75 @@
 
 // io.on("connection", (socket) => {
 //     socket.on("join", ({ userId, company_id }) => {
+//         // ✅ Save values on socket instance
+//         socket.userId = userId;
+//         socket.company_id = company_id;
+
 //         socket.join(userId?.toString());
 //         socket.join(company_id?.toString());
 //         console.log(`User ${userId} joined personal & company ${company_id} rooms`);
-//     });   
+//     });
 
 //     socket.on("getProfile", async (payload) => {
-//     const result = await getEmployeeProfile(payload);
-//     socket.emit("profileResponse", result);
-//   });
+//         const result = await getEmployeeProfile(payload);
 
-//    // 🔄 Receive and broadcast live location
-//   socket.on('sendLocation', async (data) => {
-//     try {
-//       const { latitude, longitude } = data;
-//       if (!latitude || !longitude || !socket.employee_id || !socket.company_id) return;
+//         socket.emit("profileResponse", result);
+//     });
 
-//       const timestamp = new Date().toISOString();
-//       const locationData = {
-//         employee_id: socket.employee_id,
-//         company_id: socket.company_id,
-//         latitude,
-//         longitude,
-//         timestamp,
-//       };
+//     // 🔄 Receive and broadcast live location
+//     socket.on('sendLocation', async (data) => {
 
-//       // ✅ Save current location in Redis (fast cache)
-//       await redisClient.hSet(`employee:${socket.employee_id}`, locationData);
+//         try {
+//             // { latitude: 26.9136458, longitude: 75.7402153 }
+//             const { latitude, longitude } = data;
 
-//       // ✅ Broadcast to all employees in same company
-//     //   io.to(`company_${socket.company_id}`).emit('receiveLocation', locationData);
-//     io.to(socket.company_id.toString()).emit('receive-Location', locationData);
-//     } catch (err) {
-//       console.error('sendLocation Error:', err);
-//     }
-//   });
+//             if (!latitude || !longitude || !socket.userId || !socket.company_id) return;
+
+//             const timestamp = new Date().toISOString();
+//             const locationData = {
+//                 employee_id: socket.userId,
+//                 company_id: socket.company_id,
+//                 latitude,
+//                 longitude,
+//                 timestamp,
+//             };
+//             try {
+//                 if (redisClient.isReady) {
+//                     await redisClient.hSet(`employee:${socket.userId}`, {
+//                         latitude: lat,
+//                         longitude: lng,
+//                         timestamp,
+//                         company_id
+//                     });
+//                     await redisClient.expire(`employee:${socket.userId}`, 600);
+//                 } else {
+//                     liveLocations.set(socket.userId, locationData);
+//                 }
+//             } catch (cacheErr) {
+//                 console.error('Redis save error:', cacheErr);
+//                 liveLocations.set(socket.userId, locationData);
+//             }
+
+//             // ✅ Broadcast real-time update
+//             if (req.io) {
+//                 req.io.to(socket.company_id.toString()).emit('receive-Location', locationData);
+//             }
+//             //   // ✅ Save current location in Redis (fast cache)
+//             //   await redisClient.hSet(`employee:${socket.userId}`, locationData);
+
+//             //   // ✅ Broadcast to all employees in same company
+//             // //   io.to(`company_${socket.company_id}`).emit('receiveLocation', locationData);
+
+//             // io.to(socket.company_id.toString()).emit('receive-Location', locationData);
+
+//         } catch (err) {
+//             console.error('sendLocation Error:', err);
+//         }
+//     });
 
 //     socket.on("disconnect", () => {
 //     });
 // });
-
-// const PORT = process.env.PORT || 2100;
-
-// // app.listen(2200, '0.0.0.0', () => {
-// //     console.log('✅ Server is running on http://0.0.0.0:2200');
-// // });
 
 // server.listen(2200, '0.0.0.0', () => {
 //     console.log('✅ Server is running on http://localhost:2200');
@@ -315,6 +344,16 @@ const path = require('path');
 const app = express();
 const { Server } = require('socket.io');
 const db = require('./DB/ConnectionSql');
+
+const Redis = require('redis');
+// 🧠 Optional: Redis cache for live location
+const redisClient = Redis.createClient({ url: process.env.REDIS_URL || 'redis://127.0.0.1:6379' });
+redisClient.connect().then(() => console.log('✅ Redis connected')).catch(() => console.log('⚠️ Redis not connected, using in-memory fallback'));
+
+// 🧠 In-memory fallback map if Redis is down
+const liveLocations = new Map();
+
+const { getEmployeeProfile } = require('./helpers/getEmployeeProfile');
 
 const fs = require('fs');
 const https = require('https');
@@ -499,7 +538,7 @@ app.use('/hrAttendance', authenticateToken, HrAttendance);
 //         socket.join(company_id?.toString());
 //         console.log(`User ${userId} joined personal & company ${company_id} rooms`);
 //     });
-    
+
 //     socket.on("disconnect", () => {
 //     });
 // });
@@ -507,41 +546,71 @@ app.use('/hrAttendance', authenticateToken, HrAttendance);
 
 io.on("connection", (socket) => {
     socket.on("join", ({ userId, company_id }) => {
+        // ✅ Save values on socket instance
+        socket.userId = userId;
+        socket.company_id = company_id;
+
         socket.join(userId?.toString());
         socket.join(company_id?.toString());
         console.log(`User ${userId} joined personal & company ${company_id} rooms`);
-    });   
+    });
 
     socket.on("getProfile", async (payload) => {
-    const result = await getEmployeeProfile(payload);
-    socket.emit("profileResponse", result);
-  });
+        const result = await getEmployeeProfile(payload);
 
-   // 🔄 Receive and broadcast live location
-  socket.on('sendLocation', async (data) => {
-    try {
-      const { latitude, longitude } = data;
-      if (!latitude || !longitude || !socket.employee_id || !socket.company_id) return;
+        socket.emit("profileResponse", result);
+    });
 
-      const timestamp = new Date().toISOString();
-      const locationData = {
-        employee_id: socket.employee_id,
-        company_id: socket.company_id,
-        latitude,
-        longitude,
-        timestamp,
-      };
+    // 🔄 Receive and broadcast live location
+    socket.on('sendLocation', async (data) => {
 
-      // ✅ Save current location in Redis (fast cache)
-      await redisClient.hSet(`employee:${socket.employee_id}`, locationData);
+        try {
+            // { latitude: 26.9136458, longitude: 75.7402153 }
+            const { latitude, longitude } = data;
 
-      // ✅ Broadcast to all employees in same company
-    //   io.to(`company_${socket.company_id}`).emit('receiveLocation', locationData);
-    io.to(socket.company_id.toString()).emit('receive-Location', locationData);
-    } catch (err) {
-      console.error('sendLocation Error:', err);
-    }
-  });
+            if (!latitude || !longitude || !socket.userId || !socket.company_id) return;
+
+            const timestamp = new Date().toISOString();
+            const locationData = {
+                employee_id: socket.userId,
+                company_id: socket.company_id,
+                latitude,
+                longitude,
+                timestamp,
+            };
+            try {
+                if (redisClient.isReady) {
+                    await redisClient.hSet(`employee:${socket.userId}`, {
+                        latitude: lat,
+                        longitude: lng,
+                        timestamp,
+                        company_id
+                    });
+                    await redisClient.expire(`employee:${socket.userId}`, 600);
+                } else {
+                    liveLocations.set(socket.userId, locationData);
+                }
+            } catch (cacheErr) {
+                console.error('Redis save error:', cacheErr);
+                liveLocations.set(socket.userId, locationData);
+            }
+
+            // ✅ Broadcast real-time update
+            if (req.io) {
+                req.io.to(socket.company_id.toString()).emit('receive-Location', locationData);
+            }
+            //   // ✅ Save current location in Redis (fast cache)
+            //   await redisClient.hSet(`employee:${socket.userId}`, locationData);
+
+            //   // ✅ Broadcast to all employees in same company
+            // //   io.to(`company_${socket.company_id}`).emit('receiveLocation', locationData);
+
+            // io.to(socket.company_id.toString()).emit('receive-Location', locationData);
+
+        } catch (err) {
+            console.error('sendLocation Error:', err);
+        }
+    });
 
     socket.on("disconnect", () => {
     });

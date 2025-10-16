@@ -149,7 +149,6 @@ app.use('/uploads', express.static(path.join(__dirname, './uploads')));
 
 // Socket.IO Setup
 io.on("connection", (socket) => {
-  console.log("User connected:", socket.id);
 
   socket.on("join", (userId) => {
     console.log("User joined room:", userId);

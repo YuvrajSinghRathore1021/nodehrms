@@ -55,7 +55,6 @@ router.post("/check-miss-punch-in", async (req, res) => {
 
           try {
             await admin.messaging().send(message);
-            console.log(`Notification sent to ${emp.first_name}`);
             notifiedCount++;
           } catch (err) {
             console.error(`FCM error for ${emp.first_name}:`, err.message);

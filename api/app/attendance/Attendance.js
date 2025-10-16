@@ -798,16 +798,16 @@ router.post('/api/Attendancedirectory', async (req, res) => {
         const filterParams = [decodedUserData.company_id];
 
         if (filter == 'active') {
-            employeeFilter += ` AND b.status = 1 AND b.delete_status = 0`;
+            employeeFilter += ` AND b.employee_status = 1 AND b.status = 1 AND b.delete_status = 0`;
         } else if (filter == 'inactive') {
-            employeeFilter += ` AND (b.status = 0 OR b.delete_status = 1)`;
+            employeeFilter += ` AND (b.employee_status = 0 OR b.status = 0 OR b.delete_status = 1)`;
         } else {
-            employeeFilter += ` AND b.status = 1 AND b.delete_status = 0`;
+            employeeFilter += ` AND b.employee_status = 1 AND b.status = 1 AND b.delete_status = 0`;
         }
         if (departmentId && departmentId != 0) {
             employeeFilter += ` AND b.department = ?`;
             filterParams.push(departmentId);
-        }  if (subDepartmentid && subDepartmentid != 0) {
+        } if (subDepartmentid && subDepartmentid != 0) {
             employeeFilter += ` AND b.sub_department = ?`;
             filterParams.push(subDepartmentid);
         }
@@ -823,7 +823,7 @@ router.post('/api/Attendancedirectory', async (req, res) => {
         let joinClause = '';
         let filterCondition = '';
 
-        if (filter == "present") {
+        if (filter == "present" || filter == "Present") {
             joinClause = ` INNER JOIN attendance AS a 
                    ON a.employee_id = b.id 
                    AND a.attendance_date = ?
@@ -831,7 +831,7 @@ router.post('/api/Attendancedirectory', async (req, res) => {
     ON a.branch_id_in = bi.id
 LEFT JOIN branches AS bo 
     ON a.branch_id_out = bo.id`;
-            filterCondition = ` AND a.status IN ('Present','half-day')`;
+            filterCondition = ` AND a.status IN ('Present','present','half-day')`;
 
         } else if (filter == "absent") {
             joinClause = ` LEFT JOIN attendance AS a 
@@ -1021,11 +1021,11 @@ LEFT JOIN branches AS bo
             let countQuery = `SELECT COUNT(id) AS total FROM employees WHERE company_id = ?`;
             const countParams = [decodedUserData.company_id];
             if (filter == 'active') {
-                countQuery += ` AND status = 1 AND delete_status = 0`;
+                countQuery += ` AND employee_status = 1 AND status = 1 AND delete_status = 0`;
             } else if (filter == 'inactive') {
-                countQuery += ` AND (status = 0 OR delete_status = 1)`;
+                countQuery += ` AND (employee_status = 0 OR status = 0 OR delete_status = 1)`;
             } else {
-                countQuery += ` AND status = 1 AND delete_status = 0`;
+                countQuery += ` AND employee_status = 1 AND status = 1 AND delete_status = 0`;
             }
             if (search && search.trim() !== '') {
                 countQuery += ` AND (first_name LIKE ? OR employee_id LIKE ?)`;
