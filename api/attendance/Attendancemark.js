@@ -61,12 +61,12 @@ router.post('/Attendancemark', async (req, res) => {
 
             } else {
                 if (branchResults[0].ip_status == 1 && branchResults[0].ip != IpHandal) {
-                    return res.status(403).json({ status: false, message: 'You are not allowed to mark attendance from this IP address.' });
+                    return res.status(200).json({ status: false, message: 'You are not allowed to mark attendance from this IP address.' });
                 }
                 if (branchResults[0].location_status === 1) {
                     const distance = getDistanceFromLatLonInMeters(latitude, longitude, branchResults[0].latitude, branchResults[0].longitude);
                     if (distance > branchResults[0].radius) {
-                        return res.status(403).json({
+                        return res.status(200).json({
                             status: false,
                             message: `You are outside the allowed attendance radius. Allowed: ${branchResults[0].radius} meters, Your Distance: ${Math.round(distance)} meters.`
                         });

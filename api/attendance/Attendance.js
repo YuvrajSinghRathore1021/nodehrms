@@ -1063,11 +1063,13 @@ router.get('/api/attendance', async (req, res) => {
         return res.status(200).json({ status: false, message: 'Invalid employee IDs' });
     }
     try {
-        let empsql = `SELECT id, CONCAT(first_name, " ", last_name,"-",employee_id) AS first_name, work_week_id, employee_id FROM employees WHERE company_id=? AND id IN (?)`;
-        let EmpArrayValue = [decodedUserData.company_id, employeeIdsArray];
+        let empsql = `SELECT id, CONCAT(first_name, " ", last_name,"-",employee_id) AS first_name, work_week_id, employee_id FROM employees WHERE company_id=? `;
+        let EmpArrayValue = [decodedUserData.company_id];
         //// filter 
         if (employeeStatus && employeeStatus == 1) {
-            empsql += ` AND employee_status=1 and status=1 and delete_status=0 `;
+            empsql += ` AND employee_status=1 and status=1 and delete_status=0 AND id IN (?)`;
+            EmpArrayValue.push(employeeIdsArray);
+
         } else {
             empsql += ` AND (employee_status=0 or status=0 or delete_status=1) `;
         }
@@ -1075,16 +1077,16 @@ router.get('/api/attendance', async (req, res) => {
         if (departmentId && departmentId != 0) {
             empsql += ` AND department = ?`;
             EmpArrayValue.push(departmentId);
-        }  if (subDepartmentid && subDepartmentid != 0) {
+        } if (subDepartmentid && subDepartmentid != 0) {
             empsql += ` AND sub_department = ?`;
             EmpArrayValue.push(subDepartmentid);
         }
 
         if (searchData) {
-            empsql += ` AND first_name LIKE ?`;
-            EmpArrayValue.push(`%${searchData}%`);
+            empsql += ` AND (first_name LIKE ? OR last_name LIKE ? OR employee_id LIKE ?)`;
+            EmpArrayValue.push(`%${searchData}%`, `%${searchData}%`, `%${searchData}%`);
         }
-
+        empsql += ' ORDER BY a.first_name ASC';
         const [empResults] = await db.promise().query(empsql, EmpArrayValue);
         if (empResults.length == 0) {
             return res.status(200).json({ status: false, message: 'Employees not found' });

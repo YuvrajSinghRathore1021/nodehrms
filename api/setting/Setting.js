@@ -89,7 +89,7 @@ router.post('/api/fetchUserWorkWeekDetails', async (req, res) => {
     if (!decodedUserData.company_id) {
         return res.status(400).json({ status: false, error: 'Company ID is missing or invalid' });
     }
- let id = '';
+    let id = '';
     if (CheckId && CheckId !== null && CheckId !== undefined && CheckId !== '' && CheckId !== 'null' && CheckId !== 'undefined') {
         id = CheckId;
     } else {
@@ -345,12 +345,8 @@ router.post('/api/Deleteapi', async (req, res) => {
 // assign rules
 
 router.get('/api/data', async (req, res) => {
-    const { userData, data } = req.query;
-    let Search = null;
-
-    if (data) {
-        Search = data['Search'] ? data['Search'] : null;
-    }
+    const { userData, search = "", departmentId = 0, subDepartmentid = 0, employeeStatus = 1 } = req.query;
+    let Search = search;
 
     let decodedUserData = null;
     if (userData) {
@@ -382,13 +378,31 @@ router.get('/api/data', async (req, res) => {
         LEFT JOIN work_week AS b ON a.work_week_id = b.id
         WHERE a.company_id = ?`;
 
-    const queryParams = [decodedUserData.company_id];
+    let queryParams = [decodedUserData.company_id];
     if (Search) {
-        query += ' AND a.first_name LIKE ?';
-        queryParams.push(`%${Search}%`);
+        query += ` AND (a.first_name LIKE ? or a.last_name=? or a.employee_id=?)`;
+        queryParams.push(`%${Search}%`, `%${Search}%`, `%${Search}%`);
     }
-    query += ' LIMIT ? OFFSET ?';
+    if (employeeStatus && employeeStatus == 1) {
+        query += ` AND a.employee_status=1 and a.status=1 and a.delete_status=0 `;
+    } else {
+        query += ` AND (a.employee_status=0 or a.status=0 or a.delete_status=1) `;
+    }
+
+    if (departmentId && departmentId != 0) {
+        query += ` AND a.department = ?`;
+
+        queryParams.push(departmentId);
+    } if (subDepartmentid && subDepartmentid != 0) {
+        query += ` AND a.sub_department = ?`;
+
+        queryParams.push(subDepartmentid);
+    }
+    query += ' ORDER BY a.first_name ASC';
+    query += ` LIMIT ? OFFSET ?`;
     queryParams.push(limit, offset);
+    // first_name order by
+
 
     db.query(query, queryParams, (err, results) => {
         if (err) {
@@ -405,9 +419,25 @@ router.get('/api/data', async (req, res) => {
         let countQueryParams = [decodedUserData.company_id];
 
         if (Search) {
-            countQuery += ' AND first_name LIKE ?';
-            countQueryParams.push(`%${Search}%`);
+            countQuery += ' AND (first_name LIKE ? or last_name=? or employee_id=?)';
+            countQueryParams.push(`%${Search}%`, `%${Search}%`, `%${Search}%`);
         }
+        if (employeeStatus && employeeStatus == 1) {
+            countQuery += ` AND employee_status=1 and status=1 and delete_status=0 `;
+        } else {
+            countQuery += ` AND (employee_status=0 or status=0 or delete_status=1) `;
+        }
+
+        if (departmentId && departmentId != 0) {
+            countQuery += ` AND department = ?`;
+
+            countQueryParams.push(departmentId);
+        } if (subDepartmentid && subDepartmentid != 0) {
+            countQuery += ` AND sub_department = ?`;
+
+            countQueryParams.push(subDepartmentid);
+        }
+
         db.query(countQuery, countQueryParams, (err, countResults) => {
             if (err) {
                 console.error('Error counting data records:', err);

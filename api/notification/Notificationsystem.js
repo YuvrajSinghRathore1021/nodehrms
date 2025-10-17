@@ -5,7 +5,7 @@ const mysql = require('mysql2');
 const { ConsoleMessage } = require('puppeteer');
 const db = require('../../DB/ConnectionSql');
 const Redis = require('redis');
-
+const { getEmployeeProfile } = require('../../helpers/getEmployeeProfile');
 
 router.post('/send', (req, res) => {
     const { userData, receiver_id, page_url, img_url, title, message, notification_type } = req.body;
@@ -182,7 +182,86 @@ redisClient.connect().then(() => console.log('✅ Redis connected')).catch(() =>
 // 🧠 In-memory fallback map if Redis is down
 const liveLocations = new Map();
 
-// ✅ API: Receive and broadcast employee location (no DB insert/update)
+// // ✅ API: Receive and broadcast employee location (no DB insert/update)
+// router.post('/testprofile', async (req, res) => {
+//     console.log("testprofile api called");
+//       let test =  {
+//   status: true,
+//   message: 'Profile fetched successfully',
+//   face_detection: 1,
+//   location_access: 0,
+//   profile_image: '/uploads/default/1759823924282_e04e3cf8-5668-44a9-bbdd-d15cc5030449.PNG',
+//   data: [
+//     {
+//       profile_image: '/uploads/default/1759823924282_e04e3cf8-5668-44a9-bbdd-d15cc5030449.PNG',
+//       type: 'ceo',
+//       attendance_rules_id: 4,
+//       branch_id: 7,
+//       full_name: 'Sunil Sharma',
+//       first_name: 'Sunil Sharma',
+//       email_id: 'ys02195101@gmail.com',
+//       official_email_id: 'test@gmail.com',
+//       face_detection: 1,
+//       login_status: 1,
+//       location_access: 0,
+//       latitude: 26.913503,
+//       longitude: 75.74008,
+//       radius: 150
+//     }
+//   ],
+//   isAdmin: true,
+//   in_time: '2025-10-16T04:00:00.000Z',
+//   out_time: '2025-10-16T13:00:00.000Z',
+//   half_day_time: '4.5',
+//   working_hours: '8.00',
+//   latitude: 26.913503,
+//   longitude: 75.74008,
+//   brachSwitch: true,
+//   radius: 150,
+//   intervalMs: 60000
+// }
+
+// //    socket.emit("profileResponse", test);
+
+//     // send socket 
+//     let userId=10;
+//       req.io.to(userId.toString()).emit("profileResponse", test);
+
+// })
+
+
+
+router.post('/testprofile', async (req, res) => {
+    const result = await getEmployeeProfile(req.body);
+
+    const { userData } = req.body;
+    if (!userData) {
+        return res.status(400).json({ status: false, error: "Missing userData or receiver_id" });
+    }
+
+    let decodedUserData = null;
+
+    try {
+        const decodedString = Buffer.from(userData, "base64").toString("utf-8");
+        decodedUserData = JSON.parse(decodedString);
+    } catch (error) {
+        return res.status(400).json({ status: false, error: "Invalid userData" });
+    }
+
+    if (!decodedUserData.id || !decodedUserData.company_id) {
+        return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
+    }
+
+    let userId = 10;
+    console.log('Emitting profileResponse to userId:', userId);
+
+    req.io.to(userId.toString()).emit("profileResponse", result);
+
+    // res.json(result);
+
+})
+
+
 router.post('/SendLocation', async (req, res) => {
     try {
         const { userData, latitude, longitude } = req.body;
