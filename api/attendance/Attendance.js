@@ -1086,7 +1086,7 @@ router.get('/api/attendance', async (req, res) => {
             empsql += ` AND (first_name LIKE ? OR last_name LIKE ? OR employee_id LIKE ?)`;
             EmpArrayValue.push(`%${searchData}%`, `%${searchData}%`, `%${searchData}%`);
         }
-        empsql += ' ORDER BY a.first_name ASC';
+        empsql += ' ORDER BY first_name ASC';
         const [empResults] = await db.promise().query(empsql, EmpArrayValue);
         if (empResults.length == 0) {
             return res.status(200).json({ status: false, message: 'Employees not found' });
