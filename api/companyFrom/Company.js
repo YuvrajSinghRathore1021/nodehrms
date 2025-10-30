@@ -1658,7 +1658,7 @@ router.post("/branchName", async (req, res) => {
     // Fetch branches with pagination
     let branchesQuery = `SELECT id,name FROM branches WHERE company_id = ? and status=1 `;
     if (isAdmin == true) {
-        branchesQuery += ' and is_admin=1';
+        
     } else {
         branchesQuery += ' and is_admin=0';
     }
