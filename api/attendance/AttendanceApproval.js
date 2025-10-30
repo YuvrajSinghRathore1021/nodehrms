@@ -227,11 +227,11 @@ router.get('/api/companyEmployeeName', async (req, res) => {
     AND status = 1 
     AND delete_status = 0 
     AND company_id = ? 
-    AND reporting_manager = ?
+    AND (reporting_manager = ? or id=?)
 
  
 `;
-        dataArray.push(company_id, decodedUserData.id);
+        dataArray.push(company_id, decodedUserData.id, decodedUserData.id);
 
     }
     if (searchData) {
@@ -336,13 +336,13 @@ router.post('/api/companyEmployeeName', async (req, res) => {
     AND status = 1 
     AND delete_status = 0 
     AND company_id = ? 
-    AND reporting_manager = ?
+    AND (reporting_manager = ? or id=?)
   
 `;
-        dataArray.push(company_id, decodedUserData.id);
+        dataArray.push(company_id, decodedUserData.id, decodedUserData.id);
 
     }
-     if (searchData) {
+    if (searchData) {
         query += ` AND (first_name LIKE ? OR last_name LIKE ? Or employee_id LIKE ?)`;
         dataArray.push(`%${searchData}%`, `%${searchData}%`, `%${searchData}%`);
     }

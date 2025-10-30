@@ -381,8 +381,8 @@ router.post('/api/Deleteapi', (req, res) => {
 
 // asine rules
 router.get('/api/data', async (req, res) => {
-    const { userData, data, departmentId = 0, subDepartmentid = 0, employeeStatus=1 } = req.query;
- 
+    const { userData, data, departmentId = 0, subDepartmentid = 0, employeeStatus = 1 } = req.query;
+
     let Search = null;
 
     if (data) {
@@ -433,7 +433,7 @@ router.get('/api/data', async (req, res) => {
     if (departmentId && departmentId != 0) {
         query += ` AND a.department = ?`;
         queryParams.push(departmentId);
-    }  if (subDepartmentid && subDepartmentid != 0) {
+    } if (subDepartmentid && subDepartmentid != 0) {
         query += ` AND a.sub_department = ?`;
         queryParams.push(subDepartmentid);
     }

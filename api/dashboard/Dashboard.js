@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../../DB/ConnectionSql');
+const { AdminCheck } = require('../../model/functlity/AdminCheck');
 
 
 router.post('/api/Birthday', async (req, res) => {
@@ -260,7 +261,7 @@ router.post('/api/attendanceSummary', async (req, res) => {
     try {
         // Total active employees
         const [totalEmp] = await db.promise().query(`
-            SELECT COUNT(*) as total 
+            SELECT COUNT(id) as total 
             FROM employees 
             WHERE company_id = ? AND status = 1 AND employee_status = 1 AND delete_status = 0
         `, [decodedUserData.company_id]);
@@ -707,10 +708,106 @@ router.post('/api/NewEmployees', async (req, res) => {
     }
 });
 
+// router.post('/api/LeaveStats', async (req, res) => {
+//     const { userData, filter } = req.body;
+//     let decodedUserData = null;
+
+//     if (userData) {
+//         try {
+//             const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+//             decodedUserData = JSON.parse(decodedString);
+//         } catch (error) {
+//             return res.status(400).json({ status: false, error: 'Invalid userData format' });
+//         }
+//     }
+
+//     if (!decodedUserData || !decodedUserData.company_id) {
+//         return res.status(400).json({ status: false, error: 'Company ID is required' });
+//     }
+
+//     // Date Ranges
+//     let currentFrom, currentTo, previousFrom, previousTo;
+//     const today = moment().startOf('day');
+
+//     switch (filter) {
+//         case 'last_month':
+//             currentFrom = moment().subtract(1, 'month').startOf('month');
+//             currentTo = moment().subtract(1, 'month').endOf('month');
+//             previousFrom = moment().subtract(2, 'months').startOf('month');
+//             previousTo = moment().subtract(2, 'months').endOf('month');
+//             break;
+//         case 'last_year':
+//             currentFrom = moment().subtract(1, 'year').startOf('year');
+//             currentTo = moment().subtract(1, 'year').endOf('year');
+//             previousFrom = moment().subtract(2, 'years').startOf('year');
+//             previousTo = moment().subtract(2, 'years').endOf('year');
+//             break;
+//         case 'last_7_days':
+//         default:
+//             currentFrom = moment().subtract(7, 'days');
+//             currentTo = today;
+//             previousFrom = moment().subtract(14, 'days');
+//             previousTo = moment().subtract(7, 'days');
+//             break;
+//     }
+
+//     try {
+//         const companyId = decodedUserData.company_id;
+
+//         // Current leave count
+//         const [current] = await db.promise().query(`
+//             SELECT COUNT(leave_id) AS total 
+//             FROM leaves 
+//             WHERE company_id = ? 
+//               AND deletestatus = 0 
+//               AND DATE(start_date) BETWEEN ? AND ?
+//         `, [companyId, currentFrom.format('YYYY-MM-DD'), currentTo.format('YYYY-MM-DD')]);
+
+//         // Previous leave count
+//         const [previous] = await db.promise().query(`
+//             SELECT COUNT(leave_id) AS total 
+//             FROM leaves 
+//             WHERE company_id = ? 
+//               AND deletestatus = 0 
+//               AND DATE(start_date) BETWEEN ? AND ?
+//         `, [companyId, previousFrom.format('YYYY-MM-DD'), previousTo.format('YYYY-MM-DD')]);
+
+//         const currentTotal = current[0].total;
+//         const previousTotal = previous[0].total;
+
+//         let growthRate = 0;
+//         let statusText = "No Change";
+
+//         if (previousTotal > 0) {
+//             growthRate = ((currentTotal - previousTotal) / previousTotal) * 100;
+//             statusText = growthRate >= 0 ? 'Increased' : 'Decreased';
+//         }
+
+//         res.json({
+//             status: true,
+//             message: 'Leave stats fetched successfully',
+// data: {
+//     total: currentTotal,
+//     growthRate: growthRate.toFixed(2) + '%',
+//     statusText
+// }
+//         });
+
+//     } catch (error) {
+//         console.error('Error fetching leave stats:', error);
+//         res.status(500).json({ status: false, error: 'Server error' });
+//     }
+// });
+
+
+// fcmUpdate 
+
+
 router.post('/api/LeaveStats', async (req, res) => {
     const { userData, filter } = req.body;
     let decodedUserData = null;
 
+    // Decode base64 userData
     if (userData) {
         try {
             const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
@@ -720,78 +817,64 @@ router.post('/api/LeaveStats', async (req, res) => {
         }
     }
 
+    // Validate required data
     if (!decodedUserData || !decodedUserData.company_id) {
         return res.status(400).json({ status: false, error: 'Company ID is required' });
     }
-
-    // Date Ranges
-    let currentFrom, currentTo, previousFrom, previousTo;
-    const today = moment().startOf('day');
-
-    switch (filter) {
-        case 'last_month':
-            currentFrom = moment().subtract(1, 'month').startOf('month');
-            currentTo = moment().subtract(1, 'month').endOf('month');
-            previousFrom = moment().subtract(2, 'months').startOf('month');
-            previousTo = moment().subtract(2, 'months').endOf('month');
-            break;
-        case 'last_year':
-            currentFrom = moment().subtract(1, 'year').startOf('year');
-            currentTo = moment().subtract(1, 'year').endOf('year');
-            previousFrom = moment().subtract(2, 'years').startOf('year');
-            previousTo = moment().subtract(2, 'years').endOf('year');
-            break;
-        case 'last_7_days':
-        default:
-            currentFrom = moment().subtract(7, 'days');
-            currentTo = today;
-            previousFrom = moment().subtract(14, 'days');
-            previousTo = moment().subtract(7, 'days');
-            break;
-    }
+    const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
 
     try {
         const companyId = decodedUserData.company_id;
+        const employeeId = decodedUserData.id || null;
 
-        // Current leave count
-        const [current] = await db.promise().query(`
-            SELECT COUNT(leave_id) AS total 
-            FROM leaves 
-            WHERE company_id = ? 
-              AND deletestatus = 0 
-              AND DATE(start_date) BETWEEN ? AND ?
-        `, [companyId, currentFrom.format('YYYY-MM-DD'), currentTo.format('YYYY-MM-DD')]);
+        // Get date range for last 3 months
+        const currentTo = moment().endOf('day');
+        const currentFrom = moment().subtract(3, 'months').startOf('day');
 
-        // Previous leave count
-        const [previous] = await db.promise().query(`
-            SELECT COUNT(leave_id) AS total 
-            FROM leaves 
-            WHERE company_id = ? 
-              AND deletestatus = 0 
-              AND DATE(start_date) BETWEEN ? AND ?
-        `, [companyId, previousFrom.format('YYYY-MM-DD'), previousTo.format('YYYY-MM-DD')]);
+        // Build SQL query
+        let sql = `
+            SELECT 
+               COUNT(leave_id) AS total
+            FROM leaves
+            WHERE company_id = ?
+              AND deletestatus = 0 and admin_status=0
+              AND (
+                    (start_date BETWEEN ? AND ?)
+                 OR (end_date BETWEEN ? AND ?)
+              ) and status=1
+        `;
 
-        const currentTotal = current[0].total;
-        const previousTotal = previous[0].total;
+        let params = [companyId, currentFrom.format('YYYY-MM-DD'), currentTo.format('YYYY-MM-DD'),
+            currentFrom.format('YYYY-MM-DD'), currentTo.format('YYYY-MM-DD')];
 
-        let growthRate = 0;
-        let statusText = "No Change";
+        // Optional employee filter
+        // if (employeeId) {
+        //     sql += ' AND employee_id = ?';
+        //     params.push(employeeId);
+        // }
 
-        if (previousTotal > 0) {
-            growthRate = ((currentTotal - previousTotal) / previousTotal) * 100;
-            statusText = growthRate >= 0 ? 'Increased' : 'Decreased';
+        if (isAdmin == true) {
+            sql += ' AND (employee_id = ? or rm_id =? or rm_id=0  )';
+            params.push(employeeId, employeeId);
+        } else {
+            sql += ' AND (employee_id = ? or rm_id =?)';
+            params.push(employeeId, employeeId);
         }
 
+        sql += ' ORDER BY start_date DESC';
+
+        // Execute query
+        const [rows] = await db.promise().query(sql, params);
+        let currentTotal = rows[0].total;
         res.json({
             status: true,
-            message: 'Leave stats fetched successfully',
+            message: 'Last 3 months leave requests fetched successfully',
             data: {
                 total: currentTotal,
-                growthRate: growthRate.toFixed(2) + '%',
-                statusText
+                growthRate: '',
+                statusText: ''
             }
         });
-
     } catch (error) {
         console.error('Error fetching leave stats:', error);
         res.status(500).json({ status: false, error: 'Server error' });
@@ -799,7 +882,7 @@ router.post('/api/LeaveStats', async (req, res) => {
 });
 
 
-// fcmUpdate 
+
 
 router.post('/fcmUpdate', async (req, res) => {
     const { userData, fcm } = req.body;

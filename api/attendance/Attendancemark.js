@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../../DB/ConnectionSql');
+const { Shortleave } = require('./Shortleave');
+
 function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
     const R = 6371000; // Earth's radius in meters
     const dLat = (lat2 - lat1) * (Math.PI / 180);
@@ -75,7 +77,7 @@ router.post('/Attendancemark', async (req, res) => {
             }
         }
 
-        const rulesResults = await queryDb('SELECT in_time,out_time,out_time_required,max_working_hours,working_hours_required,half_day FROM attendance_rules WHERE rule_id = ? AND company_id = ?', [employeeResults[0].attendance_rules_id, companyId]);
+        const rulesResults = await queryDb('SELECT in_time,out_time,out_time_required,max_working_hours,working_hours_required,half_day,penalty_rule_applied,late_coming_penalty,last_in_time,early_leaving_penalty,last_out_time FROM attendance_rules WHERE rule_id = ? AND company_id = ?', [employeeResults[0].attendance_rules_id, companyId]);
         const rule = rulesResults.length > 0 ? rulesResults[0] : { in_time: '09:30', out_time: '18:30' };
 
         let dailyStatus = '';
@@ -97,8 +99,27 @@ router.post('/Attendancemark', async (req, res) => {
             if (attendanceResults.length > 0) {
                 return res.status(400).json({ status: false, message: 'Attendance for today is already marked as in.' });
             }
+            let empAttendanceStatus = 'Present';
+            ////neew addd////
+            if (rule?.penalty_rule_applied == 1) {
+                // Late Coming Penalty Check
+
+                if (rule?.late_coming_penalty == 1 && rule?.last_in_time && rule?.last_in_time !== '00:00:00') {
+                    const lastInTimeFormatted = String(rule.last_in_time).padStart(5, '0');
+                    // If employee comes after allowed late time
+                    if (formattedTime && lastInTimeFormatted < formattedTime) {
+                        empAttendanceStatus = "half-day";
+                    }
+                }
+
+
+            }
+            ////neew addd////
+
+
+
             let attendanceCheckInsert = await queryDb('INSERT INTO attendance (status,in_latitude, in_longitude, daily_status_in, daily_status_intime, employee_id, company_id, attendance_date, check_in_time, in_ip,branch_id_in,apply_by,reason) VALUES (?,?,?, ?, ?, ?, ?,CURDATE(), ?,  ?, ?,?,?)',
-                ['Present', latitude, longitude, dailyStatus, timeCount, empId, companyId, formattedTime, IpHandal, empbranch_id, applyBy, reason]);
+                [empAttendanceStatus, latitude, longitude, dailyStatus, timeCount, empId, companyId, formattedTime, IpHandal, empbranch_id, applyBy, reason]);
             if (!attendanceCheckInsert || !attendanceCheckInsert.insertId) {
 
                 return res.status(500).json({ status: false, message: 'Failed to mark attendance. Please try again.', error: attendanceCheckInsert });
@@ -175,7 +196,7 @@ router.post('/Attendancemark', async (req, res) => {
             let statusValue = 'Present';
             const numericDuration = parseDuration(duration)
 
-            if (numericDuration <= maxWorkingHours) { //bug solve
+            if (numericDuration <= maxWorkingHours) {
                 attendanceStatus = 0;
             }
 
@@ -200,6 +221,8 @@ router.post('/Attendancemark', async (req, res) => {
             }
 
 
+
+            let isWeeklyOffNew = false;
             if (attendanceStatus == 0 || (attendanceStatus == 1 && statusValue == "half-day")) {
                 const dateObj = new Date(attendanceDate);
                 const dayOfWeek = dateObj.getDay();
@@ -213,21 +236,44 @@ router.post('/Attendancemark', async (req, res) => {
                 let query = `SELECT \`${dayKey}\` AS dayValue FROM work_week WHERE id = ? AND company_id = ?`;
 
                 const workWeekResult = await queryDb(query, [employeeResults[0].work_week_id, companyId]);
-                     
+
                 if (workWeekResult.length > 0) {
                     const isWeeklyOff = workWeekResult[0]?.dayValue == 2;
- 
-                    if (isWeeklyOff) {
 
+                    if (isWeeklyOff) {
+                        isWeeklyOffNew = true;
                         if (numericDuration >= halfDayHours) {
                             attendanceStatus = 1;
                             statusValue = "Present";
                         }
-                    
+
                     }
                 }
             }
-          
+
+
+            //  ////last_in_time
+
+            // ///last_out_time
+            if (rule?.penalty_rule_applied == 1 && !isWeeklyOffNew) {
+
+                // Early Leaving Penalty Check
+                if (rule?.early_leaving_penalty == 1 && rule?.last_out_time && rule?.last_out_time !== '00:00:00') {
+                    const lastOutTimeFormatted = String(rule?.last_out_time).padStart(5, '0');
+
+                    // If employee leaves before required out time
+                    if (formattedTime && lastOutTimeFormatted > formattedTime) {
+                        if (attendanceStatus == 1 && statusValue === "Present") {
+                            statusValue = "half-day";
+                        } else if (attendanceStatus == 0 && numericDuration >= halfDayHours) {
+                            statusValue = "half-day";
+                            attendanceStatus = 1;
+                        }
+                    }
+                }
+            }
+
+
             if (rule?.out_time_required == 0) {
                 dailyStatus = 'On  Time';
                 timeCount = '00:00';
@@ -242,8 +288,34 @@ router.post('/Attendancemark', async (req, res) => {
                     dailyStatus = 'On Time';
                     timeCount = '00:00';
                 }
-
             }
+
+            //short leave check
+            if ((attendanceStatus == 1 && statusValue == "half-day") || (attendanceStatus == 0 && statusValue == "Present")) {
+                const shortleaveResult = await Shortleave({
+                    employee_id: empId,
+                    company_id: companyId,
+                    attendance_date: currentDate,
+                    duration: numericDuration,
+                    statusValue,
+                    attendanceStatus,
+                    attendance_id: checkInResults[0].attendance_id,
+                    formattedTime,
+                    checkInTime,
+                    checkOutTime: formattedTime,
+                    empInTime: rule.in_time,
+                    empOutTime: rule.out_time,
+                });
+
+                if (shortleaveResult && shortleaveResult.status) {
+                    attendanceStatus = shortleaveResult.attendanceStatusNew;
+                    statusValue = shortleaveResult.attendanceStatusNewValue;
+                }
+            }
+            return;
+
+
+
 
 
             await queryDb('UPDATE attendance SET attendance_status=?,status=?,out_latitude=?, out_longitude=?,out_ip=?,daily_status_out=?, daily_status_outtime=?, check_out_time = ?, duration = ? ,branch_id_out=? WHERE employee_id = ? AND company_id = ? AND attendance_date = CURDATE()',
@@ -398,7 +470,6 @@ function trackTime(officeStartTime, arrivalTimeOrCloseTime) {
     const minutes = Math.floor((absTimeDifference % 3600000) / 60000);
 
     const formattedTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-
     return formattedTime;
 };
 

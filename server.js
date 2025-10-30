@@ -237,6 +237,7 @@
 // // });
 
 // io.on("connection", (socket) => {
+//     console.log("User connected:", socket.id);
 //     socket.on("join", ({ userId, company_id }) => {
 //         // ✅ Save values on socket instance
 //         socket.userId = userId;
@@ -248,14 +249,15 @@
 //     });
 
 //     socket.on("getProfile", async (payload) => {
+//         // console.log('getProfile payload', payload);
 //         const result = await getEmployeeProfile(payload);
 
 //         socket.emit("profileResponse", result);
+//         // console.log('profileResponse sent', result);
 //     });
 
 //     // 🔄 Receive and broadcast live location
 //     socket.on('sendLocation', async (data) => {
-
 //         try {
 //             // { latitude: 26.9136458, longitude: 75.7402153 }
 //             const { latitude, longitude } = data;
@@ -287,10 +289,15 @@
 //                 liveLocations.set(socket.userId, locationData);
 //             }
 
-//             // ✅ Broadcast real-time update
-//             if (req.io) {
-//                 req.io.to(socket.company_id.toString()).emit('receive-Location', locationData);
-//             }
+//             // // ✅ Broadcast real-time update
+//             // if (req.io) {
+//             //     req.io.to(socket.company_id.toString()).emit('receive-Location', locationData);
+//             // }
+
+
+//             // ✅ Broadcast location update to everyone in same company
+//             io.to(socket.company_id.toString()).emit('receive-Location', locationData);
+//             // console.log('Broadcasted locationData:', locationData);
 //             //   // ✅ Save current location in Redis (fast cache)
 //             //   await redisClient.hSet(`employee:${socket.userId}`, locationData);
 

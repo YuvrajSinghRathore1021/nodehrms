@@ -9,6 +9,7 @@ const db = require('../../DB/ConnectionSql');
 const { Console } = require('console');
 router.use(cors());
 const uploadsDir = path.join(__dirname, '../../uploads/logo/');
+const { AdminCheck } = require('../../model/functlity/AdminCheck');
 
 // Create uploads directory if it doesn't exist
 if (!fs.existsSync(uploadsDir)) {
@@ -1373,7 +1374,7 @@ router.get("/Branchfetch", (req, res) => {
 
 
 router.post("/BranchUpdate", async (req, res) => {
-    const { id, userData, name, latitude, longitude, radius, ip, ip_status, location_status, branch_employee } = req.body;
+    const { id, userData, name, latitude, longitude, radius, ip, ip_status, is_admin,location_status, branch_employee } = req.body;
 
 
     // Decode userData
@@ -1399,9 +1400,9 @@ router.post("/BranchUpdate", async (req, res) => {
         // 1. Update branch details
         const [updateResult] = await db.promise().query(
             `UPDATE branches 
-             SET name=?, location_status=?, latitude=?, longitude=?, radius=?, ip=?, ip_status=? 
+             SET name=?, location_status=?, latitude=?, longitude=?, radius=?, ip=?, ip_status=? ,is_admin=?
              WHERE id = ? AND company_id=?`,
-            [name, location_status, latitude, longitude, radius, ip, ip_status, id, decodedUserData.company_id]
+            [name, location_status, latitude, longitude, radius, ip, ip_status,is_admin, id, decodedUserData.company_id]
         );
 
         if (updateResult.affectedRows === 0) {
@@ -1481,7 +1482,7 @@ router.post("/BranchUpdate", async (req, res) => {
 
 
 router.post("/BranchAdd", (req, res) => {
-    const { name, latitude, longitude, radius, userData, ip, ip_status, location_status } = req.body;
+    const { name, latitude, longitude, radius, userData, ip, ip_status, location_status,is_admin } = req.body;
 
     let decodedUserData = null;
     if (userData) {
@@ -1498,8 +1499,8 @@ router.post("/BranchAdd", (req, res) => {
 
     const companyId = decodedUserData.company_id;
     db.query(
-        "INSERT INTO branches (name,location_status, latitude, longitude, radius , company_id,ip,ip_status) VALUES (?,?,?, ?, ?,?,?,?)",
-        [name, location_status, latitude, longitude, radius, companyId, ip, ip_status],
+        "INSERT INTO branches (name,location_status, latitude, longitude, radius , company_id,ip,ip_status,is_admin) VALUES (?,?,?,?, ?, ?,?,?,?)",
+        [name, location_status, latitude, longitude, radius, companyId, ip, ip_status,is_admin],
         (err, insertResult) => {
             if (err) {
                 console.error("Error inserting branch:", err);
@@ -1634,7 +1635,7 @@ router.post('/assign-manager-bulk', async (req, res) => {
 
 
 
-router.post("/branchName", (req, res) => {
+router.post("/branchName", async (req, res) => {
 
     const { userData } = req.body;
     let decodedUserData = null;
@@ -1653,9 +1654,15 @@ router.post("/branchName", (req, res) => {
             .status(400)
             .json({ status: false, error: "Company ID is missing or invalid" });
     }
-
+    const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
     // Fetch branches with pagination
-    const branchesQuery = `SELECT id,name FROM branches WHERE company_id = ? and status=1 ORDER BY name ASC ;`;
+    let branchesQuery = `SELECT id,name FROM branches WHERE company_id = ? and status=1 `;
+    if (isAdmin == true) {
+        branchesQuery += ' and is_admin=1';
+    } else {
+        branchesQuery += ' and is_admin=0';
+    }
+    branchesQuery += ' ORDER BY name ASC ';
 
     db.query(branchesQuery, [decodedUserData.company_id], (err, branches) => {
         if (err) {
