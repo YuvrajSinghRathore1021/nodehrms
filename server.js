@@ -176,7 +176,6 @@
 // app.use('/logshandel', authenticateToken, logshandel);
 // app.use('/DetailsUpload', authenticateToken, DetailsUpload);
 // app.use('/excelexports', excelexports);
-
 // // pay roll 
 // app.use('/payrollRule', authenticateToken, payrollRule);
 // app.use('/pay', authenticateToken, pay);

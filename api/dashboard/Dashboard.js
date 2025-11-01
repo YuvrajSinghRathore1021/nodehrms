@@ -307,6 +307,8 @@ router.post('/api/attendanceSummary', async (req, res) => {
     ORDER BY date ASC
 `, [decodedUserData.company_id, yearH, monthH]);
 
+
+
         const totalEmployees = totalEmp[0]?.total || 0;
         const totalholidays = holidays[0]?.holiday_count || 0;
         const presentCount = attended[0]?.present || 0;
@@ -315,6 +317,8 @@ router.post('/api/attendanceSummary', async (req, res) => {
         const onTimePercent = totalEmployees > 0 ? ((onTimeCount / totalEmployees) * 100).toFixed(2) : "0.00";
         const leaveCount = leaveData[0]?.leave_count || 0;
         const leavePercent = totalEmployees > 0 ? ((leaveCount / totalEmployees) * 100).toFixed(2) : "0.00";
+        const absentCount = totalEmployees - (presentCount + leaveCount);
+
         res.json({
             status: true,
             date: targetDate,
@@ -326,6 +330,7 @@ router.post('/api/attendanceSummary', async (req, res) => {
             presentCountPercent: `${presentCountPercent}%`,
             leaveCount: leaveCount,
             leavePercent: leavePercent,
+            absentCount
         });
     } catch (error) {
         console.error('Error fetching attendance summary:', error);
@@ -428,6 +433,7 @@ router.post('/api/topArrivals', async (req, res) => {
             SELECT 
                 e.id,
                 e.profile_image,
+                e.gender,
                 CONCAT(e.first_name, ' ', e.last_name) AS name,
                 e.designation,
                 COUNT(a.attendance_id) AS total_present_days,

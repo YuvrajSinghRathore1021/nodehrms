@@ -477,16 +477,17 @@ router.post('/api/UrlGet', async (req, res) => {
                     iName: 'fas fa-building',
                     links: [
                         { to: '/Company_Profile', icon: 'fas fa-circle', label: 'Company Profile' },
-                        ...(company_id === 6 ? [{ to: '/CompanyView', icon: 'fas fa-circle', label: 'Company View' }] : [])
+                        ...(company_id === 6 ? [{ to: '/CompanyView', icon: 'fas fa-circle', label: 'Client View' }] : [])
                     ]
                 },
                 {
                     title: 'Employees',
                     iName: 'fas fa-users',
                     links: [
-                        { to: '/employeesdirectory', icon: 'fas fa-circle', label: 'Employee Directory' },
+                        { to: '/employeesdirectory', icon: 'fas fa-circle', label: 'Employee Onboarding' },
                         { to: '/profile', icon: 'fas fa-circle', label: 'Employee Profile' },
-                        { to: '/expenses', icon: 'fas fa-circle', label: 'Expenses' }
+                        { to: '/expenses', icon: 'fas fa-circle', label: 'Expenses' },
+                        { to: '/documents_view', icon: 'fas fa-circle', label: 'Employee Documents' }
                     ]
                 },
                 {
@@ -526,13 +527,13 @@ router.post('/api/UrlGet', async (req, res) => {
                         { to: '/salary', icon: 'fas fa-circle', label: 'Salary Details' }
                     ]
                 },
-                {
-                    title: 'Documents',
-                    iName: 'fas fa-file-alt',
-                    links: [
-                        { to: '/documents_view', icon: 'fas fa-circle', label: 'View Documents' }
-                    ]
-                },
+                // {
+                //     title: 'Documents',
+                //     iName: 'fas fa-file-alt',
+                //     links: [
+                //         { to: '/documents_view', icon: 'fas fa-circle', label: 'View Documents' }
+                //     ]
+                // },
                 {
                     title: 'Location',
                     iName: 'fas fa-map-marker-alt',

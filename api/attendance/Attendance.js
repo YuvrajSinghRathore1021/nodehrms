@@ -920,7 +920,8 @@ router.post('/api/data', async (req, res) => {
                     check_out_time,
                     duration,
                     created,
-                    attendance_date, profile_image
+                    attendance_date, profile_image,
+                    branch_in_name, branch_out_name
                 } = record[0];
 
                 allData.push({
@@ -940,7 +941,9 @@ router.post('/api/data', async (req, res) => {
                     duration,
                     created,
                     attendance_date: attendance_date || date,
-                    profile_image
+                    profile_image,
+                    branch_in: branch_in_name,
+                    branch_out: branch_out_name
                 });
             }
             else {
@@ -971,7 +974,13 @@ const getAttendanceData = (companyId, employeeId, date) => {
 
     return new Promise((resolve, reject) => {
         // db.query('SELECT b.id, CONCAT(b.first_name, " ", b.last_name,"-",b.employee_id) AS first_name,CONCAT(b.first_name, " ", b.last_name,"-",b.employee_id) AS name,b.profile_image,a.in_ip,out_ip,a.in_latitude,a.out_ip, a.in_longitude,a.out_latitude,a.out_longitude, a.attendance_id, a.status, a.check_in_time, a.check_out_time, a.duration, a.created, a.attendance_date FROM employees b LEFT JOIN attendance a ON a.employee_id = b.id WHERE  b.employee_status=1 and b.status=1 and b.delete_status=0 and b.company_id = ? AND b.id = ? AND (a.attendance_date = ? OR a.attendance_date IS NULL)',
-        db.query('SELECT b.id, CONCAT(b.first_name, " ", b.last_name,"-",b.employee_id) AS first_name,CONCAT(b.first_name, " ", b.last_name,"-",b.employee_id) AS name,b.profile_image,a.in_ip,out_ip,a.in_latitude,a.out_ip, a.in_longitude,a.out_latitude,a.out_longitude, a.attendance_id, a.status, a.check_in_time, a.check_out_time, a.duration, a.created, a.attendance_date FROM employees b LEFT JOIN attendance a ON a.employee_id = b.id WHERE  b.company_id = ? AND b.id = ? AND (a.attendance_date = ? OR a.attendance_date IS NULL)',
+        db.query(`SELECT b.id, CONCAT(b.first_name, " ", b.last_name,"-",b.employee_id) AS first_name,CONCAT(b.first_name, " ", b.last_name,"-",b.employee_id) AS name,b.profile_image,a.in_ip,out_ip,a.in_latitude,a.out_ip, a.in_longitude,a.out_latitude,a.out_longitude, a.attendance_id, a.status, a.check_in_time, a.check_out_time, a.duration, a.created, a.attendance_date
+            ,bi.name AS branch_in_name,bo.name AS branch_out_name FROM employees b LEFT JOIN attendance a ON a.employee_id = b.id
+            LEFT JOIN branches AS bi 
+    ON a.branch_id_in = bi.id
+LEFT JOIN branches AS bo 
+    ON a.branch_id_out = bo.id
+            WHERE  b.company_id = ? AND b.id = ? AND (a.attendance_date = ? OR a.attendance_date IS NULL)`,
             [companyId, employeeId, date], (err, results) => {
                 if (err) reject(err);
                 resolve(results);

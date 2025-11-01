@@ -96,6 +96,7 @@ exports.getEmployeeProfile = async ({ userData, CheckId }) => {
             longitude: emp.longitude || '',
             brachSwitch: true,
             radius: emp.radius || 0,
+            reload: false,
             intervalMs: emp.location_time || 0
         };
     } catch (err) {

@@ -4,9 +4,192 @@ const db = require("../../DB/ConnectionSql");
 
 ///////// leaveapi.js///////////////
 
+// router.post("/leave", async (req, res) => {
+//   //   // leave_type in this come leave_rule_id
+//   const { leave_type, userData, start_date, end_date, reason, start_half, end_half ,} = req.body;
+
+//   // Basic validation to ensure required fields are provided
+//   if (!leave_type || !userData || !start_date || !end_date || !reason) {
+//     return res.status(400).json({
+//       status: false,
+//       message: "Missing required fields: leave_type, userData, start_date, end_date, or reason."
+//     });
+//   }
+
+//   // Parse dates and calculate leave days
+//   const startDate = new Date(start_date);
+//   const endDate = new Date(end_date);
+
+//   // Validate that start_date is before end_date
+//   if (startDate > endDate) {
+//     return res.status(400).json({
+//       status: false,
+//       message: "Start date cannot be after end date."
+//     });
+//   } let decodedUserData = null;
+//   if (userData) {
+//     try {
+//       const decodedString = Buffer.from(userData, "base64").toString("utf-8");
+//       decodedUserData = JSON.parse(decodedString);
+//     } catch (error) {
+//       return res.status(400).json({ status: false, error: "Invalid userData" });
+//     }
+//   } else {
+//     return res.status(400).json({ status: false, error: "Missing userData" });
+//   }
+//   const employeeId = decodedUserData?.id;
+
+//   const EmployeeData = await db.promise().query('SELECT id, leave_rule_id, first_name, last_name, date_of_Joining, contact_number, probation_period, probation_status,notice_period FROM employees WHERE id=?', [employeeId]);
+//   if (EmployeeData.length === 0) {
+//     return res.status(400).json({ status: false, message: 'Employee Not found' });
+//   }
+//   const [existingLeave] = await db.promise().query(
+//     "SELECT leave_id FROM leaves WHERE employee_id = ? AND company_id=? AND start_date = ? AND end_date = ? AND status != 3", // status != 3 means ignore cancelled leaves
+//     [decodedUserData.id, decodedUserData.company_id, start_date, end_date]
+//   );
+
+//   if (existingLeave.length > 0) {
+//     return res.status(400).json({
+//       status: false,
+//       message: "Leave for this date range has already been applied."
+//     });
+//   }
+//   const [LeaveRuleDataGet] = await db.promise().query("SELECT id, company_id, leave_type, description, leaves_allowed_year, weekends_leave, holidays_leave, creditable, accrual_frequency, accrual_period, under_probation, notice_period, encash_enabled, carry_forward, remaining_leaves, max_leaves_month, continuous_leaves, negative_leaves, future_dated_leaves, future_dated_leaves_after, backdated_leaves, backdated_leaves_up_to, apply_leaves_next_year FROM leave_rules WHERE id = ?", [leave_type]);
+//   // Check if leave type exists
+//   if (!LeaveRuleDataGet || LeaveRuleDataGet.length === 0) {
+//     return res.status(400).json({
+//       status: false,
+//       message: "Invalid leave type."
+//     });
+//   }
+
+//   if (LeaveRuleDataGet[0].under_probation == 0 && EmployeeData[0].probation_status == 1) {
+//     return res.status(400).json({
+//       status: false,
+//       message: "You are under probation period."
+//     });
+//   }
+//   if (LeaveRuleDataGet[0].notice_period == 0 && EmployeeData[0].notice_period == 1) {
+//     return res.status(400).json({
+//       status: false,
+//       message: "You are under notice period."
+//     });
+//   }
+
+//   let leaveDays = calculateLeaveDays(startDate, endDate, start_half, end_half);
+
+//   // Get leave type settings from the database
+//   const [leave_typeGet] = await db.promise().query("SELECT id, leave_type, max_leaves_month, continuous_leaves, future_dated_leaves, future_dated_leaves_after, negative_leaves, backdated_leaves, backdated_leaves_up_to, apply_leaves_next_year FROM leave_rules WHERE id = ?", [leave_type]);
+
+//   // Check if leave type exists
+//   if (!leave_typeGet || leave_typeGet.length === 0) {
+//     return res.status(400).json({
+//       status: false,
+//       message: "Invalid leave type."
+//     });
+//   }
+
+//   const currentDate = new Date();
+
+//   if (startDate >= currentDate && endDate >= currentDate) {
+//     // Future leave validation
+//     if (leave_typeGet[0].future_dated_leaves_after > 0) {
+//       const futureLeavesDateLimit = new Date(currentDate.getTime() + leave_typeGet[0].future_dated_leaves_after);
+//       if (startDate > futureLeavesDateLimit) {
+//         return res.status(400).json({
+//           status: false,
+//           message: `You can only take leave after ${futureLeavesDateLimit.toLocaleDateString()}.`
+//         });
+//       }
+//     }
+//     if (leave_typeGet[0].continuous_leaves <= leaveDays) {
+//       return res.status(400).json({
+//         status: false,
+//         message: `You cannot take continuous leaves for ${leaveDays} days. Only ${leave_typeGet[0].continuous_leaves} days are allowed.`
+//       });
+//     }
+//   } else if (startDate <= currentDate && endDate <= currentDate) {
+//     // Backdated leave validation
+//     if (leave_typeGet[0].negative_leaves == 0) {
+//       return res.status(400).json({
+//         status: false,
+//         message: "You cannot take backdated leaves."
+//       });
+//     }
+//     let currentDateValue = new Date(currentDate.getTime());
+
+//     // Convert the backdated limit into a Date by subtracting days
+//     const backdatedDays = leave_typeGet[0].backdated_leaves_up_to || 0; // fallback in case it's undefined
+//     const backdatedLimit = new Date(currentDateValue.getTime() - (backdatedDays * 24 * 60 * 60 * 1000));
+
+//     if (new Date(startDate) < backdatedLimit) {
+//       return res.status(400).json({
+//         status: false,
+//         message: `You can only take backdated leaves up to ${backdatedLimit.toLocaleDateString()}.`
+//       });
+//     }
+//     if (leave_typeGet[0].backdated_leaves < leaveDays) {
+//       return res.status(400).json({
+//         status: false,
+//         message: `You cannot take backdated leaves for ${leaveDays} days. Only ${leave_typeGet[0].backdated_leaves} days are allowed.`
+//       });
+//     }
+//   }
+
+
+
+//   try {
+//     let RmIdValue = 0;
+//     // Step 1: Get the reporting manager ID if multi_level_approve is enabled
+//     const [settingResult] = await db
+//       .promise()
+//       .query(
+//         "SELECT multi_level_approve FROM settings WHERE type=? and company_id = ?",
+//         ["Leave_setting", decodedUserData.company_id]
+//       );
+
+//     if (settingResult.length > 0) {
+//       const multiLeaveApprove = settingResult[0].multi_level_approve;
+//       if (multiLeaveApprove == 1) {
+//         const [managerResults] = await db.promise().query(
+//           "SELECT reporting_manager FROM employees WHERE  employee_status=1 and status=1 and delete_status=0 and id = ? AND company_id = ?",
+//           [decodedUserData.id, decodedUserData.company_id]
+//         );
+//         if (managerResults.length === 0) {
+//           return res.status(200).json({
+//             status: false,
+//             error: "Employee not found",
+//             message: "Invalid employee ID or company ID"
+//           });
+//         }
+//         RmIdValue = managerResults[0].reporting_manager || 0;
+//       }
+//     }
+//     // Step 2: Insert leave record into the database
+
+//     const [insertResult] = await db.promise().query(
+//       "INSERT INTO leaves (company_id,employee_id,leave_type, leave_rule_id, start_date, end_date, status, reason,rm_id,start_half,end_half) VALUES (?,?,?,?, ?, ?, ?, ?, ?,?,?)",
+//       [decodedUserData.company_id, decodedUserData.id, leave_typeGet[0].leave_type, leave_type, start_date, end_date, 1, reason, RmIdValue, start_half, end_half]
+//     );
+//     return res.status(200).json({
+//       status: true,
+//       message: "Data inserted successfully.",
+//       id: insertResult.insertId
+//     });
+//   } catch (error) {
+//     console.error("Error processing leave request:", error);
+//     return res.status(200).json({
+//       status: false,
+//       message: "Internal server error",
+//       error: error.message
+//     });
+//   }
+// });
+
+
 router.post("/leave", async (req, res) => {
   //   // leave_type in this come leave_rule_id
-  const { leave_type, userData, start_date, end_date, reason, start_half, end_half } = req.body;
+  const { leave_type, userData, start_date, end_date, reason, start_half, end_half, employeeId, type = "" } = req.body;
 
   // Basic validation to ensure required fields are provided
   if (!leave_type || !userData || !start_date || !end_date || !reason) {
@@ -37,15 +220,15 @@ router.post("/leave", async (req, res) => {
   } else {
     return res.status(400).json({ status: false, error: "Missing userData" });
   }
-  const employeeId = decodedUserData?.id;
+  const employeeIdNew = employeeId || decodedUserData?.id;
 
-  const EmployeeData = await db.promise().query('SELECT id, leave_rule_id, first_name, last_name, date_of_Joining, contact_number, probation_period, probation_status,notice_period FROM employees WHERE id=?', [employeeId]);
+  const EmployeeData = await db.promise().query('SELECT id, leave_rule_id, first_name, last_name, date_of_Joining, contact_number, probation_period, probation_status,notice_period FROM employees WHERE id=?', [employeeIdNew]);
   if (EmployeeData.length === 0) {
     return res.status(400).json({ status: false, message: 'Employee Not found' });
   }
   const [existingLeave] = await db.promise().query(
     "SELECT leave_id FROM leaves WHERE employee_id = ? AND company_id=? AND start_date = ? AND end_date = ? AND status != 3", // status != 3 means ignore cancelled leaves
-    [decodedUserData.id, decodedUserData.company_id, start_date, end_date]
+    [employeeIdNew, decodedUserData.company_id, start_date, end_date]
   );
 
   if (existingLeave.length > 0) {
@@ -153,7 +336,7 @@ router.post("/leave", async (req, res) => {
       if (multiLeaveApprove == 1) {
         const [managerResults] = await db.promise().query(
           "SELECT reporting_manager FROM employees WHERE  employee_status=1 and status=1 and delete_status=0 and id = ? AND company_id = ?",
-          [decodedUserData.id, decodedUserData.company_id]
+          [employeeIdNew, decodedUserData.company_id]
         );
         if (managerResults.length === 0) {
           return res.status(200).json({
@@ -169,7 +352,7 @@ router.post("/leave", async (req, res) => {
 
     const [insertResult] = await db.promise().query(
       "INSERT INTO leaves (company_id,employee_id,leave_type, leave_rule_id, start_date, end_date, status, reason,rm_id,start_half,end_half) VALUES (?,?,?,?, ?, ?, ?, ?, ?,?,?)",
-      [decodedUserData.company_id, decodedUserData.id, leave_typeGet[0].leave_type, leave_type, start_date, end_date, 1, reason, RmIdValue, start_half, end_half]
+      [decodedUserData.company_id, employeeIdNew, leave_typeGet[0].leave_type, leave_type, start_date, end_date, 1, reason, RmIdValue, start_half, end_half]
     );
     return res.status(200).json({
       status: true,
@@ -185,6 +368,7 @@ router.post("/leave", async (req, res) => {
     });
   }
 });
+
 
 
 router.get("/fetchleave", (req, res) => {
@@ -868,7 +1052,7 @@ router.post("/api/ApprovalSubmit", async (req, res) => {
 
           // console.log("usedLeaves:", usedLeaves, "leaveDays:", leaveDaysNum);
           // console.log("used:", used, "remaining:", remaining);
-// 
+          // 
           // if (remaining < 0) remaining = 0; // handle negative leaves
 
           // 4. Update leave balance

@@ -319,7 +319,7 @@ router.post("/api/Review", async (req, res) => {
         let query = `
      SELECT 
         l.leave_id,
-        l.employee_id, 
+        l.employee_id as id, 
         l.company_id, 
         l.rm_status, 
         l.rm_id, 
@@ -335,7 +335,9 @@ router.post("/api/Review", async (req, res) => {
         l.end_date, 
           l.start_half,
           l.end_half,
-        Emp.employee_id, Emp.first_name,
+        Emp.employee_id, 
+         CONCAT(Emp.first_name,' ', Emp.last_name) As first_name,
+        
         Emp.last_name,
         Emp.type, 
         Emp.reporting_manager
@@ -344,7 +346,7 @@ router.post("/api/Review", async (req, res) => {
     INNER JOIN 
         employees AS Emp 
         ON Emp.id = l.employee_id
-    WHERE l.company_id=? and l.admin_status = 0 AND rm_status = 0 AND (
+    WHERE l.company_id=? and l.admin_status = 0 AND (
             -- Case 1: Manager's requests
             l.rm_id = ? 
             -- Case 2: admin/CEO/HR with no RM assigned
@@ -408,7 +410,7 @@ router.post("/api/Review", async (req, res) => {
         if (departmentId && departmentId != 0) {
             query += ` AND Emp.department = ?`;
             queryParams.push(departmentId);
-        } 
+        }
         if (subDepartmentid && subDepartmentid != 0) {
             query += ` AND Emp.sub_department = ?`;
             queryParams.push(subDepartmentid);
@@ -588,8 +590,8 @@ router.post("/api/Approved", async (req, res) => {
           l.start_half,
           l.end_half,
         DATEDIFF(l.end_date, l.start_date) + 1 AS leave_days,
-        Emp.employee_id, 
-        Emp.first_name, 
+        
+    CONCAT(Emp.first_name,' ', Emp.last_name) As first_name,
         Emp.last_name,
         Emp.type, 
         Emp.reporting_manager
@@ -662,7 +664,7 @@ router.post("/api/Approved", async (req, res) => {
         if (departmentId && departmentId != 0) {
             query += ` AND Emp.department = ?`;
             queryParams.push(departmentId);
-        }  if (subDepartmentid && subDepartmentid != 0) {
+        } if (subDepartmentid && subDepartmentid != 0) {
             query += ` AND Emp.sub_department = ?`;
             queryParams.push(subDepartmentid);
         }
@@ -829,9 +831,7 @@ router.post("/api/Rejected", async (req, res) => {
           l.start_half,
           l.end_half,
         DATEDIFF(l.end_date, l.start_date) + 1 AS leave_days,
-        Emp.employee_id, 
-        Emp.first_name, 
-        Emp.last_name,
+        CONCAT(Emp.first_name,' ', Emp.last_name) As first_name,
         Emp.type, 
         Emp.reporting_manager
     FROM 
@@ -902,7 +902,7 @@ router.post("/api/Rejected", async (req, res) => {
         if (departmentId && departmentId != 0) {
             query += ` AND Emp.department = ?`;
             queryParams.push(departmentId);
-        }  if (subDepartmentid && subDepartmentid != 0) {
+        } if (subDepartmentid && subDepartmentid != 0) {
             query += ` AND Emp.sub_department = ?`;
             queryParams.push(subDepartmentid);
         }
