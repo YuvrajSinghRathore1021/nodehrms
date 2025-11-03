@@ -94,7 +94,7 @@ exports.getEmployeeProfile = async ({ userData, CheckId }) => {
             working_hours,
             latitude: emp.latitude || '',
             longitude: emp.longitude || '',
-            brachSwitch: true,
+            brachSwitch: emp?.brach_switch == 1 ? true : false,
             radius: emp.radius || 0,
             reload: false,
             intervalMs: emp.location_time || 0
