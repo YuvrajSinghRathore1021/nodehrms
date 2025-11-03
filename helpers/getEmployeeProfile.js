@@ -27,6 +27,7 @@ exports.getEmployeeProfile = async ({ userData, CheckId }) => {
         e.type, 
         e.attendance_rules_id,
         e.branch_id,
+        e.brach_switch,
         CONCAT_WS(' ', e.first_name, e.last_name) AS full_name,
         CONCAT_WS(' ', e.first_name, e.last_name) AS first_name,
         e.email_id, 
