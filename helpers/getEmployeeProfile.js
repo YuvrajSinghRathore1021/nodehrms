@@ -27,7 +27,7 @@ exports.getEmployeeProfile = async ({ userData, CheckId }) => {
         e.type, 
         e.attendance_rules_id,
         e.branch_id,
-        e.brach_switch,
+        e.branch_switch,
         CONCAT_WS(' ', e.first_name, e.last_name) AS full_name,
         CONCAT_WS(' ', e.first_name, e.last_name) AS first_name,
         e.email_id, 
@@ -95,7 +95,7 @@ exports.getEmployeeProfile = async ({ userData, CheckId }) => {
             working_hours,
             latitude: emp.latitude || '',
             longitude: emp.longitude || '',
-            brachSwitch: emp?.brach_switch == 1 ? true : false,
+            branchSwitch: emp?.branch_switch == 1 ? true : false,
             radius: emp.radius || 0,
             reload: false,
             intervalMs: emp.location_time || 0
