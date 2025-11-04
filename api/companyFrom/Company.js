@@ -215,7 +215,7 @@ router.post('/api/UploadLogo', uploadFile, async (req, res) => {
 
 
 router.get('/api/data', (req, res) => {
-    const { userData } = req.query;
+    const { userData, type } = req.query;
     let decodedUserData = null;
     if (userData) {
         try {
@@ -231,8 +231,19 @@ router.get('/api/data', (req, res) => {
     if (!decodedUserData || !decodedUserData.id) {
         return res.status(400).json({ status: false, error: 'Employee ID is required' });
     }
-    const query = 'SELECT a.id, a.company_name, a.owner_name,a.member, a.logo, a.industry, a.headquarters, a.website, a.phone_number, a.email, a.address_id FROM companies a WHERE 1=1  ORDER BY a.id DESC LIMIT ? OFFSET ?';
-    const queryParams = [limit, offset];
+    let query = 'SELECT a.id, a.company_name, a.owner_name,a.member, a.logo, a.industry, a.headquarters, a.website, a.phone_number, a.email, a.address_id FROM companies a WHERE ';
+    const queryParams = [];
+    if (decodedUserData.company_id != 6) {
+        query += ' 1=1 ';
+
+    } else {
+        query += ' a.id = ? ';
+        queryParams.push(decodedUserData.company_id);
+    }
+    if (type != 'directory') {
+        query += '  ORDER BY a.company_name ASC LIMIT ? OFFSET ? ';
+        queryParams.push(limit, offset);
+    }
 
     db.query(query, queryParams, (err, results) => {
         if (err) {
@@ -1374,7 +1385,7 @@ router.get("/Branchfetch", (req, res) => {
 
 
 router.post("/BranchUpdate", async (req, res) => {
-    const { id, userData, name, latitude, longitude, radius, ip, ip_status, is_admin,location_status, branch_employee } = req.body;
+    const { id, userData, name, latitude, longitude, radius, ip, ip_status, is_admin, location_status, branch_employee } = req.body;
 
 
     // Decode userData
@@ -1402,7 +1413,7 @@ router.post("/BranchUpdate", async (req, res) => {
             `UPDATE branches 
              SET name=?, location_status=?, latitude=?, longitude=?, radius=?, ip=?, ip_status=? ,is_admin=?
              WHERE id = ? AND company_id=?`,
-            [name, location_status, latitude, longitude, radius, ip, ip_status,is_admin, id, decodedUserData.company_id]
+            [name, location_status, latitude, longitude, radius, ip, ip_status, is_admin, id, decodedUserData.company_id]
         );
 
         if (updateResult.affectedRows === 0) {
@@ -1482,7 +1493,7 @@ router.post("/BranchUpdate", async (req, res) => {
 
 
 router.post("/BranchAdd", (req, res) => {
-    const { name, latitude, longitude, radius, userData, ip, ip_status, location_status,is_admin } = req.body;
+    const { name, latitude, longitude, radius, userData, ip, ip_status, location_status, is_admin } = req.body;
 
     let decodedUserData = null;
     if (userData) {
@@ -1500,7 +1511,7 @@ router.post("/BranchAdd", (req, res) => {
     const companyId = decodedUserData.company_id;
     db.query(
         "INSERT INTO branches (name,location_status, latitude, longitude, radius , company_id,ip,ip_status,is_admin) VALUES (?,?,?,?, ?, ?,?,?,?)",
-        [name, location_status, latitude, longitude, radius, companyId, ip, ip_status,is_admin],
+        [name, location_status, latitude, longitude, radius, companyId, ip, ip_status, is_admin],
         (err, insertResult) => {
             if (err) {
                 console.error("Error inserting branch:", err);
@@ -1658,7 +1669,7 @@ router.post("/branchName", async (req, res) => {
     // Fetch branches with pagination
     let branchesQuery = `SELECT id,name FROM branches WHERE company_id = ? and status=1 `;
     if (isAdmin == true) {
-        
+
     } else {
         branchesQuery += ' and is_admin=0';
     }

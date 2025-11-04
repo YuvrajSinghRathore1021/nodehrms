@@ -14,6 +14,7 @@ exports.getEmployeeProfile = async ({ userData, CheckId }) => {
             throw new Error("Invalid userData format");
         }
 
+
         if (!decodedUserData?.company_id)
             throw new Error("Company ID is missing or invalid");
 
@@ -37,7 +38,8 @@ exports.getEmployeeProfile = async ({ userData, CheckId }) => {
         e.location_access,
         b.latitude,
         b.longitude,
-        b.radius
+        b.radius,
+        e.re_login
       FROM employees e
       LEFT JOIN branches b ON e.branch_id = b.id AND b.company_id = e.company_id
       WHERE e.employee_status = 1 
@@ -51,7 +53,9 @@ exports.getEmployeeProfile = async ({ userData, CheckId }) => {
 
         const emp = employees[0];
         if (emp.login_status != 1) throw new Error("Invalid token.");
-
+        if (emp?.re_login == 1) {
+            return res.status(403).json({ status: false, message: 'Please Re-Login.' });
+        }
         // Default times
         let in_time = '09:30';
         let out_time = '18:30';
@@ -62,7 +66,7 @@ exports.getEmployeeProfile = async ({ userData, CheckId }) => {
             `SELECT in_time, out_time, half_day, max_working_hours FROM attendance_rules 
        WHERE rule_id = ? AND company_id = ?`, [emp.attendance_rules_id, decodedUserData.company_id]
         );
-        
+
         //     // embeddings
         const [faceAuth] = await db.promise().query(
             `SELECT embeddings FROM face_auth 

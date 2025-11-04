@@ -17,8 +17,8 @@ exports.Shortleave = async ({
     try {
         // 1️⃣ Fetch company short leave policy
         const [policyRows] = await db.promise().query(
-            `SELECT id, company_id, short_leave_limit_in, short_leave_duration_in, short_leave_limit_out, short_leave_duration_out 
-             FROM attendance_policy 
+            `SELECT id, company_id, short_leave_limit_in, short_leave_duration_in, short_leave_limit_out, 
+            short_leave_duration_out FROM attendance_policy 
              WHERE company_id = ? and employee_ids in (?) 
              LIMIT 1`,
             [company_id, employee_id]
