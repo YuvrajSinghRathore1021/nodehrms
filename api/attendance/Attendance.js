@@ -1070,9 +1070,9 @@ router.get('/api/attendance', async (req, res) => {
 
     if (employeeIdsArray.length == 0) {
         return res.status(200).json({ status: false, message: 'Invalid employee IDs' });
-    }
+    }///CONCAT(first_name, " ", last_name,"-",employee_id)
     try {
-        let empsql = `SELECT id, CONCAT(first_name, " ", last_name,"-",employee_id) AS first_name, work_week_id, employee_id FROM employees WHERE company_id=? `;
+        let empsql = `SELECT id, CONCAT_WS(' ', first_name, last_name)  AS first_name, work_week_id, employee_id FROM employees WHERE company_id=? `;
         let EmpArrayValue = [decodedUserData.company_id];
         //// filter 
         if (employeeStatus && employeeStatus == 1) {

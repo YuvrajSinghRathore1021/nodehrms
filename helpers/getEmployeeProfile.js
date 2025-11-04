@@ -59,12 +59,17 @@ exports.getEmployeeProfile = async ({ userData, CheckId }) => {
         let working_hours = '09:00';
 
         const [rules] = await db.promise().query(
-            `SELECT in_time, out_time, half_day, max_working_hours 
-       FROM attendance_rules 
-       WHERE rule_id = ? AND company_id = ?`,
-            [emp.attendance_rules_id, decodedUserData.company_id]
+            `SELECT in_time, out_time, half_day, max_working_hours FROM attendance_rules 
+       WHERE rule_id = ? AND company_id = ?`, [emp.attendance_rules_id, decodedUserData.company_id]
+        );
+        
+        //     // embeddings
+        const [faceAuth] = await db.promise().query(
+            `SELECT embeddings FROM face_auth 
+           WHERE face_authentication =1 and employee_id=? AND company_id = ?`, [employeeId, decodedUserData.company_id]
         );
 
+        let embeddings = faceAuth.length > 0 ? faceAuth[0].embeddings : null;
 
         if (rules.length > 0) {
             const rule = rules[0];
@@ -98,7 +103,8 @@ exports.getEmployeeProfile = async ({ userData, CheckId }) => {
             branchSwitch: emp?.branch_switch == 1 ? true : false,
             radius: emp.radius || 0,
             reload: false,
-            intervalMs: emp.location_time || 0
+            intervalMs: emp.location_time || 0,
+            embeddings: embeddings
         };
     } catch (err) {
         return { status: false, message: err.message };
