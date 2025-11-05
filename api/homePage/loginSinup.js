@@ -51,7 +51,8 @@ router.post('/login', (req, res) => {
         return res.status(400).json({ status: false, message: 'Username and password are required' });
     }
 
-    const query = `SELECT id, type, company_id, employee_id,login_status,fcm_token,password, old_password FROM employees WHERE employee_status = 1 AND status = 1 AND delete_status = 0  And login_status=1 AND (employee_id = ? or email_id=? or official_email_id=?)`;
+    // const query = `SELECT id, type, company_id, employee_id,login_status,fcm_token,password, old_password FROM employees WHERE employee_status = 1 AND status = 1 AND delete_status = 0  And login_status=1 AND (employee_id = ? or email_id=? or official_email_id=?)`;
+    const query = `SELECT * FROM employees WHERE employee_status = 1 AND status = 1 AND delete_status = 0  And login_status=1 AND (employee_id = ? or email_id=? or official_email_id=?)`;
 
     db.query(query, [username,username,username], (err, results) => {
         if (err) {
