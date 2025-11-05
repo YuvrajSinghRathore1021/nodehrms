@@ -18,8 +18,8 @@ exports.Shortleave = async ({
         // 1️⃣ Fetch company short leave policy
         const [policyRows] = await db.promise().query(
             `SELECT id, company_id, short_leave_limit_in, short_leave_duration_in, short_leave_limit_out, 
-            short_leave_duration_out FROM attendance_policy 
-             WHERE company_id = ? and employee_ids in (?) 
+            short_leave_duration_out ,total_leave_status ,short_leave_total 
+            FROM attendance_policy WHERE company_id = ? and employee_ids in (?) 
              LIMIT 1`,
             [company_id, employee_id]
         );
@@ -29,17 +29,11 @@ exports.Shortleave = async ({
         }
 
         const policy = policyRows[0];
-        const {
-            short_leave_limit_in = 0,
-            short_leave_duration_in = 0,
-            short_leave_limit_out = 0,
-            short_leave_duration_out = 0
-        } = policy;
+        const { short_leave_limit_in = 0, short_leave_duration_in = 0, short_leave_limit_out = 0, short_leave_duration_out = 0 } = policy;
 
         // 2️⃣ Count how many short leaves are already used this month
         const [used] = await db.promise().query(
-            `SELECT COUNT(attendance_id) as total 
-             FROM attendance 
+            `SELECT COUNT(attendance_id) as total FROM attendance 
              WHERE employee_id = ? AND company_id = ? 
              AND MONTH(attendance_date)=MONTH(?) 
              AND YEAR(attendance_date)=YEAR(?) 
@@ -48,11 +42,19 @@ exports.Shortleave = async ({
         );
 
         const totalUsed = used[0]?.total || 0;
+        const total_leave_status = used[0]?.total_leave_status || 0;
+        const short_leave_total = used[0]?.short_leave_total || 0;
         const maxShortLeave = short_leave_limit_in + short_leave_limit_out;
 
-        if (totalUsed >= maxShortLeave) {
+        if (total_leave_status == 1 && short_leave_total > 0 && totalUsed < short_leave_total) {
+
+            return { status: false, message: "Short leave limit exceeded for this month" };
+
+        }
+        else if (totalUsed >= maxShortLeave && maxShortLeave > 0) {
             return { status: false, message: "Short leave limit exceeded for this month" };
         }
+
 
         // Helper: convert HH:mm or HH:mm:ss to total minutes
         const toMinutes = (t) => {
@@ -70,6 +72,7 @@ exports.Shortleave = async ({
         let leaveType = "";
         let shortLeaveType = 0; // 1 = IN, 2 = OUT
         let isEligible = false;
+
 
         // 3️⃣ Check for Short Leave (IN) - Late Coming
         if (scheduledIn && actualIn > scheduledIn) {
@@ -92,12 +95,16 @@ exports.Shortleave = async ({
                     leaveType = `Short Leave (IN) - Late by ${diffIn} mins`;
                     shortLeaveType = 1;
                     isEligible = true;
+                } else if (total_leave_status == 1 && totalUsed >= short_leave_total) {
+                    leaveType = `Short Leave (IN) - Late by ${diffIn} mins`;
+                    shortLeaveType = 1;
+                    isEligible = true;
                 }
             }
         }
 
         // 4️⃣ Check for Short Leave (OUT) - Early Leaving
-        if (!isEligible && scheduledOut && actualOut < scheduledOut) {
+        else if (!isEligible && scheduledOut && actualOut < scheduledOut) {
             const diffOut = scheduledOut - actualOut; // how many minutes early
             // if (diffOut <= short_leave_duration_out) {
             if (diffOut >= short_leave_duration_out - 30 && diffOut <= short_leave_duration_out + 5) {
@@ -112,6 +119,10 @@ exports.Shortleave = async ({
                 );
                 const usedOutCount = usedOut[0]?.total || 0;
                 if (usedOutCount < short_leave_limit_out) {
+                    leaveType = `Short Leave (OUT) - Left early by ${diffOut} mins`;
+                    shortLeaveType = 2;
+                    isEligible = true;
+                } else if (total_leave_status == 1 && totalUsed >= short_leave_total) {
                     leaveType = `Short Leave (OUT) - Left early by ${diffOut} mins`;
                     shortLeaveType = 2;
                     isEligible = true;

@@ -582,7 +582,7 @@ router.post('/api/AttendancePending', async (req, res) => {
     } else {
 
         const query = `
-        SELECT AR.id,AR.id as ApprovalRequests_id,AR.employee_id, AR.company_id, AR.rm_status, AR.rm_id, AR.rm_remark, AR.admin_id, AR.admin_status, AR.admin_remark, AR.request_type, AR.request_date, AR.in_time, AR.out_time, AR.status, AR.reason, AR.reason_admin, AR.reason_rm, AR.created,Emp.first_name AS name,Emp.employee_id AS userId
+        SELECT AR.id,AR.id as ApprovalRequests_id,AR.employee_id, AR.company_id, AR.rm_status, AR.rm_id, AR.rm_remark, AR.admin_id, AR.admin_status, AR.admin_remark, AR.request_type, AR.request_date, AR.in_time, AR.out_time, AR.request_type as status, AR.reason, AR.reason_admin, AR.reason_rm, AR.created,Emp.first_name AS name,Emp.employee_id AS userId
         FROM 
             attendance_requests AS AR
         INNER JOIN 
@@ -714,7 +714,7 @@ router.post('/api/AttendanceApprovalLog', async (req, res) => {
         AR.request_date, 
         AR.in_time, 
         AR.out_time, 
-        AR.status, 
+        AR.request_type as status, 
         AR.reason, 
         AR.reason_admin, 
         AR.reason_rm, 
@@ -864,6 +864,7 @@ LEFT JOIN branches AS bo
     bi.name AS branch_in_name,
     a.branch_id_out,
     bo.name AS branch_out_name 
+    , a.late_coming_leaving, a.short_leave, a.short_leave_type, a.short_leave_reason
                 FROM employees AS b
                    ${joinClause}
         WHERE ${employeeFilter} ${filterCondition} 
@@ -1000,7 +1001,13 @@ LEFT JOIN branches AS bo
                     out_longitude: attendance.out_longitude || null,
                     branch_in: attendance?.branch_in_name || '',
                     branch_out: attendance?.branch_out_name || '',
-                    status
+                    status,
+
+                    late_coming_leaving: attendance?.late_coming_leaving,
+                    short_leave: attendance?.short_leave,
+                    short_leave_type: attendance?.short_leave_type,
+                    short_leave_reason: attendance?.short_leave_reason
+                    
                 };
             })
         );
@@ -1414,6 +1421,123 @@ router.post('/api/EmployeesUnderRm', async (req, res) => {
 
 
 // /// request count 
+// router.post('/api/attendanceRequestCount', async (req, res) => {
+//     let { userData, startDate = "", endDate = "", page = 1, limit = 10, search = "" } = req.body;
+
+//     let decodedUserData = null;
+//     if (userData) {
+//         decodedUserData = decodeUserData(userData);
+//         if (!decodedUserData) {
+//             return res.status(400).json({ status: false, message: 'Invalid userData' });
+//         }
+//     }
+
+//     if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+//         return res.status(400).json({ status: false, message: 'Employee ID is required' });
+//     }
+
+//     try {
+//         let whereConditions = `
+//             Emp.employee_status=1 
+//             AND Emp.status=1 
+//             AND Emp.delete_status=0 
+//             AND AR.company_id = ?
+//             AND (
+//                 -- Case 1: Manager's requests
+//                 (AR.rm_id = ? AND (AR.rm_status = 0 OR AR.admin_status = 0))
+
+//                 -- Case 2: admin/CEO/HR with no RM assigned
+//                 OR (
+//                     EXISTS (
+//                         SELECT 1 
+//                         FROM employees 
+//                         WHERE id = ? AND company_id = ? 
+//                         AND FIND_IN_SET(type, 'admin,ceo,hr') > 0
+//                     ) 
+//                     AND AR.rm_id = 0 
+//                     AND AR.admin_status = 0
+//                 )
+
+//                 -- Case 3: Admin/CEO/HR with RM assigned and approved
+//                 OR (
+//                     EXISTS (
+//                         SELECT 1 
+//                         FROM employees 
+//                         WHERE id = ? AND company_id = ? 
+//                         AND FIND_IN_SET(type, 'admin,ceo,hr') > 0
+//                     ) 
+//                     AND AR.rm_id != 0 
+//                     AND AR.rm_status = 1
+//                     AND AR.admin_status = 0
+//                 )
+//             )
+//         `;
+
+//         let queryParams = [
+//             decodedUserData.company_id,
+//             decodedUserData.id,
+//             decodedUserData.id,
+//             decodedUserData.company_id,
+//             decodedUserData.id,
+//             decodedUserData.company_id
+//         ];
+
+//         // Date filter only if provided
+//         if (startDate && endDate) {
+//             whereConditions += " AND AR.request_date BETWEEN ? AND ? ";
+//             queryParams.push(startDate, endDate);
+//         }
+
+//         // Search filter only if provided
+//         if (search) {
+//             whereConditions += " AND (Emp.first_name LIKE ? OR Emp.employee_id LIKE ?) ";
+//             queryParams.push(`%${search}%`, `%${search}%`);
+//         }
+
+//         // Count total records
+//         const countQuery = `
+//             SELECT COUNT(DISTINCT AR.employee_id) AS totalRecords
+//             FROM attendance_requests AS AR
+//             INNER JOIN employees AS Emp ON Emp.id = AR.employee_id
+//             WHERE ${whereConditions}
+//         `;
+//         const [countRows] = await db.promise().query(countQuery, queryParams);
+//         const totalRecords = countRows[0]?.totalRecords || 0;
+
+//         // Apply pagination
+//         const offset = (page - 1) * limit;
+
+//         const mainQuery = `
+//             SELECT Emp.id, CONCAT(Emp.first_name,' ',Emp.last_name) as name, Emp.employee_id AS userId, COUNT(*) as request_count
+//             FROM attendance_requests AS AR
+//             INNER JOIN employees AS Emp ON Emp.id = AR.employee_id
+//             WHERE ${whereConditions}
+//             GROUP BY AR.employee_id, Emp.first_name, Emp.employee_id
+//             ORDER BY request_count DESC
+//             LIMIT ? OFFSET ?
+//         `;
+//         const [rows] = await db.promise().query(mainQuery, [...queryParams, parseInt(limit), parseInt(offset)]);
+
+//         // calculate total requests count
+//         let totalReq = rows.reduce((sum, r) => sum + r.request_count, 0);
+
+//         res.json({
+//             status: true,
+//             totalRecords,   // total employees matching filter
+//             totalReq,       // sum of requests in this page
+//             currentPage: page,
+//             limit,
+//             data: rows
+//         });
+
+//     } catch (err) {
+//         console.error("Error fetching AttendanceRequestCount:", err);
+//         res.status(500).json({ status: false, message: "Something went wrong", error: err.message });
+//     }
+// });
+
+
+
 router.post('/api/attendanceRequestCount', async (req, res) => {
     let { userData, startDate = "", endDate = "", page = 1, limit = 10, search = "" } = req.body;
 
@@ -1494,6 +1618,10 @@ router.post('/api/attendanceRequestCount', async (req, res) => {
             INNER JOIN employees AS Emp ON Emp.id = AR.employee_id
             WHERE ${whereConditions}
         `;
+
+        // console.log("Count Query:", countQuery);
+        // console.log("queryParams :", queryParams);
+
         const [countRows] = await db.promise().query(countQuery, queryParams);
         const totalRecords = countRows[0]?.totalRecords || 0;
 
@@ -1501,124 +1629,7 @@ router.post('/api/attendanceRequestCount', async (req, res) => {
         const offset = (page - 1) * limit;
 
         const mainQuery = `
-            SELECT Emp.id, CONCAT(Emp.first_name,' ',Emp.last_name) as name, Emp.employee_id AS userId, COUNT(*) as request_count
-            FROM attendance_requests AS AR
-            INNER JOIN employees AS Emp ON Emp.id = AR.employee_id
-            WHERE ${whereConditions}
-            GROUP BY AR.employee_id, Emp.first_name, Emp.employee_id
-            ORDER BY request_count DESC
-            LIMIT ? OFFSET ?
-        `;
-        const [rows] = await db.promise().query(mainQuery, [...queryParams, parseInt(limit), parseInt(offset)]);
-
-        // calculate total requests count
-        let totalReq = rows.reduce((sum, r) => sum + r.request_count, 0);
-
-        res.json({
-            status: true,
-            totalRecords,   // total employees matching filter
-            totalReq,       // sum of requests in this page
-            currentPage: page,
-            limit,
-            data: rows
-        });
-
-    } catch (err) {
-        console.error("Error fetching AttendanceRequestCount:", err);
-        res.status(500).json({ status: false, message: "Something went wrong", error: err.message });
-    }
-});
-
-
-
-router.post('/api/attendanceRequestCount', async (req, res) => {
-    let { userData, startDate = "", endDate = "", page = 1, limit = 10, search = "" } = req.body;
-
-    let decodedUserData = null;
-    if (userData) {
-        decodedUserData = decodeUserData(userData);
-        if (!decodedUserData) {
-            return res.status(400).json({ status: false, message: 'Invalid userData' });
-        }
-    }
-
-    if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
-        return res.status(400).json({ status: false, message: 'Employee ID is required' });
-    }
-
-    try {
-        let whereConditions = `
-            Emp.employee_status=1 
-            AND Emp.status=1 
-            AND Emp.delete_status=0 
-            AND AR.company_id = ?
-            AND (
-                -- Case 1: Manager's requests
-                (AR.rm_id = ? AND (AR.rm_status = 0 OR AR.admin_status = 0))
-
-                -- Case 2: admin/CEO/HR with no RM assigned
-                OR (
-                    EXISTS (
-                        SELECT 1 
-                        FROM employees 
-                        WHERE id = ? AND company_id = ? 
-                        AND FIND_IN_SET(type, 'admin,ceo,hr') > 0
-                    ) 
-                    AND AR.rm_id = 0 
-                    AND AR.admin_status = 0
-                )
-
-                -- Case 3: Admin/CEO/HR with RM assigned and approved
-                OR (
-                    EXISTS (
-                        SELECT 1 
-                        FROM employees 
-                        WHERE id = ? AND company_id = ? 
-                        AND FIND_IN_SET(type, 'admin,ceo,hr') > 0
-                    ) 
-                    AND AR.rm_id != 0 
-                    AND AR.rm_status = 1
-                    AND AR.admin_status = 0
-                )
-            )
-        `;
-
-        let queryParams = [
-            decodedUserData.company_id,
-            decodedUserData.id,
-            decodedUserData.id,
-            decodedUserData.company_id,
-            decodedUserData.id,
-            decodedUserData.company_id
-        ];
-
-        // Date filter only if provided
-        if (startDate && endDate) {
-            whereConditions += " AND AR.request_date BETWEEN ? AND ? ";
-            queryParams.push(startDate, endDate);
-        }
-
-        // Search filter only if provided
-        if (search) {
-            whereConditions += " AND (Emp.first_name LIKE ? OR Emp.employee_id LIKE ?) ";
-            queryParams.push(`%${search}%`, `%${search}%`);
-        }
-
-        // Count total records
-        const countQuery = `
-            SELECT COUNT(DISTINCT AR.employee_id) AS totalRecords
-            FROM attendance_requests AS AR
-            INNER JOIN employees AS Emp ON Emp.id = AR.employee_id
-            WHERE ${whereConditions}
-        `;
-        const [countRows] = await db.promise().query(countQuery, queryParams);
-        const totalRecords = countRows[0]?.totalRecords || 0;
-
-        // Apply pagination
-        const offset = (page - 1) * limit;
-
-        const mainQuery = `
-            SELECT Emp.id, CONCAT(Emp.first_name,' ',Emp.last_name) as name, Emp.employee_id AS userId, COUNT(*) as request_count
+            SELECT Emp.id, CONCAT(Emp.first_name,' ',Emp.last_name) as name, Emp.employee_id AS userId, COUNT(AR.id) as request_count
             FROM attendance_requests AS AR
             INNER JOIN employees AS Emp ON Emp.id = AR.employee_id
             WHERE ${whereConditions}

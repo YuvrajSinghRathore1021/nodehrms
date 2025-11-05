@@ -4,90 +4,90 @@ const db = require('../../DB/ConnectionSql');
 
 // Route handler for marking attendance
 
-router.post('/Attendancemark', async (req, res) => {
-    const { type, userData, latitude, longitude } = req.body;
-    const currentDate = new Date();
-    const formattedTime = `${String(currentDate.getHours()).padStart(2, '0')}:${String(currentDate.getMinutes()).padStart(2, '0')}:${String(currentDate.getSeconds()).padStart(2, '0')}`;
-    // Decode and validate user data
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    }
-    if (!decodedUserData || !decodedUserData.company_id || !decodedUserData.id || !type) {
-        return res.status(400).json({ status: false, error: 'company_id, id, and type are required' });
-    }
-    try {
-        const employeeResults = await queryDb('SELECT attendance_rules_id FROM employees WHERE  employee_status=1 and status=1 and delete_status=0 And id = ? AND company_id = ?', [decodedUserData.id, decodedUserData.company_id]);
-        if (employeeResults.length == 0) {
-            return res.status(500).json({ status: false, message: 'Employee not found' });
-        }
-        const CompanyiPResults = await queryDb('SELECT ip FROM companies WHERE id = ?', [decodedUserData.company_id]);
-        if (CompanyiPResults.length == 0) {
-            return res.status(403).json({ status: false, message: 'Some error Pls Login' });
-        } else {
-            // const clientIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.socket.remoteAddress;
-            const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-            // console.log('Client IP:', ip);
-        }
-        const rulesResults = await queryDb('SELECT * FROM attendance_rules WHERE rule_id = ? AND company_id = ?', [employeeResults[0].attendance_rules_id, decodedUserData.company_id]);
-        const rule = rulesResults.length > 0 ? rulesResults[0] : { in_time: '09:30', out_time: '18:30' };
-        let dailyStatus = '';
-        let timeCount = '';
-        if (type == 'in') {
-            const inTimeFormatted = rule.in_time ? `${String(rule.in_time).padStart(5, '0')}` : `${String('09:30').padStart(5, '0')}`;
-            if (inTimeFormatted > formattedTime) {
-                dailyStatus = 'Early';
-                timeCount = trackTime(inTimeFormatted, formattedTime);
-            } else if (inTimeFormatted < formattedTime) {
-                dailyStatus = 'Late';
-                timeCount = trackTime(inTimeFormatted, formattedTime);
-            } else {
-                dailyStatus = 'On Time';
-                timeCount = '00:00';
-            }
-            // Check if attendance has already been marked today
-            const attendanceResults = await queryDb('SELECT * FROM attendance WHERE employee_id = ? AND company_id = ? AND attendance_date = CURDATE()', [decodedUserData.id, decodedUserData.company_id]);
-            if (attendanceResults.length > 0) {
-                return res.status(400).json({ status: false, message: 'Attendance for today is already marked as in.' });
-            }
-            await queryDb('INSERT INTO attendance (in_latitude, in_longitude,daily_status_in, daily_status_intime, employee_id, company_id, attendance_date, check_in_time) VALUES (?, ?,?, ?, ?, ?, CURDATE(), ?)',
-                [latitude, longitude, dailyStatus, timeCount, decodedUserData.id, decodedUserData.company_id, formattedTime]);
-            return res.status(200).json({ status: true, message: `Attendance marked as 'in' at ${formattedTime}.` });
-        } else if (type == 'out') {
-            const checkInResults = await queryDb('SELECT check_in_time FROM attendance WHERE employee_id = ? AND company_id = ? AND attendance_date = CURDATE()', [decodedUserData.id, decodedUserData.company_id]);
-            if (checkInResults.length == 0) {
-                return res.status(400).json({ status: false, message: 'No check-in found for today. Please check in first.' });
-            }
-            const checkInTime = checkInResults[0].check_in_time;
-            const duration = calculateDuration(checkInTime, formattedTime);
-            const outTimeFormatted = rule.out_time ? `${String(rule.out_time).padStart(5, '0')}` : `${String('18:30').padStart(5, '0')}`;
-            if (outTimeFormatted > formattedTime) {
-                dailyStatus = 'Early';
-                timeCount = trackTime(outTimeFormatted, formattedTime);
-            } else if (outTimeFormatted < formattedTime) {
-                dailyStatus = 'Late';
-                timeCount = trackTime(outTimeFormatted, formattedTime);
-            } else {
-                dailyStatus = 'On Time';
-                timeCount = '00:00';
-            }
-            await queryDb('UPDATE attendance SET daily_status_out=?, daily_status_outtime=?, check_out_time = ?, duration = ? WHERE employee_id = ? AND company_id = ? AND attendance_date = CURDATE()',
-                [dailyStatus, timeCount, formattedTime, duration, decodedUserData.id, decodedUserData.company_id]);
+// router.post('/Attendancemark', async (req, res) => {
+//     const { type, userData, latitude, longitude } = req.body;
+//     const currentDate = new Date();
+//     const formattedTime = `${String(currentDate.getHours()).padStart(2, '0')}:${String(currentDate.getMinutes()).padStart(2, '0')}:${String(currentDate.getSeconds()).padStart(2, '0')}`;
+//     // Decode and validate user data
+//     let decodedUserData = null;
+//     if (userData) {
+//         try {
+//             const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+//             decodedUserData = JSON.parse(decodedString);
+//         } catch (error) {
+//             return res.status(400).json({ status: false, error: 'Invalid userData' });
+//         }
+//     }
+//     if (!decodedUserData || !decodedUserData.company_id || !decodedUserData.id || !type) {
+//         return res.status(400).json({ status: false, error: 'company_id, id, and type are required' });
+//     }
+//     try {
+//         const employeeResults = await queryDb('SELECT attendance_rules_id FROM employees WHERE  employee_status=1 and status=1 and delete_status=0 And id = ? AND company_id = ?', [decodedUserData.id, decodedUserData.company_id]);
+//         if (employeeResults.length == 0) {
+//             return res.status(500).json({ status: false, message: 'Employee not found' });
+//         }
+//         const CompanyiPResults = await queryDb('SELECT ip FROM companies WHERE id = ?', [decodedUserData.company_id]);
+//         if (CompanyiPResults.length == 0) {
+//             return res.status(403).json({ status: false, message: 'Some error Pls Login' });
+//         } else {
+//             // const clientIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.socket.remoteAddress;
+//             const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+//             // console.log('Client IP:', ip);
+//         }
+//         const rulesResults = await queryDb('SELECT * FROM attendance_rules WHERE rule_id = ? AND company_id = ?', [employeeResults[0].attendance_rules_id, decodedUserData.company_id]);
+//         const rule = rulesResults.length > 0 ? rulesResults[0] : { in_time: '09:30', out_time: '18:30' };
+//         let dailyStatus = '';
+//         let timeCount = '';
+//         if (type == 'in') {
+//             const inTimeFormatted = rule.in_time ? `${String(rule.in_time).padStart(5, '0')}` : `${String('09:30').padStart(5, '0')}`;
+//             if (inTimeFormatted > formattedTime) {
+//                 dailyStatus = 'Early';
+//                 timeCount = trackTime(inTimeFormatted, formattedTime);
+//             } else if (inTimeFormatted < formattedTime) {
+//                 dailyStatus = 'Late';
+//                 timeCount = trackTime(inTimeFormatted, formattedTime);
+//             } else {
+//                 dailyStatus = 'On Time';
+//                 timeCount = '00:00';
+//             }
+//             // Check if attendance has already been marked today
+//             const attendanceResults = await queryDb('SELECT * FROM attendance WHERE employee_id = ? AND company_id = ? AND attendance_date = CURDATE()', [decodedUserData.id, decodedUserData.company_id]);
+//             if (attendanceResults.length > 0) {
+//                 return res.status(400).json({ status: false, message: 'Attendance for today is already marked as in.' });
+//             }
+//             await queryDb('INSERT INTO attendance (in_latitude, in_longitude,daily_status_in, daily_status_intime, employee_id, company_id, attendance_date, check_in_time) VALUES (?, ?,?, ?, ?, ?, CURDATE(), ?)',
+//                 [latitude, longitude, dailyStatus, timeCount, decodedUserData.id, decodedUserData.company_id, formattedTime]);
+//             return res.status(200).json({ status: true, message: `Attendance marked as 'in' at ${formattedTime}.` });
+//         } else if (type == 'out') {
+//             const checkInResults = await queryDb('SELECT check_in_time FROM attendance WHERE employee_id = ? AND company_id = ? AND attendance_date = CURDATE()', [decodedUserData.id, decodedUserData.company_id]);
+//             if (checkInResults.length == 0) {
+//                 return res.status(400).json({ status: false, message: 'No check-in found for today. Please check in first.' });
+//             }
+//             const checkInTime = checkInResults[0].check_in_time;
+//             const duration = calculateDuration(checkInTime, formattedTime);
+//             const outTimeFormatted = rule.out_time ? `${String(rule.out_time).padStart(5, '0')}` : `${String('18:30').padStart(5, '0')}`;
+//             if (outTimeFormatted > formattedTime) {
+//                 dailyStatus = 'Early';
+//                 timeCount = trackTime(outTimeFormatted, formattedTime);
+//             } else if (outTimeFormatted < formattedTime) {
+//                 dailyStatus = 'Late';
+//                 timeCount = trackTime(outTimeFormatted, formattedTime);
+//             } else {
+//                 dailyStatus = 'On Time';
+//                 timeCount = '00:00';
+//             }
+//             await queryDb('UPDATE attendance SET daily_status_out=?, daily_status_outtime=?, check_out_time = ?, duration = ? WHERE employee_id = ? AND company_id = ? AND attendance_date = CURDATE()',
+//                 [dailyStatus, timeCount, formattedTime, duration, decodedUserData.id, decodedUserData.company_id]);
 
-            return res.status(200).json({ status: true, message: `Attendance marked as 'out' at ${formattedTime}. Duration: ${duration}.` });
-        } else {
-            return res.status(400).json({ status: false, message: 'Invalid attendance type. Use "in" or "out".' });
-        }
-    } catch (err) {
-        console.error(err);
-        return res.status(500).json({ status: false, message: 'Internal server error.', error: err });
-    }
-});
+//             return res.status(200).json({ status: true, message: `Attendance marked as 'out' at ${formattedTime}. Duration: ${duration}.` });
+//         } else {
+//             return res.status(400).json({ status: false, message: 'Invalid attendance type. Use "in" or "out".' });
+//         }
+//     } catch (err) {
+//         console.error(err);
+//         return res.status(500).json({ status: false, message: 'Internal server error.', error: err });
+//     }
+// });
 
 // router.post('/AttendanceGet', (req, res) => {
 
@@ -922,6 +922,7 @@ router.post('/api/data', async (req, res) => {
                     created,
                     attendance_date, profile_image,
                     branch_in_name, branch_out_name
+                    , late_coming_leaving, short_leave, short_leave_type, short_leave_reason
                 } = record[0];
 
                 allData.push({
@@ -943,7 +944,8 @@ router.post('/api/data', async (req, res) => {
                     attendance_date: attendance_date || date,
                     profile_image,
                     branch_in: branch_in_name,
-                    branch_out: branch_out_name
+                    branch_out: branch_out_name,
+                    late_coming_leaving, short_leave, short_leave_type, short_leave_reason
                 });
             }
             else {
@@ -975,7 +977,9 @@ const getAttendanceData = (companyId, employeeId, date) => {
     return new Promise((resolve, reject) => {
         // db.query('SELECT b.id, CONCAT(b.first_name, " ", b.last_name,"-",b.employee_id) AS first_name,CONCAT(b.first_name, " ", b.last_name,"-",b.employee_id) AS name,b.profile_image,a.in_ip,out_ip,a.in_latitude,a.out_ip, a.in_longitude,a.out_latitude,a.out_longitude, a.attendance_id, a.status, a.check_in_time, a.check_out_time, a.duration, a.created, a.attendance_date FROM employees b LEFT JOIN attendance a ON a.employee_id = b.id WHERE  b.employee_status=1 and b.status=1 and b.delete_status=0 and b.company_id = ? AND b.id = ? AND (a.attendance_date = ? OR a.attendance_date IS NULL)',
         db.query(`SELECT b.id, CONCAT(b.first_name, " ", b.last_name,"-",b.employee_id) AS first_name,CONCAT(b.first_name, " ", b.last_name,"-",b.employee_id) AS name,b.profile_image,a.in_ip,out_ip,a.in_latitude,a.out_ip, a.in_longitude,a.out_latitude,a.out_longitude, a.attendance_id, a.status, a.check_in_time, a.check_out_time, a.duration, a.created, a.attendance_date
-            ,bi.name AS branch_in_name,bo.name AS branch_out_name FROM employees b LEFT JOIN attendance a ON a.employee_id = b.id
+            ,bi.name AS branch_in_name,bo.name AS branch_out_name , a.late_coming_leaving, a.short_leave, a.short_leave_type, a.short_leave_reason
+            
+            FROM employees b LEFT JOIN attendance a ON a.employee_id = b.id
             LEFT JOIN branches AS bi 
     ON a.branch_id_in = bi.id
 LEFT JOIN branches AS bo 
