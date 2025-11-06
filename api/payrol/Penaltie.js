@@ -100,7 +100,7 @@ router.post('/penaltie/penaltiesData', async (req, res) => {
 
             return res.status(200).json({
                 status: true,
-                message: 'successfully submitted',
+                message: 'successfully Fetched',
                 data: Result,
             });
 
