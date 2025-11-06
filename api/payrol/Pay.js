@@ -859,6 +859,131 @@ router.get('/api/PayEmployeeSalaryDetails', async (req, res) => {
     }
 });
 
+// /api/PayEmployeeSalaryDetails  sme on post for app
+router.post('/api/EmployeeSalaryDetails', async (req, res) => {
+    const { userData, month, year, salaryStatus } = req.body;
+
+
+    let decodedUserData = null;
+
+    if (!month || !year) {
+        return res.status(400).json({ status: false, error: 'Month and Year are required' });
+    }
+
+    // Decode and validate userData
+    if (userData) {
+        try {
+            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+            decodedUserData = JSON.parse(decodedString);
+        } catch (error) {
+            return res.status(400).json({ status: false, error: 'Invalid userData format' });
+        }
+    }
+
+    if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+        return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
+    }
+
+    try {
+        let query = `SELECT esd.id AS salary_detail_id,
+                esd.employee_id,
+                esd.id,
+                esd.employee_name,
+                esd.present_days,
+                esd.month,
+                esd.year,
+                esd.half_days,
+                esd.absentee_days,
+                esd.leave_days,
+                esd.leave_requests,
+                esd.holidays,
+                esd.work_off,
+                esd.working_days,
+                esd.ctc_yearly,
+                esd.monthly_salary,
+                esd.basic_pay_amount,
+                esd.total_monthly_salary,
+                esd.status,
+                esd.add_stamp,
+                sc.component_name,
+                sc.amount
+            FROM employeesalarydetails AS esd
+            inner JOIN employees AS e ON esd.employee_id = e.id
+            LEFT JOIN salarycomponents AS sc
+            ON esd.id = sc.salary_detail_id WHERE esd.company_id = ? AND esd.month = ? AND esd.year = ?`;
+        let values = [decodedUserData.company_id, month, year];
+
+
+        query += ` AND esd.employee_id=?`;
+        values.push(decodedUserData.id);
+
+
+        // Approved, Pending
+        if (salaryStatus == 'Approved') {
+            query += ` AND esd.status=1 `;
+        } else if (salaryStatus == 'Pending') {
+            query += ` AND esd.status=0 `;
+        }
+        else if (salaryStatus == 'Hold') {
+            query += ` AND esd.status=2 `;
+        }
+
+
+
+        db.query(query, values, (err, results) => {
+            if (err) {
+                console.error('Database error:', err);
+                return res.status(500).json({ status: false, message: 'Database error', error: err });
+            }
+            // Group results by salary detail and attach components
+            const groupedData = results.reduce((acc, row) => {
+
+                if (!acc[row.salary_detail_id]) {
+                    acc[row.salary_detail_id] = {
+                        employee_id: row.employee_id,
+                        employee_name: row.employee_name,
+                        present_days: row.present_days,
+                        month: row.month,
+                        year: row.year,
+                        half_days: row.half_days,
+                        absentee_days: row.absentee_days,
+                        leave_days: row.leave_days,
+                        leave_requests: row.leave_requests,
+                        holidays: row.holidays,
+                        work_off: row.work_off,
+                        working_days: row.working_days,
+                        ctc_yearly: row.ctc_yearly,
+                        monthly_salary: row.monthly_salary,
+                        basic_pay_amount: row.basic_pay_amount,
+                        total_monthly_salary: row.total_monthly_salary,
+                        id: row.id,
+                        status: row.status,
+                        components: [],
+                    };
+                }
+                if (row.component_name) {
+                    acc[row.salary_detail_id].components.push({
+                        component_name: row.component_name,
+                        amount: row.amount,
+                    });
+                }
+                return acc;
+            }, {});
+
+            res.json({
+                status: true,
+                month,
+                year,
+                data: Object.values(groupedData),
+            });
+
+        });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ status: false, error: 'Server error fetching PayDetails' });
+    }
+});
+
 
 router.post("/api/Upadate", (req, res) => {
     const { id, userData, paymentStatus = 1 } = req.body;
@@ -1383,222 +1508,222 @@ const addGracePeriod = (rowData) => {
 // ✅ Main Sandwich Penalty API
 // ===============================
 router.post("/calculate-Sandwichpenalties", async (req, res) => {
-  try {
-    const { userData, month, year, UserEmployeeId } = req.body;
-    let decodedUserData = null;
+    try {
+        const { userData, month, year, UserEmployeeId } = req.body;
+        let decodedUserData = null;
 
-    // Decode Base64 userData
-    if (userData) {
-      try {
-        const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-        decodedUserData = JSON.parse(decodedString);
-      } catch (error) {
-        return res
-          .status(400)
-          .json({ status: false, error: "Invalid userData format" });
-      }
-    }
+        // Decode Base64 userData
+        if (userData) {
+            try {
+                const decodedString = Buffer.from(userData, "base64").toString("utf-8");
+                decodedUserData = JSON.parse(decodedString);
+            } catch (error) {
+                return res
+                    .status(400)
+                    .json({ status: false, error: "Invalid userData format" });
+            }
+        }
 
-    if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
-      return res
-        .status(400)
-        .json({ status: false, error: "Employee ID and Company ID are required" });
-    }
+        if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+            return res
+                .status(400)
+                .json({ status: false, error: "Employee ID and Company ID are required" });
+        }
 
-    const employeeId = UserEmployeeId || decodedUserData.id;
-    const companyId = decodedUserData.company_id;
+        const employeeId = UserEmployeeId || decodedUserData.id;
+        const companyId = decodedUserData.company_id;
 
-    // Calculate month range
-    const startDate = new Date(`${year}-${month}-01`);
-    const endDate = new Date(year, month, 0);
+        // Calculate month range
+        const startDate = new Date(`${year}-${month}-01`);
+        const endDate = new Date(year, month, 0);
 
-    // Fetch Employee Info
-    const [EmployeeRows] = await db.promise().query(
-      `SELECT id, first_name, last_name, date_of_Joining, last_day 
+        // Fetch Employee Info
+        const [EmployeeRows] = await db.promise().query(
+            `SELECT id, first_name, last_name, date_of_Joining, last_day 
        FROM employees 
        WHERE id = ? AND company_id = ?`,
-      [employeeId, companyId]
-    );
+            [employeeId, companyId]
+        );
 
-    if (!EmployeeRows.length) {
-      return res.status(404).json({ status: false, error: "Employee not found" });
-    }
+        if (!EmployeeRows.length) {
+            return res.status(404).json({ status: false, error: "Employee not found" });
+        }
 
-    const employee = EmployeeRows[0];
-    const doj = new Date(employee.date_of_Joining);
-    const lastDay = employee.last_day ? new Date(employee.last_day) : null;
+        const employee = EmployeeRows[0];
+        const doj = new Date(employee.date_of_Joining);
+        const lastDay = employee.last_day ? new Date(employee.last_day) : null;
 
-    // Effective range based on DOJ and last working day
-    const effectiveStart = doj > startDate ? doj : startDate;
-    const effectiveEnd = lastDay && lastDay < endDate ? lastDay : endDate;
+        // Effective range based on DOJ and last working day
+        const effectiveStart = doj > startDate ? doj : startDate;
+        const effectiveEnd = lastDay && lastDay < endDate ? lastDay : endDate;
 
-    // Generate all dates in range
-    const dates = [];
-    let currentDate = new Date(effectiveStart);
-    while (currentDate <= effectiveEnd) {
-      dates.push(currentDate.toISOString().split("T")[0]);
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
+        // Generate all dates in range
+        const dates = [];
+        let currentDate = new Date(effectiveStart);
+        while (currentDate <= effectiveEnd) {
+            dates.push(currentDate.toISOString().split("T")[0]);
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
 
-    // Fetch work week config
-    const [workWeekData] = await db.promise().query(
-      `SELECT ww.* FROM work_week ww 
+        // Fetch work week config
+        const [workWeekData] = await db.promise().query(
+            `SELECT ww.* FROM work_week ww 
        JOIN employees e ON e.work_week_id = ww.id
        WHERE e.id = ? AND e.company_id = ? 
        AND e.status = 1 AND e.delete_status = 0`,
-      [employeeId, companyId]
-    );
-    const workWeek = workWeekData.length > 0 ? workWeekData[0] : null;
+            [employeeId, companyId]
+        );
+        const workWeek = workWeekData.length > 0 ? workWeekData[0] : null;
 
-    // Fetch approved leaves
-    const [leaves] = await db.promise().query(
-      `SELECT start_date, end_date FROM leaves 
+        // Fetch approved leaves
+        const [leaves] = await db.promise().query(
+            `SELECT start_date, end_date FROM leaves 
        WHERE deletestatus = 0 AND status = 1 AND admin_status = 1 
        AND employee_id = ? AND company_id = ?`,
-      [employeeId, companyId]
-    );
+            [employeeId, companyId]
+        );
 
-    // ===============================
-    // Initialize counters
-    // ===============================
-    let penaltyCount = {
-      absentDays: 0,
-      sandwichLeaves: 0,
-      presentDays: 0,
-      leaves: 0,
-      holidays: 0,
-      weeklyOffs: 0,
-    };
+        // ===============================
+        // Initialize counters
+        // ===============================
+        let penaltyCount = {
+            absentDays: 0,
+            sandwichLeaves: 0,
+            presentDays: 0,
+            leaves: 0,
+            holidays: 0,
+            weeklyOffs: 0,
+        };
 
-    const daysOfWeek = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+        const daysOfWeek = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
-    // ===============================
-    // Step 1: Count regular attendance, leaves, holidays, WOs
-    // ===============================
-    const holidayOrWO = [];
+        // ===============================
+        // Step 1: Count regular attendance, leaves, holidays, WOs
+        // ===============================
+        const holidayOrWO = [];
 
-    for (let i = 0; i < dates.length; i++) {
-      const date = dates[i];
-      const dateObj = new Date(date);
-      const dayOfWeek = dateObj.getDay();
-      const weekNumber = Math.ceil(dateObj.getDate() / 7);
-      const dayKey = `${daysOfWeek[dayOfWeek]}${weekNumber}`;
-      let status = "Absent";
+        for (let i = 0; i < dates.length; i++) {
+            const date = dates[i];
+            const dateObj = new Date(date);
+            const dayOfWeek = dateObj.getDay();
+            const weekNumber = Math.ceil(dateObj.getDate() / 7);
+            const dayKey = `${daysOfWeek[dayOfWeek]}${weekNumber}`;
+            let status = "Absent";
 
-      const isWeeklyOff = workWeek && workWeek[dayKey] === 3;
-      const isHolidayToday = (await checkHoliday(companyId, date)).length > 0;
+            const isWeeklyOff = workWeek && workWeek[dayKey] === 3;
+            const isHolidayToday = (await checkHoliday(companyId, date)).length > 0;
 
-      // Check Attendance
-      const attendance = await getAttendanceData(companyId, employeeId, date);
-      if (attendance.length > 0 && attendance[0].status.toLowerCase() !== "absent") {
-        status = "Present";
-        penaltyCount.presentDays++;
-        continue;
-      }
+            // Check Attendance
+            const attendance = await getAttendanceData(companyId, employeeId, date);
+            if (attendance.length > 0 && attendance[0].status.toLowerCase() !== "absent") {
+                status = "Present";
+                penaltyCount.presentDays++;
+                continue;
+            }
 
-      // Check Leave
-      const leave = leaves.find(
-        (lv) => date >= lv.start_date.split("T")[0] && date <= lv.end_date.split("T")[0]
-      );
-      if (leave) {
-        status = "Leave";
-        penaltyCount.leaves++;
-        continue;
-      }
+            // Check Leave
+            const leave = leaves.find(
+                (lv) => date >= lv.start_date.split("T")[0] && date <= lv.end_date.split("T")[0]
+            );
+            if (leave) {
+                status = "Leave";
+                penaltyCount.leaves++;
+                continue;
+            }
 
-      // Check Holiday or Weekly Off
-      if (isHolidayToday) {
-        status = "Holiday";
-        penaltyCount.holidays++;
-        holidayOrWO.push(date);
-      } else if (isWeeklyOff) {
-        status = "WO";
-        penaltyCount.weeklyOffs++;
-        holidayOrWO.push(date);
-      } else {
-        penaltyCount.absentDays++;
-      }
-    }
-
-    // ===============================
-    // Step 2: Group continuous holidays/weekoffs into blocks
-    // ===============================
-    const blocks = [];
-    let currentBlock = [];
-
-    for (let i = 0; i < holidayOrWO.length; i++) {
-      if (currentBlock.length === 0) {
-        currentBlock.push(holidayOrWO[i]);
-      } else {
-        const prev = new Date(holidayOrWO[i - 1]);
-        const curr = new Date(holidayOrWO[i]);
-        const diff = (curr - prev) / (1000 * 60 * 60 * 24);
-
-        if (diff === 1) {
-          currentBlock.push(holidayOrWO[i]);
-        } else {
-          blocks.push(currentBlock);
-          currentBlock = [holidayOrWO[i]];
+            // Check Holiday or Weekly Off
+            if (isHolidayToday) {
+                status = "Holiday";
+                penaltyCount.holidays++;
+                holidayOrWO.push(date);
+            } else if (isWeeklyOff) {
+                status = "WO";
+                penaltyCount.weeklyOffs++;
+                holidayOrWO.push(date);
+            } else {
+                penaltyCount.absentDays++;
+            }
         }
-      }
+
+        // ===============================
+        // Step 2: Group continuous holidays/weekoffs into blocks
+        // ===============================
+        const blocks = [];
+        let currentBlock = [];
+
+        for (let i = 0; i < holidayOrWO.length; i++) {
+            if (currentBlock.length === 0) {
+                currentBlock.push(holidayOrWO[i]);
+            } else {
+                const prev = new Date(holidayOrWO[i - 1]);
+                const curr = new Date(holidayOrWO[i]);
+                const diff = (curr - prev) / (1000 * 60 * 60 * 24);
+
+                if (diff === 1) {
+                    currentBlock.push(holidayOrWO[i]);
+                } else {
+                    blocks.push(currentBlock);
+                    currentBlock = [holidayOrWO[i]];
+                }
+            }
+        }
+        if (currentBlock.length > 0) blocks.push(currentBlock);
+
+        // ===============================
+        // Step 3: Check each block's before & after status
+        // ===============================
+        let sandwichCount = 0;
+
+        for (const block of blocks) {
+            const firstDate = block[0];
+            const lastDate = block[block.length - 1];
+
+            const prevDate = new Date(firstDate);
+            prevDate.setDate(prevDate.getDate() - 1);
+            const nextDate = new Date(lastDate);
+            nextDate.setDate(nextDate.getDate() + 1);
+
+            const prevStr = prevDate.toISOString().split("T")[0];
+            const nextStr = nextDate.toISOString().split("T")[0];
+
+            const prevAbsentOrLeave = await isAbsentOrLeave(prevStr, companyId, employeeId, leaves);
+            const nextAbsentOrLeave = await isAbsentOrLeave(nextStr, companyId, employeeId, leaves);
+
+            console.log(
+                "Block check:",
+                firstDate,
+                "to",
+                lastDate,
+                "=>",
+                prevStr,
+                prevAbsentOrLeave,
+                nextStr,
+                nextAbsentOrLeave
+            );
+
+            // ✅ Only count if both sides are absent/leave
+            if (prevAbsentOrLeave && nextAbsentOrLeave) {
+                sandwichCount += block.length;
+            }
+        }
+
+        penaltyCount.sandwichLeaves = sandwichCount;
+
+        // ===============================
+        // Final Response
+        // ===============================
+        return res.status(200).json({
+            status: true,
+            message: "Penalties calculated successfully",
+            data: penaltyCount,
+        });
+    } catch (err) {
+        return res.status(500).json({
+            status: false,
+            message: "Error calculating penalties",
+            error: err.message || err,
+        });
     }
-    if (currentBlock.length > 0) blocks.push(currentBlock);
-
-    // ===============================
-    // Step 3: Check each block's before & after status
-    // ===============================
-    let sandwichCount = 0;
-
-    for (const block of blocks) {
-      const firstDate = block[0];
-      const lastDate = block[block.length - 1];
-
-      const prevDate = new Date(firstDate);
-      prevDate.setDate(prevDate.getDate() - 1);
-      const nextDate = new Date(lastDate);
-      nextDate.setDate(nextDate.getDate() + 1);
-
-      const prevStr = prevDate.toISOString().split("T")[0];
-      const nextStr = nextDate.toISOString().split("T")[0];
-
-      const prevAbsentOrLeave = await isAbsentOrLeave(prevStr, companyId, employeeId, leaves);
-      const nextAbsentOrLeave = await isAbsentOrLeave(nextStr, companyId, employeeId, leaves);
-
-      console.log(
-        "Block check:",
-        firstDate,
-        "to",
-        lastDate,
-        "=>",
-        prevStr,
-        prevAbsentOrLeave,
-        nextStr,
-        nextAbsentOrLeave
-      );
-
-      // ✅ Only count if both sides are absent/leave
-      if (prevAbsentOrLeave && nextAbsentOrLeave) {
-        sandwichCount += block.length;
-      }
-    }
-
-    penaltyCount.sandwichLeaves = sandwichCount;
-
-    // ===============================
-    // Final Response
-    // ===============================
-    return res.status(200).json({
-      status: true,
-      message: "Penalties calculated successfully",
-      data: penaltyCount,
-    });
-  } catch (err) {
-    return res.status(500).json({
-      status: false,
-      message: "Error calculating penalties",
-      error: err.message || err,
-    });
-  }
 });
 
 // ===============================
@@ -1607,48 +1732,48 @@ router.post("/calculate-Sandwichpenalties", async (req, res) => {
 
 // Check if day is a company holiday
 const checkHoliday = async (companyId, date) => {
-  try {
-    const [holidayData] = await db.promise().query(
-      `SELECT id FROM holiday WHERE company_id = ? AND DATE(date) = ? AND status = 1`,
-      [companyId, date]
-    );
-    return holidayData;
-  } catch (error) {
-    console.error("Error checking holiday:", error);
-    return [];
-  }
+    try {
+        const [holidayData] = await db.promise().query(
+            `SELECT id FROM holiday WHERE company_id = ? AND DATE(date) = ? AND status = 1`,
+            [companyId, date]
+        );
+        return holidayData;
+    } catch (error) {
+        console.error("Error checking holiday:", error);
+        return [];
+    }
 };
 
 // Check if date is absent or on leave
 async function isAbsentOrLeave(date, companyId, employeeId, leaveList) {
-  const attendance = await getAttendanceData(companyId, employeeId, date);
-  if (attendance.length > 0 && attendance[0].status.toLowerCase() !== "absent") {
-    return false; // present day, not absent/leave
-  }
+    const attendance = await getAttendanceData(companyId, employeeId, date);
+    if (attendance.length > 0 && attendance[0].status.toLowerCase() !== "absent") {
+        return false; // present day, not absent/leave
+    }
 
-  const isOnLeave = leaveList.some(
-    (leave) =>
-      date >= leave.start_date.split("T")[0] && date <= leave.end_date.split("T")[0]
-  );
+    const isOnLeave = leaveList.some(
+        (leave) =>
+            date >= leave.start_date.split("T")[0] && date <= leave.end_date.split("T")[0]
+    );
 
-  return isOnLeave || attendance.length === 0;
+    return isOnLeave || attendance.length === 0;
 }
 
 // Fetch attendance record
 const getAttendanceData = async (companyId, employeeId, date) => {
-  try {
-    const [rows] = await db.promise().query(
-      `SELECT attendance_id, status FROM attendance 
+    try {
+        const [rows] = await db.promise().query(
+            `SELECT attendance_id, status FROM attendance 
        WHERE company_id = ? AND employee_id = ? 
        AND DATE(attendance_date) = ? 
        AND (attendance_status = 1 OR approval_status = 1)`,
-      [companyId, employeeId, date]
-    );
-    return rows;
-  } catch (error) {
-    console.error("Error fetching attendance data:", error);
-    return [];
-  }
+            [companyId, employeeId, date]
+        );
+        return rows;
+    } catch (error) {
+        console.error("Error fetching attendance data:", error);
+        return [];
+    }
 };
 
 

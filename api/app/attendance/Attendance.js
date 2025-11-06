@@ -804,6 +804,7 @@ router.post('/api/Attendancedirectory', async (req, res) => {
         } else {
             employeeFilter += ` AND b.employee_status = 1 AND b.status = 1 AND b.delete_status = 0`;
         }
+
         if (departmentId && departmentId != 0) {
             employeeFilter += ` AND b.department = ?`;
             filterParams.push(departmentId);
@@ -811,8 +812,6 @@ router.post('/api/Attendancedirectory', async (req, res) => {
             employeeFilter += ` AND b.sub_department = ?`;
             filterParams.push(subDepartmentid);
         }
-
-
 
         // Add search filter if provided
         if (search && search.trim() !== '') {
