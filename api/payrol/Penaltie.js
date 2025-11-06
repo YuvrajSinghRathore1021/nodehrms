@@ -62,6 +62,7 @@ router.post('/penaltie/submit', async (req, res) => {
 router.post('/penaltie/penaltiesData', async (req, res) => {
     try {
         const { userData, employee_id, month, year, type } = req.body;
+
         // SalaryDetails
 
         let decodedUserData = null;
@@ -80,9 +81,9 @@ router.post('/penaltie/penaltiesData', async (req, res) => {
                 error: 'Employee ID and Company ID are required',
             });
         }
-
+        let employeeId = employee_id || decodedUserData.id;
         let Query = `SELECT penalty_id, employee_id, company_id, type, month, year, penalty_type, penaltie_for, penalty_name,penalty_count, penalty_reason, penalty_date, penalty_amount, issued_by, status, remarks, add_stamp FROM penalties WHERE company_id = ?  AND month = ? AND year = ? And penaltie_for = ?`;
-        let QueryArray = [decodedUserData.company_id, month, year, employee_id];
+        let QueryArray = [decodedUserData.company_id, month, year, employeeId];
 
         if (type == "SalaryDetails") {
             Query += ' AND status = 2';

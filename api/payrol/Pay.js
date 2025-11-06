@@ -861,15 +861,12 @@ router.get('/api/PayEmployeeSalaryDetails', async (req, res) => {
 
 // /api/PayEmployeeSalaryDetails  sme on post for app
 router.post('/api/EmployeeSalaryDetails', async (req, res) => {
-    const { userData, month, year, salaryStatus } = req.body;
+    const { userData, month, year, salaryStatus } =req.body;
 
 
     let decodedUserData = null;
 
-    if (!month || !year) {
-        return res.status(400).json({ status: false, error: 'Month and Year are required' });
-    }
-
+   
     // Decode and validate userData
     if (userData) {
         try {
@@ -883,6 +880,11 @@ router.post('/api/EmployeeSalaryDetails', async (req, res) => {
     if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
     }
+    
+     if (!month || !year) {
+        return res.status(400).json({ status: false, error: 'Month and Year are required' });
+    }
+
 
     try {
         let query = `SELECT esd.id AS salary_detail_id,
