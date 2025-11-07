@@ -15,11 +15,8 @@ const { json } = require("body-parser");
 //         );
 //         if (leaveRules.length > 0) {
 //             for (const rule of leaveRules) {
-
-
-//             }
+// //             }
 //         }
-
 //     } catch (err) {
 //         res.status(500).json({
 //             status: false,

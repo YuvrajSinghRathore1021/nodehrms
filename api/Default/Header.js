@@ -204,6 +204,17 @@ router.post('/api/GetEmployeesProfile', async (req, res) => {
     res.status(result.status ? 200 : 400).json(result);
 });
 
+router.post('/EmployeesProfile', async (req, res) => {
+
+
+
+    
+});
+
+
+
+
+
 router.post('/api/Deleteapi', (req, res) => {
     const { userData } = req.body;
     let decodedUserData = null;

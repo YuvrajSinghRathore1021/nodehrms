@@ -8,7 +8,7 @@ const xlsx = require("xlsx");
 // 🔧 CONFIGURATION
 // =====================
 const API_URL = "http://localhost:2200/AttendanceApp/api/Attendancedirectory";
-const EMAIL_TO = ["yuvrajsinghrathore1021@gmail.com","sunilsharma2037@gmail.com"]; 
+const EMAIL_TO = ["yuvrajsinghrathore1021@gmail.com"];//, "Sumit.singh00027@gmail.com"
 const EMAIL_FROM = "indiadeals2004@gmail.com";
 const EMAIL_PASS = "iwfxsrvhmnwjpxmk";
 
