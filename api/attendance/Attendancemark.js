@@ -21,7 +21,7 @@ function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
 router.post('/Attendancemark', async (req, res) => {
     ///09:05:32=attendanceTime
     ////attendanceDate like 2025-08-15
-    const { type, userData, latitude, longitude, attendanceType = "", employeeId = "0", attendanceTime = "", attendanceDate = "", reason = "" } = req.body;
+    const { type, userData, latitude, longitude, attendanceType = "", employeeId = "0", attendanceTime = "", attendanceDate = "", reason = "", liveFaceRecognition = 0 } = req.body;
     // const currentDate = new Date();
     const currentDate = attendanceDate ? new Date(`${attendanceDate}T00:00:00`) : new Date();
     const formattedTime = attendanceTime || `${String(currentDate.getHours()).padStart(2, '0')}:${String(currentDate.getMinutes()).padStart(2, '0')}:${String(currentDate.getSeconds()).padStart(2, '0')}`;
@@ -58,14 +58,17 @@ router.post('/Attendancemark', async (req, res) => {
 
         let empbranch_id = employeeResults[0].branch_id;
         if (empbranch_id != 0 && attendanceType != "hr") {
-            const branchResults = await queryDb('SELECT id, company_id, name, location_status, latitude, longitude, radius, ip, ip_status,status FROM branches WHERE id = ? AND company_id = ? AND status=1', [employeeResults[0].branch_id, companyId]);
+            const branchResults = await queryDb('SELECT id, company_id, name, location_status, latitude, longitude, radius, ip, ip_status,status,location_required,location_break FROM branches WHERE id = ? AND company_id = ? AND status=1', [employeeResults[0].branch_id, companyId]);
             if (branchResults.length === 0) {
 
             } else {
                 if (branchResults[0].ip_status == 1 && branchResults[0].ip != IpHandal) {
                     return res.status(200).json({ status: false, message: 'You are not allowed to mark attendance from this IP address.' });
                 }
-                if (branchResults[0].location_status === 1) {
+                if (branchResults[0].location_status == 1
+                    && ((branchResults[0].location_required == 1 && (type == 'in' || type == 'out')) || (branchResults[0].location_required == 2 && type == 'in') || (branchResults[0].location_required == 3 && type == 'out')
+                        || ((branchResults[0].location_break == 1 && (type == 'Start_break' || type == 'End_break')) || (branchResults[0].location_break == 2 && type == 'Start_break') || (branchResults[0].location_break == 3 && type == 'End_break')))
+                ) {
                     const distance = getDistanceFromLatLonInMeters(latitude, longitude, branchResults[0].latitude, branchResults[0].longitude);
                     if (distance > branchResults[0].radius) {
                         return res.status(200).json({
@@ -312,7 +315,7 @@ router.post('/Attendancemark', async (req, res) => {
                     statusValue = shortleaveResult.attendanceStatusNewValue;
                 }
             }
-           
+
 
 
 

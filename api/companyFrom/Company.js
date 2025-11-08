@@ -233,7 +233,7 @@ router.get('/api/data', (req, res) => {
     }
     let query = 'SELECT a.id, a.company_name, a.owner_name,a.member, a.logo, a.industry, a.headquarters, a.website, a.phone_number, a.email, a.address_id FROM companies a WHERE ';
     const queryParams = [];
-    if (decodedUserData.company_id != 6) {
+    if (decodedUserData.company_id == 6) {
         query += ' 1=1 ';
 
     } else {
@@ -656,6 +656,45 @@ router.post('/api/AddSubDepartment', (req, res) => {
         }
     );
 });
+
+
+router.post('/api/departmentDelete', (req, res) => {
+    const { userData, id } = req.body;
+    let decodedUserData = null;
+    // Decode userData
+    if (userData) {
+        try {
+            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+            decodedUserData = JSON.parse(decodedString);
+        } catch (error) {
+            return res.status(400).json({ status: false, error: 'Invalid userData' });
+        }
+    }
+    // Validate decoded userData
+    const company_id = decodedUserData.company_id;
+
+    // Validate input
+    if (!company_id || !id) {
+        return res.status(400).json({ status: false, error: ' All Filds are required' });
+    }
+
+    // Insert the new sub-department into the database
+    db.query(
+        'DELETE FROM `departments` WHERE company_id=? and id=?',
+        [company_id, id],
+        (err, result) => {
+            if (err) {
+                console.error('Database error:', err);
+                return res.status(500).json({ status: false, error: 'Error' });
+            }
+
+
+            res.status(201).json({ status: true, message: 'Department DELETE successfully' });
+        }
+    );
+});
+
+
 // Department page api End----
 
 
@@ -1096,84 +1135,6 @@ router.post('/employee-hierarchyTeam', (req, res) => {
 
 // Branch code 
 
-// router.get("/Branchfetch", (req, res) => {
-//     const limit = parseInt(req.query.limit, 10) || 10;
-//     const page = parseInt(req.query.page, 10) || 1;
-//     const offset = (page - 1) * limit;
-
-//     const { userData } = req.query;
-//     let decodedUserData = null;
-
-//     if (userData) {
-//         try {
-//             const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-//             decodedUserData = JSON.parse(decodedString);
-//         } catch (error) {
-//             return res.status(400).json({ status: false, error: "Invalid userData" });
-//         }
-//     }
-
-//     if (!decodedUserData.company_id) {
-//         return res
-//             .status(400)
-//             .json({ status: false, error: "Company ID is missing or invalid" });
-//     }
-//     // const branchesQuery = ` SELECT * FROM branches WHERE company_id=? ORDER BY id DESC LIMIT ? OFFSET ? `;
-//     const branchesQuery = `
-//     SELECT 
-//       b.*,
-//       COALESCE(GROUP_CONCAT(e.id ORDER BY e.id SEPARATOR ','), '') AS branch_employee
-//     FROM branches b
-//     LEFT JOIN employees e 
-//       ON e.branch_id = b.id 
-//       AND e.company_id = b.company_id 
-//       AND e.status = 1 
-//       AND e.delete_status = 0
-//     WHERE b.company_id = ?
-//     GROUP BY b.id
-//     ORDER BY b.id DESC
-//     LIMIT ? OFFSET ?;
-//   `;
-
-//     db.query(
-//         branchesQuery,
-//         [decodedUserData.company_id, limit, offset],
-//         (err, results) => {
-//             if (err) {
-//                 console.error("Error fetching branches records:", err);
-//                 return res.status(500).json({ status: false, error: "Server error" });
-//             }
-//             const countQuery = `
-//             SELECT COUNT(id) as total FROM branches WHERE company_id=?
-//         `;
-//             db.query(
-//                 countQuery,
-//                 [decodedUserData.company_id],
-//                 (countErr, countResults) => {
-//                     if (countErr) {
-//                         console.error("Error fetching total branches records:", countErr);
-//                         return res
-//                             .status(500)
-//                             .json({ status: false, error: "Server error" });
-//                     }
-//                     const total = countResults[0].total;
-//                     const recordsWithSrnu = results.map((record, index) => ({
-//                         srnu: offset + index + 1,
-//                         ...record
-//                     }));
-//                     res.json({
-//                         status: true,
-//                         records: recordsWithSrnu,
-//                         total,
-//                         page,
-//                         limit
-//                     });
-//                 }
-//             );
-//         }
-//     );
-// });
-
 router.get("/Branchfetch", (req, res) => {
     const limit = parseInt(req.query.limit, 10) || 10;
     const page = parseInt(req.query.page, 10) || 1;
@@ -1278,114 +1239,8 @@ router.get("/Branchfetch", (req, res) => {
 });
 
 
-
-
-// router.post("/BranchUpdate", async (req, res) => {
-//     const { id, userData, name, latitude, longitude, radius, ip, ip_status, location_status, branch_employee } = req.body;
-
-//     if (!id) {
-//         return res.status(400).json({ status: false, message: "ID is required to update branch." });
-//     }
-
-//     // Decode userData
-//     let decodedUserData = null;
-//     try {
-//         const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-//         decodedUserData = JSON.parse(decodedString);
-//     } catch (error) {
-//         return res.status(400).json({ status: false, error: "Invalid userData" });
-//     }
-
-//     if (!decodedUserData?.company_id) {
-//         return res.status(400).json({ status: false, error: "Company ID is missing or invalid" });
-//     }
-
-//     try {
-//         // 1. Update branch data
-//         const [updateResult] = await db.promise().query(
-//             `UPDATE branches 
-//              SET name=?, location_status=?, latitude=?, longitude=?, radius=?, ip=?, ip_status=? 
-//              WHERE id = ? AND company_id=?`,
-//             [name, location_status, latitude, longitude, radius, ip, ip_status, id, decodedUserData.company_id]
-//         );
-
-//         if (updateResult.affectedRows === 0) {
-//             return res.status(404).json({ status: false, message: "Branch not found or no changes made." });
-//         }
-
-//         // 2. Handle branch employees
-//         if (branch_employee) {
-//             let employeeIds = [];
-
-//             try {
-//                 let cleaned = branch_employee;
-
-//                 // If branch_employee is double quoted (like "\"[109,110]\"")
-//                 if (typeof cleaned === "string" && cleaned.startsWith("\"") && cleaned.endsWith("\"")) {
-//                     cleaned = cleaned.slice(1, -1);
-//                 }
-
-//                 // Try parsing JSON
-//                 if (typeof cleaned === "string") {
-//                     if (cleaned.startsWith("[") && cleaned.endsWith("]")) {
-//                         employeeIds = JSON.parse(cleaned);
-//                     } else {
-//                         employeeIds = cleaned.split(",");
-//                     }
-//                 } else if (Array.isArray(cleaned)) {
-//                     employeeIds = cleaned;
-//                 }
-
-//                 // Convert to integers
-//                 employeeIds = employeeIds.map(e => parseInt(e, 10)).filter(Boolean);
-
-//             } catch (err) {
-//                 return res.status(400).json({ status: false, error: "Invalid branch_employee format" });
-//             }
-
-//             // Get old employee IDs for this branch
-//             const [oldEmpResults] = await db.promise().query(
-//                 "SELECT id FROM employees WHERE branch_id = ? AND company_id = ?",
-//                 [id, decodedUserData.company_id]
-//             );
-//             const oldEmployeeIds = oldEmpResults.map(row => row.id);
-
-//             // Employees to remove
-//             const toRemove = oldEmployeeIds.filter(empId => !employeeIds.includes(empId));
-
-//             // Employees to add
-//             const toAdd = employeeIds.filter(empId => !oldEmployeeIds.includes(empId));
-
-//             if (toRemove.length > 0) {
-//                 await db.promise().query(
-//                     "UPDATE employees SET branch_id = NULL WHERE id IN (?) AND company_id = ?",
-//                     [toRemove, decodedUserData.company_id]
-//                 );
-//             }
-
-//             if (toAdd.length > 0) {
-//                 await db.promise().query(
-//                     "UPDATE employees SET branch_id = ? WHERE id IN (?) AND company_id = ?",
-//                     [id, toAdd, decodedUserData.company_id]
-//                 );
-//             }
-//         }
-
-//         return res.status(200).json({ status: true, message: "Branch updated successfully." });
-
-//     } catch (error) {
-//         console.error("Error in BranchUpdate:", error);
-//         return res.status(500).json({
-//             status: false,
-//             message: "Error updating branch.",
-//             error: error.message
-//         });
-//     }
-// });
-
-
 router.post("/BranchUpdate", async (req, res) => {
-    const { id, userData, name, latitude, longitude, radius, ip, ip_status, is_admin, location_status, branch_employee } = req.body;
+    const { id, userData, name, latitude, longitude, location_required,location_break, radius, ip, ip_status, is_admin, location_status, branch_employee } = req.body;
 
 
     // Decode userData
@@ -1412,8 +1267,8 @@ router.post("/BranchUpdate", async (req, res) => {
         const [updateResult] = await db.promise().query(
             `UPDATE branches 
              SET name=?, location_status=?, latitude=?, longitude=?, radius=?, ip=?, ip_status=? ,is_admin=?
-             WHERE id = ? AND company_id=?`,
-            [name, location_status, latitude, longitude, radius, ip, ip_status, is_admin, id, decodedUserData.company_id]
+             ,location_required=? ,location_break =? WHERE id = ? AND company_id=?`,
+            [name, location_status, latitude, longitude, radius, ip, ip_status, is_admin, location_required,location_break, id, decodedUserData.company_id]
         );
 
         if (updateResult.affectedRows === 0) {
@@ -1493,7 +1348,7 @@ router.post("/BranchUpdate", async (req, res) => {
 
 
 router.post("/BranchAdd", (req, res) => {
-    const { name, latitude, longitude, radius, userData, ip, ip_status, location_status, is_admin } = req.body;
+    const { name, latitude, longitude, radius, location_required,location_break, userData, ip, ip_status, location_status, is_admin } = req.body;
 
     let decodedUserData = null;
     if (userData) {
@@ -1510,8 +1365,8 @@ router.post("/BranchAdd", (req, res) => {
 
     const companyId = decodedUserData.company_id;
     db.query(
-        "INSERT INTO branches (name,location_status, latitude, longitude, radius , company_id,ip,ip_status,is_admin) VALUES (?,?,?,?, ?, ?,?,?,?)",
-        [name, location_status, latitude, longitude, radius, companyId, ip, ip_status, is_admin],
+        "INSERT INTO branches (name,location_status, latitude, longitude, radius , company_id,ip,ip_status,is_admin,location_required,location_break) VALUES (?,?,?,?,?,?, ?, ?,?,?,?)",
+        [name, location_status, latitude, longitude, radius, companyId, ip, ip_status, is_admin, location_required,location_break],
         (err, insertResult) => {
             if (err) {
                 console.error("Error inserting branch:", err);

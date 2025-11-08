@@ -8,7 +8,7 @@ const xlsx = require("xlsx");
 // 🔧 CONFIGURATION
 // =====================
 const API_URL = "http://localhost:2200/AttendanceApp/api/Attendancedirectory";
-const EMAIL_TO = ["yuvrajsinghrathore1021@gmail.com"];//, "Sumit.singh00027@gmail.com"
+const EMAIL_TO = ["sunilsharma2037@gmail.com"];//, "Sumit.singh00027@gmail.com"
 const EMAIL_FROM = "indiadeals2004@gmail.com";
 const EMAIL_PASS = "iwfxsrvhmnwjpxmk";
 
@@ -26,14 +26,29 @@ const transporter = nodemailer.createTransport({
 // =====================
 // 📊 Generate Excel Function (using XLSX)
 // =====================
-async function generateExcelAndSendMail() {
+
+let companydata = [
+  { id: 6, name: "India Deals Portal Pvt Ltd", email: "sunilsharma2037@gmail.com,yuvrajsinghrathore1021@gmail.com" },
+  { id: 8, name: "India Deals Portal Pvt Ltd", email: "Sumit.singh00027@gmail.com" },
+]
+
+async function generateExcelAndSendMailc() {
+  for (let i = 0; i < companydata.length; i++) {
+    const companyId = companydata[i].id;
+    const companyEmail = companydata[i].email;
+    await generateExcelAndSendMail(companyId, companyEmail);
+  }
+}
+
+
+async function generateExcelAndSendMail(companyId, companyEmail) {
   try {
     console.log("🔄 Fetching attendance data...");
 
     // 1️⃣ Fetch data from API
     const response = await axios.post(API_URL, {
       userData: '',
-      companyId: 8,
+      companyId: companyId,
       date: new Date().toISOString().split("T")[0],
     });
     const data = response.data.Attendanceemployees;
@@ -43,14 +58,14 @@ async function generateExcelAndSendMail() {
       return;
     }
     // === 1️⃣ Format data for Excel ===
+    // "Sr No": emp.srnu,
     const datanew = data.map((emp) => ({
-      "Sr No": emp.srnu,
       "Employee Name": emp.first_name,
       "Date": emp.attendance_date,
+      "Status": emp.status,
       "Check In": emp.check_in_time || "-",
       "Check Out": emp.check_out_time || "-",
       "Duration": emp.duration || "-",
-      "Status": emp.status,
       "Branch In": emp.branch_in || "-",
       "Branch Out": emp.branch_out || "-",
     }));
@@ -73,7 +88,8 @@ async function generateExcelAndSendMail() {
     const summary = response.data.summary;
     await transporter.sendMail({
       from: `"HRMS Attendance Bot" <${EMAIL_FROM}>`,
-      to: EMAIL_TO.join(", "),
+      // to: EMAIL_TO.join(", "),
+      to: companyEmail,
       subject: `Attendance Report - ${new Date().toLocaleDateString()}`,
       text: `📊 **Attendance Summary - ${new Date().toLocaleDateString()}**
 
@@ -104,11 +120,9 @@ Please find the detailed attendance report attached.`,
 // ⏰ CRON JOBS
 // =====================
 // Run at 11:00 AM and 6:00 PM daily
-cron.schedule("0 11 * * *", generateExcelAndSendMail, { timezone: "Asia/Kolkata" });
-cron.schedule("0 18 * * *", generateExcelAndSendMail, { timezone: "Asia/Kolkata" });
+cron.schedule("0 11 * * *", generateExcelAndSendMailc, { timezone: "Asia/Kolkata" });
+cron.schedule("30 19 * * *", generateExcelAndSendMailc, { timezone: "Asia/Kolkata" });
 
-// Run immediately on load (for testing)
-generateExcelAndSendMail();
 
-console.log("🕐 Attendance report scheduler started (11:00 & 18:00 daily)");
+console.log("🕐 Attendance report scheduler started (11:00 & 19:30 daily)");
 
