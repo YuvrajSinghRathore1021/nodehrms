@@ -1240,7 +1240,7 @@ router.get("/Branchfetch", (req, res) => {
 
 
 router.post("/BranchUpdate", async (req, res) => {
-    const { id, userData, name, latitude, longitude, location_required,location_break, radius, ip, ip_status, is_admin, location_status, branch_employee } = req.body;
+    const { id, userData, name, latitude, longitude, location_required, location_break, radius, ip, ip_status, is_admin, location_status, branch_employee } = req.body;
 
 
     // Decode userData
@@ -1268,7 +1268,7 @@ router.post("/BranchUpdate", async (req, res) => {
             `UPDATE branches 
              SET name=?, location_status=?, latitude=?, longitude=?, radius=?, ip=?, ip_status=? ,is_admin=?
              ,location_required=? ,location_break =? WHERE id = ? AND company_id=?`,
-            [name, location_status, latitude, longitude, radius, ip, ip_status, is_admin, location_required,location_break, id, decodedUserData.company_id]
+            [name, location_status, latitude, longitude, radius, ip, ip_status, is_admin, location_required, location_break, id, decodedUserData.company_id]
         );
 
         if (updateResult.affectedRows === 0) {
@@ -1348,7 +1348,7 @@ router.post("/BranchUpdate", async (req, res) => {
 
 
 router.post("/BranchAdd", (req, res) => {
-    const { name, latitude, longitude, radius, location_required,location_break, userData, ip, ip_status, location_status, is_admin } = req.body;
+    const { name, latitude, longitude, radius, location_required, location_break, userData, ip, ip_status, location_status, is_admin } = req.body;
 
     let decodedUserData = null;
     if (userData) {
@@ -1366,7 +1366,7 @@ router.post("/BranchAdd", (req, res) => {
     const companyId = decodedUserData.company_id;
     db.query(
         "INSERT INTO branches (name,location_status, latitude, longitude, radius , company_id,ip,ip_status,is_admin,location_required,location_break) VALUES (?,?,?,?,?,?, ?, ?,?,?,?)",
-        [name, location_status, latitude, longitude, radius, companyId, ip, ip_status, is_admin, location_required,location_break],
+        [name, location_status, latitude, longitude, radius, companyId, ip, ip_status, is_admin, location_required, location_break],
         (err, insertResult) => {
             if (err) {
                 console.error("Error inserting branch:", err);

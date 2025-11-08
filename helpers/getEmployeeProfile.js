@@ -69,11 +69,12 @@ exports.getEmployeeProfile = async ({ userData, CheckId }) => {
 
         //     // embeddings
         const [faceAuth] = await db.promise().query(
-            `SELECT embeddings FROM face_auth 
+            `SELECT embeddings,face_authentication FROM face_auth 
            WHERE face_authentication =1 and employee_id=? AND company_id = ?`, [employeeId, decodedUserData.company_id]
         );
 
         let embeddings = faceAuth.length > 0 ? faceAuth[0].embeddings : null;
+       
 
         if (rules.length > 0) {
             const rule = rules[0];
@@ -108,7 +109,9 @@ exports.getEmployeeProfile = async ({ userData, CheckId }) => {
             radius: emp.radius || 0,
             reload: false,
             intervalMs: emp.location_time || 0,
-            embeddings: embeddings
+            embeddings: embeddings,
+            liveFaceDetection: false,
+            isFaceRegistered: faceAuth[0]?.face_authentication==1 ? true : false
         };
     } catch (err) {
         return { status: false, message: err.message };
