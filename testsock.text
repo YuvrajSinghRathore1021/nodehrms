@@ -1,0 +1,49 @@
+// src/socket.js
+import { io } from "socket.io-client";
+
+const socket = io("http://localhost:5000", {
+  transports: ["websocket"],
+  reconnection: true,
+});
+
+export default socket;
+
+
+import socket from "../socket";
+
+
+
+import { useEffect } from "react";
+import socket from "../socket";
+
+function HeaderProfile({ setProfile }) {
+  useEffect(() => {
+    // ✅ Listen for profile updates
+    socket.on("profileUpdate", (data) => {
+      console.log("Profile updated via socket in Header:", data);
+      setProfile && setProfile(data); // optional: update parent or local state
+    });
+
+    // ✅ Cleanup listener when unmounted
+    return () => {
+      socket.off("profileUpdate");
+    };
+  }, []);
+
+  return <div>Header component</div>;
+}
+
+export default HeaderProfile;
+
+
+
+
+import { useProfileSocket } from "../hooks/useProfileSocket";
+
+function Dashboard() {
+  useProfileSocket((data) => {
+    console.log("Dashboard got new profile:", data);
+  });
+
+  return <div>Dashboard</div>;
+}

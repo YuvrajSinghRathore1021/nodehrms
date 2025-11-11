@@ -182,52 +182,6 @@ redisClient.connect().then(() => console.log('✅ Redis connected')).catch(() =>
 // 🧠 In-memory fallback map if Redis is down
 const liveLocations = new Map();
 
-// // ✅ API: Receive and broadcast employee location (no DB insert/update)
-// router.post('/testprofile', async (req, res) => {
-//     console.log("testprofile api called");
-//       let test =  {
-//   status: true,
-//   message: 'Profile fetched successfully',
-//   face_detection: 1,
-//   location_access: 0,
-//   profile_image: '/uploads/default/1759823924282_e04e3cf8-5668-44a9-bbdd-d15cc5030449.PNG',
-//   data: [
-//     {
-//       profile_image: '/uploads/default/1759823924282_e04e3cf8-5668-44a9-bbdd-d15cc5030449.PNG',
-//       type: 'ceo',
-//       attendance_rules_id: 4,
-//       branch_id: 7,
-//       full_name: 'Sunil Sharma',
-//       first_name: 'Sunil Sharma',
-//       email_id: 'ys02195101@gmail.com',
-//       official_email_id: 'test@gmail.com',
-//       face_detection: 1,
-//       login_status: 1,
-//       location_access: 0,
-//       latitude: 26.913503,
-//       longitude: 75.74008,
-//       radius: 150
-//     }
-//   ],
-//   isAdmin: true,
-//   in_time: '2025-10-16T04:00:00.000Z',
-//   out_time: '2025-10-16T13:00:00.000Z',
-//   half_day_time: '4.5',
-//   working_hours: '8.00',
-//   latitude: 26.913503,
-//   longitude: 75.74008,
-//   brachSwitch: true,
-//   radius: 150,
-//   intervalMs: 60000
-// }
-
-// //    socket.emit("profileResponse", test);
-
-//     // send socket 
-//     let userId=10;
-//       req.io.to(userId.toString()).emit("profileResponse", test);
-
-// })
 
 
 

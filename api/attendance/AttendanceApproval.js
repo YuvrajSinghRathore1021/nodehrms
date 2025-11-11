@@ -155,7 +155,7 @@ const decodeUserData = (userData) => {
 };
 
 router.get('/api/companyEmployeeName', async (req, res) => {
-    const { userData, searchData = '' } = req.query;
+    const { userData, searchData = '', type = "" } = req.query;
     let decodedUserData = null;
     if (userData) {
         try {
@@ -193,6 +193,10 @@ router.get('/api/companyEmployeeName', async (req, res) => {
     let dataArray = [];
 
     const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
+    let NewFilds = "";
+    if (type == "permission") {
+        NewFilds += " ,designation,profile_image "
+    }
     if (isAdmin == true) {
         // query = `SELECT id,CONCAT(IFNULL(first_name, ''), ' ', IFNULL(last_name, ''),' - ',IFNULL(employee_id, '')) AS name FROM employees WHERE employee_status=1 and status=1 and delete_status=0 and company_id = ?`;
         // dataArray.push(company_id);
@@ -203,6 +207,7 @@ router.get('/api/companyEmployeeName', async (req, res) => {
       CONCAT_WS(' ', IFNULL(first_name, ''), IFNULL(last_name, '')),
       IFNULL(employee_id, '')
     ) AS name
+     ${NewFilds}
   FROM employees 
   WHERE employee_status = 1 
     AND status = 1 
@@ -222,6 +227,7 @@ router.get('/api/companyEmployeeName', async (req, res) => {
       CONCAT_WS(' ', IFNULL(first_name, ''), IFNULL(last_name, '')),
       IFNULL(employee_id, '')
     ) AS name
+      ${NewFilds}
   FROM employees 
   WHERE employee_status = 1 
     AND status = 1 
@@ -264,7 +270,7 @@ router.get('/api/companyEmployeeName', async (req, res) => {
 });
 
 router.post('/api/companyEmployeeName', async (req, res) => {
-    const { userData, searchData = '' } = req.body;
+    const { userData, searchData = '', type = "" } = req.body;
     let decodedUserData = null;
     if (userData) {
         try {
@@ -302,6 +308,10 @@ router.post('/api/companyEmployeeName', async (req, res) => {
     let dataArray = [];
 
     const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
+    let NewFilds = "";
+    if (type == "permission") {
+        NewFilds += " ,designation,profile_image "
+    }
     if (isAdmin == true) {
         // query = `SELECT id,CONCAT(IFNULL(first_name, ''), ' ', IFNULL(last_name, ''),' - ',IFNULL(employee_id, '')) AS name FROM employees WHERE employee_status=1 and status=1 and delete_status=0 and company_id = ?`;
         // dataArray.push(company_id);
@@ -312,6 +322,7 @@ router.post('/api/companyEmployeeName', async (req, res) => {
       CONCAT_WS(' ', IFNULL(first_name, ''), IFNULL(last_name, '')),
       IFNULL(employee_id, '')
     ) AS name
+      ${NewFilds}
   FROM employees 
   WHERE employee_status = 1 
     AND status = 1 
@@ -331,6 +342,7 @@ router.post('/api/companyEmployeeName', async (req, res) => {
       CONCAT_WS(' ', IFNULL(first_name, ''), IFNULL(last_name, '')),
       IFNULL(employee_id, '')
     ) AS name
+      ${NewFilds}
   FROM employees 
   WHERE employee_status = 1 
     AND status = 1 
