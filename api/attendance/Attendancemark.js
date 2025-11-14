@@ -314,9 +314,10 @@ router.post('/Attendancemark', async (req, res) => {
                     attendanceStatus = shortleaveResult.attendanceStatusNew;
                     statusValue = shortleaveResult.attendanceStatusNewValue;
                 }
+               
             }
 
-
+           
 
 
 

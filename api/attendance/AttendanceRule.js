@@ -541,6 +541,7 @@ router.post('/api/GetCompanyRule', async (req, res) => {
 
 
 });
+
 router.post('/api/Update', async (req, res) => {
     const { id, rule_id, userData } = req.body;
     let decodedUserData = null;

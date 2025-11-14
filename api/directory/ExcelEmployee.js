@@ -279,7 +279,77 @@ router.post('/api/onboarding/update', upload.single('file'), async (req, res) =>
 
     res.json({ status: true, message: `${successCount} employees updated successfully` });
 });
+router.post('/api/onboarding/update-contactNumber', upload.single('file'), async (req, res) => {
+    const { userData } = req.body;
 
+    let decodedUserData = null;
+    if (userData) {
+        try {
+            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+            decodedUserData = JSON.parse(decodedString);
+        } catch (error) {
+            return res.status(400).json({ status: false, error: 'Invalid userData' });
+        }
+    }
+
+    if (!decodedUserData?.id || !decodedUserData?.company_id) {
+        return res.status(400).json({ status: false, error: 'Employee ID and company ID are required' });
+    }
+
+    if (!req.file) return res.status(400).json({ status: false, message: 'No file uploaded' });
+
+    const filePath = path.resolve(req.file.path);
+    const workbook = xlsx.readFile(filePath);
+    const sheetName = workbook.SheetNames[0];
+    const sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+    let successCount = 0;
+    let failed = [];
+
+    for (let row of sheetData) {
+        const empId = row.employee_id;
+        if (!empId) {
+            failed.push({ ...row, error: 'Missing employee_id' });
+            continue;
+        }
+
+        const keys = ['contact_number', 'emergency_contact_number'];
+        const values = [row.contact_number, row.emergency_contact_name];
+
+        const setClause = keys.map(k => `\`${k}\` = ?`).join(', ');
+        const query = `UPDATE employees SET ${setClause} WHERE employee_id = ? AND company_id = ?`;
+
+        try {
+            const [result] = await db.promise().query(query, [...values, empId, 10]);
+            if (result.affectedRows > 0) {
+                successCount++;
+            } else {
+                failed.push({ ...row, error: 'No matching employee found' });
+            }
+        } catch (err) {
+            failed.push({ ...row, error: err.sqlMessage });
+        }
+    }
+
+    fs.unlinkSync(filePath);
+
+    if (failed.length > 0) {
+        const errorSheet = xlsx.utils.json_to_sheet(failed);
+        const wb = xlsx.utils.book_new();
+        xlsx.utils.book_append_sheet(wb, errorSheet, 'Errors');
+
+        const outputPath = `uploads/emponbord/update_date_errors_${Date.now()}.xlsx`;
+        xlsx.writeFile(wb, outputPath);
+
+        return res.status(200).json({
+            status: false,
+            message: 'Some records failed to update',
+            file: outputPath
+        });
+    }
+
+    res.json({ status: true, message: `${successCount} employees updated successfully` });
+});
 
 router.post('/api/onboarding/update-dates', upload.single('file'), async (req, res) => {
     const { userData } = req.body;

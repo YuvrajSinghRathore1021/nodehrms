@@ -110,6 +110,7 @@
 
 // ////facerecognition
 // const facerecognition = require('./api/facerecognition/faceVerify');
+// const Attendancepolicy = require('./api/attendance/Attendancepolicy');
 
 // const authenticateToken = (req, res, next) => {
 //     const token = req.headers['authorization']?.split(' ')[1];
@@ -202,8 +203,7 @@
 // // app.use('/Excel', authenticateToken, ExcelEmployee);
 // app.use('/Excel', ExcelEmployee);
 
-// //Authentication
-// app.use('/authentication', authenticateToken, Authentication);
+
 // // face 
 // app.use('/Face', authenticateToken, FaceUplode);
 // app.use('/facerecognition', authenticateToken, facerecognition);
@@ -223,8 +223,10 @@
 //     req.io = io;
 //     next();
 // });
-// app.use('/NotificationApi', authenticateToken, NotificationApi);
 
+// app.use('/NotificationApi', authenticateToken, NotificationApi);
+// //Authentication
+// app.use('/authentication', authenticateToken, Authentication);
 // // sendMail
 // app.use('/sendMail', Mail);
 // app.use('/Notification', Notification);
@@ -236,6 +238,7 @@
 // app.use('/Salary', authenticateToken, Salary);
 // app.use('/Expenses', authenticateToken, Expenses);
 // app.use('/hrAttendance', authenticateToken, HrAttendance);
+// app.use('/attendancepolicy', authenticateToken, Attendancepolicy);
 
 // // io.on("connection", (socket) => {  
 // //     socket.on("join", (userId) => {
@@ -247,8 +250,8 @@
 // // });
 
 // io.on("connection", (socket) => {
-//     console.log("User connected:", socket.id);
 //     socket.on("join", ({ userId, company_id }) => {
+//         //  console.log(userId, company_id);
 //         // ✅ Save values on socket instance
 //         socket.userId = userId;
 //         socket.company_id = company_id;
@@ -267,9 +270,9 @@
 //     });
 
 //     // 🔄 Receive and broadcast live location
+
 //     socket.on('sendLocation', async (data) => {
 //         try {
-//             // { latitude: 26.9136458, longitude: 75.7402153 }
 //             const { latitude, longitude } = data;
 
 //             if (!latitude || !longitude || !socket.userId || !socket.company_id) return;
@@ -460,6 +463,12 @@ const ExcelEmployee = require('./api/directory/ExcelEmployee');
 const Expenses = require('./api/expenses/Expenses');
 ////HrAttendance
 const HrAttendance = require('./api/attendance/HrAttendance');
+////Authentication
+const Authentication = require('./api/faceauthorization/Authentication');
+
+////facerecognition
+const facerecognition = require('./api/facerecognition/faceVerify');
+const Attendancepolicy = require('./api/attendance/Attendancepolicy');
 const authenticateToken = (req, res, next) => {
     const token = req.headers['authorization']?.split(' ')[1];
     if (!token) {
@@ -511,6 +520,8 @@ app.use('/WorkWeekApp', authenticateToken, WorkWeek);
 app.use('/PayDetailsApp', authenticateToken, PayDetails);
 app.use('/Employeesdetails', authenticateToken, Employeesdetails);
 
+app.use('/facerecognition', authenticateToken, facerecognition);
+
 // face
 app.use('/Face', authenticateToken, FaceUplode);
 
@@ -540,6 +551,7 @@ app.use('/EmployeeLocation', authenticateToken, EmployeeLocationTracking);
 app.use('/Salary', authenticateToken, Salary);
 app.use('/Expenses', authenticateToken, Expenses);
 app.use('/hrAttendance', authenticateToken, HrAttendance);
+app.use('/attendancepolicy', authenticateToken, Attendancepolicy);
 // io.on("connection", (socket) => {
 //     //// console.log("User connected:", socket.id);
 //     socket.on("join", (userId) => {

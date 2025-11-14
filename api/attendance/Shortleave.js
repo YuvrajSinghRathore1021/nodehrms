@@ -29,29 +29,21 @@ exports.Shortleave = async ({
         }
 
         const policy = policyRows[0];
-        const { short_leave_limit_in = 0, short_leave_duration_in = 0, short_leave_limit_out = 0, short_leave_duration_out = 0 } = policy;
+        const { short_leave_limit_in = 0, short_leave_duration_in = 0, short_leave_limit_out = 0, short_leave_duration_out = 0, total_leave_status = 0, short_leave_total = 0 } = policy;
+
 
         // 2️⃣ Count how many short leaves are already used this month
         const [used] = await db.promise().query(
-            `SELECT COUNT(attendance_id) as total FROM attendance 
-             WHERE employee_id = ? AND company_id = ? 
-             AND MONTH(attendance_date)=MONTH(?) 
-             AND YEAR(attendance_date)=YEAR(?) 
-             AND short_leave = 1`,
+            `SELECT COUNT(attendance_id) as total FROM attendance WHERE employee_id = ? AND company_id = ? 
+             AND MONTH(attendance_date)=MONTH(?) AND YEAR(attendance_date)=YEAR(?) AND short_leave = 1`,
             [employee_id, company_id, attendance_date, attendance_date]
         );
 
         const totalUsed = used[0]?.total || 0;
-        const total_leave_status = used[0]?.total_leave_status || 0;
-        const short_leave_total = used[0]?.short_leave_total || 0;
-        const maxShortLeave = short_leave_limit_in + short_leave_limit_out;
+        const maxShortLeave = short_leave_limit_in + short_leave_limit_out + short_leave_total;
 
-        if (total_leave_status == 1 && short_leave_total > 0 && totalUsed < short_leave_total) {
-
-            return { status: false, message: "Short leave limit exceeded for this month" };
-
-        }
-        else if (totalUsed >= maxShortLeave && maxShortLeave > 0) {
+   
+        if (totalUsed >= maxShortLeave && maxShortLeave > 0) {
             return { status: false, message: "Short leave limit exceeded for this month" };
         }
 
@@ -138,7 +130,6 @@ exports.Shortleave = async ({
                  WHERE attendance_id = ?`,
                 [shortLeaveType, leaveType, attendance_id]
             );
-
             return {
                 status: true,
                 message: `${leaveType} applied successfully.`,
@@ -148,9 +139,7 @@ exports.Shortleave = async ({
                 attendanceStatusNewValue: 'Present'
             };
         }
-
         return { status: false, message: "Not eligible for short leave" };
-
     } catch (err) {
         console.error("Short Leave Error:", err);
         return { status: false, message: err.message };
