@@ -19,10 +19,8 @@ function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
 
 
 router.post('/Attendancemark', async (req, res) => {
-    ///09:05:32=attendanceTime
-    ////attendanceDate like 2025-08-15
     const { type, userData, latitude, longitude, attendanceType = "", employeeId = "0", attendanceTime = "", attendanceDate = "", reason = "", liveFaceRecognition = 0 } = req.body;
-    // const currentDate = new Date();
+
     const currentDate = attendanceDate ? new Date(`${attendanceDate}T00:00:00`) : new Date();
     const formattedTime = attendanceTime || `${String(currentDate.getHours()).padStart(2, '0')}:${String(currentDate.getMinutes()).padStart(2, '0')}:${String(currentDate.getSeconds()).padStart(2, '0')}`;
 
@@ -314,12 +312,8 @@ router.post('/Attendancemark', async (req, res) => {
                     attendanceStatus = shortleaveResult.attendanceStatusNew;
                     statusValue = shortleaveResult.attendanceStatusNewValue;
                 }
-               
+
             }
-
-           
-
-
 
             await queryDb('UPDATE attendance SET attendance_status=?,status=?,out_latitude=?, out_longitude=?,out_ip=?,daily_status_out=?, daily_status_outtime=?, check_out_time = ?, duration = ? ,branch_id_out=? WHERE employee_id = ? AND company_id = ? AND attendance_date = CURDATE()',
                 [attendanceStatus, statusValue, latitude, longitude, IpHandal, dailyStatus, timeCount, formattedTime, duration, empbranch_id, empId, companyId]);

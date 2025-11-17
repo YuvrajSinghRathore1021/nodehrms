@@ -4,67 +4,283 @@ const db = require('../../DB/ConnectionSql');
 
 
 //////
+// router.post('/attendanceEdit', async (req, res) => {
+//     const { userData, status, checkInTime, attendance_status, checkOutTime, duration, reason, branchIdIn, branchIdOut, attendanceId, hrReason, type, employeeId, late_coming_leaving, short_leave, short_leave_type, short_leave_reason } = req.body;
+//     let decodedUserData = null;
+//     // Decode and validate userData
+//     if (userData) {
+//         try {
+//             const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+//             decodedUserData = JSON.parse(decodedString);
+//         } catch (error) {
+//             return res.status(400).json({
+//                 status: false, error: 'Invalid userData', message: 'Invalid userData'
+//             }); 
+//         }
+//     }
+
+//     // Validate company_id
+//     if (!decodedUserData || !decodedUserData.company_id) {
+//         return res.status(400).json({
+//             status: false, error: 'Company ID is required', message: 'Company ID is required'
+//         });
+//     }
+
+//     const company_id = decodedUserData.company_id;
+//     try {
+//         let result;
+//         console.log(type);
+//         if (type == "AttendanceSubmit") {
+//             console.log(type);
+//             [result] = await db.promise().query(
+//                 `INSERT INTO attendance ( status,check_in_time ,check_out_time,duration ,reason,branch_id_in, branch_id_out,employee_id , company_id,apply_by,hr_reason,late_coming_leaving, short_leave, short_leave_type, short_leave_reason) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) `,
+//                 [status, checkInTime, checkOutTime, duration, reason, branchIdIn, branchIdOut, employeeId, company_id, decodedUserData.id, hrReason, late_coming_leaving, short_leave, short_leave_type, short_leave_reason]
+//             );
+//             console.log(result);
+//         } else {
+//             [result] = await db.promise().query(
+//                 `UPDATE attendance SET attendance_status=?, status=?,check_in_time=? ,check_out_time=?,duration=? ,reason=?,hr_reason=?,branch_id_in=?, branch_id_out=? ,late_coming_leaving=?, short_leave=?, short_leave_type=?, short_leave_reason=? WHERE attendance_id=? and company_id=?`,
+//                 [attendance_status, status, checkInTime, checkOutTime, duration, reason, hrReason, branchIdIn, branchIdOut, late_coming_leaving, short_leave, short_leave_type, short_leave_reason, attendanceId, company_id]
+//             );
+//         }
+
+//         if (result.affectedRows > 0) {
+//             return res.status(200).json({
+//                 status: true,
+//                 message: 'update successfully',
+//                 data: result
+//             });
+//         } else {
+//             return res.status(200).json({
+//                 status: false,
+//                 message: 'failed',
+//                 data: result
+//             });
+//         }
+//     } catch (err) {
+//         return res.status(200).json({
+//             status: false,
+//             message: 'failed'
+//         });
+//     }
+// });
+
+
+
+
+
+
+
+
+
+
+// router.post('/attendanceEdit', async (req, res) => {
+
+//     const {
+
+//         attendanceId, checkInTime, checkOutTime, duration, hrReason = "", branchIdIn, branchIdOut, status, attendance_status, late_coming_leaving, short_leave, short_leave_type, short_leave_reason,
+
+//         userData, reason = null, type = "", employeeId = 0, attendanceDate = ""
+//     } = req.body;
+
+//     let decodedUserData = null;
+
+//     // Decode userData
+//     if (userData) {
+//         try {
+//             const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+//             decodedUserData = JSON.parse(decodedString);
+//         } catch (error) {
+//             return res.status(400).json({ status: false, error: 'Invalid userData' });
+//         }
+//     }
+
+//     // Validate company
+//     if (!decodedUserData || !decodedUserData.company_id) {
+//         return res.status(400).json({ status: false, message: 'Company ID is required' });
+//     }
+
+//     const company_id = decodedUserData.company_id;
+//     const fix = (v) => ((v == "" || v == null )? " " : v);
+//     try {
+//         let result;
+//         if (type === "AttendanceSubmit") {
+
+            
+//             [result] = await db.promise().query(
+//                 `INSERT INTO attendance 
+//                 (attendance_status, status, check_in_time, check_out_time, duration, reason, 
+//                  branch_id_in, branch_id_out, employee_id, company_id, apply_by, hr_reason, 
+//                  late_coming_leaving, short_leave, short_leave_type, short_leave_reason,attendance_date) 
+//                  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+//                 [
+//                     attendance_status, status, checkInTime, checkOutTime, duration, fix(reason),
+//                     branchIdIn, branchIdOut, employeeId, company_id, decodedUserData.id,
+//                     fix(hrReason) || "", late_coming_leaving, short_leave, short_leave_type, short_leave_reason, attendanceDate
+//                 ]
+//             );
+
+//         } else {
+
+//             [result] = await db.promise().query(
+//                 `UPDATE attendance SET attendance_status=?, status=?, check_in_time=?, check_out_time=?, duration=?, 
+//                      reason=?, hr_reason=?, branch_id_in=?, branch_id_out=?, late_coming_leaving=?, 
+//                      short_leave=?, short_leave_type=?, short_leave_reason=?
+//                  WHERE attendance_id=? AND company_id=?`,
+//                 [
+//                     attendance_status, status, checkInTime, checkOutTime, duration, fix(reason),
+//                     hrReason, branchIdIn, branchIdOut, late_coming_leaving, short_leave,
+//                     short_leave_type, short_leave_reason, attendanceId, company_id
+//                 ]
+//             );
+//         }
+
+//         if (result.affectedRows > 0) {
+//             return res.status(200).json({ status: true, message: 'Success', data: result });
+//         }
+
+//         return res.status(404).json({ status: false, message: 'No record updated' });
+
+//     } catch (err) {
+//         return res.status(500).json({ status: false, message: 'Internal Server Error', error: err });
+//     }
+// });
+
+
 router.post('/attendanceEdit', async (req, res) => {
-    const { userData, status, checkInTime, attendance_status, checkOutTime, duration, reason, branchIdIn, branchIdOut, attendanceId, hrReason, type, employeeId } = req.body;
+    const {
+        attendanceId,
+        checkInTime = "",
+        checkOutTime = "",
+        duration = "",
+        status = "",
+        attendance_status = "",
+        reason = "",
+        hrReason = "",
+        branchIdIn = 0,
+        branchIdOut = 0,
+        late_coming_leaving = 0,
+        short_leave = 0,
+        short_leave_type = 0,
+        short_leave_reason = "",
+        attendanceDate = "",
+        employeeId = 0,
+        userData = "",
+        type = ""
+    } = req.body;
+
+    // Decode userData
     let decodedUserData = null;
-    // Decode and validate userData
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({
-                status: false, error: 'Invalid userData', message: 'Invalid userData'
-            }); 3
-        }
+    try {
+        const decoded = Buffer.from(userData, "base64").toString("utf8");
+        decodedUserData = JSON.parse(decoded);
+    } catch (e) {
+        return res.status(400).json({ status: false, message: "Invalid userData" });
     }
 
-    // Validate company_id
-    if (!decodedUserData || !decodedUserData.company_id) {
-        return res.status(400).json({
-            status: false, error: 'Company ID is required', message: 'Company ID is required'
-        });
+    if (!decodedUserData?.company_id) {
+        return res.status(400).json({ status: false, message: "company_id missing" });
     }
 
     const company_id = decodedUserData.company_id;
+
+    // Fix empty/null values
+    const fix = (v) => (v === null || v === undefined || v === "" ? "" : v);
+
     try {
-        let result;
-        if (type == "AttendanceSubmit") {
+        let sql = "";
+        let params = [];
 
-            [result] = await db.promise().query(
-                `INSERT INTO attendance ( status,check_in_time ,check_out_time,duration ,reason,branch_id_in, branch_id_out,employee_id , company_id,apply_by,reason) values (?,?,?,?,?,?,?,?,) `,
-                [status, checkInTime, checkOutTime, duration, reason, branchIdIn, branchIdOut, employeeId, company_id, decodedUserData.id, hrReason]
-            );
+        // ---------------------------------------------------------
+        // 1️⃣ INSERT (AttendanceSubmit)
+        // ---------------------------------------------------------
+        if (type === "AttendanceSubmit") {
+            sql = `
+                INSERT INTO attendance
+                (
+                    attendance_status, status, check_in_time, check_out_time, duration,
+                    reason, branch_id_in, branch_id_out, employee_id, company_id,
+                    apply_by, hr_reason, late_coming_leaving, short_leave,
+                    short_leave_type, short_leave_reason, attendance_date
+                )
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            `;
 
-        } else {
-            [result] = await db.promise().query(
-                `UPDATE attendance SET attendance_status=?, status=?,check_in_time=? ,check_out_time=?,duration=? ,reason=?,branch_id_in=?, branch_id_out=? WHERE attendance_id=? and company_id=?`,
-                [attendance_status, status, checkInTime, checkOutTime, duration, reason, branchIdIn, branchIdOut, attendanceId, company_id]
-            );
-
-
-
+            params = [
+                attendance_status,
+                status,
+                fix(checkInTime),
+                fix(checkOutTime),
+                fix(duration),
+                fix(reason),
+                branchIdIn,
+                branchIdOut,
+                employeeId,
+                company_id,
+                decodedUserData.id,
+                fix(hrReason),
+                late_coming_leaving,
+                short_leave,
+                short_leave_type,
+                fix(short_leave_reason),
+                attendanceDate
+            ];
         }
+
+        // ---------------------------------------------------------
+        // 2️⃣ UPDATE
+        // ---------------------------------------------------------
+        else {
+            if (!attendanceId) {
+                return res.status(400).json({ status: false, message: "attendanceId is required for update" });
+            }
+
+            sql = `
+                UPDATE attendance
+                SET attendance_status = ?, status = ?, check_in_time = ?, check_out_time = ?, duration = ?,
+                    reason = ?, hr_reason = ?, branch_id_in = ?, branch_id_out = ?, late_coming_leaving = ?,
+                    short_leave = ?, short_leave_type = ?, short_leave_reason = ?
+                WHERE attendance_id = ? AND company_id = ?
+            `;
+
+            params = [
+                attendance_status,
+                status,
+                fix(checkInTime),
+                fix(checkOutTime),
+                fix(duration),
+                fix(reason),
+                fix(hrReason),
+                branchIdIn,
+                branchIdOut,
+                late_coming_leaving,
+                short_leave,
+                short_leave_type,
+                fix(short_leave_reason),
+                attendanceId,
+                company_id
+            ];
+        }
+
+        // Execute query
+        const [result] = await db.promise().query(sql, params);
+
         if (result.affectedRows > 0) {
-            return res.status(200).json({
-                status: true,
-                message: 'update successfully',
-                data: result
-            });
-        } else {
-            return res.status(200).json({
-                status: false,
-                message: 'failed',
-                data: result
-            });
+            return res.status(200).json({ status: true, message: "Success", data: result });
         }
-    } catch (err) {
-        return res.status(200).json({
+
+        return res.status(404).json({ status: false, message: "No record affected" });
+
+    } catch (error) {
+        return res.status(500).json({
             status: false,
-            message: 'failed'
+            message: "Internal Server Error",
+            sqlMessage: error.sqlMessage,
+            error
         });
     }
 });
+
 
 
 router.post('/attendanceRequestEdit', async (req, res) => {
@@ -351,6 +567,8 @@ router.post('/attendanceDetails', async (req, res) => {
     att.created,
     att.branch_id_in,
     att.branch_id_out,
+
+    att.late_coming_leaving, att.short_leave, att.short_leave_type, att.short_leave_reason,
 
     -- Branch names
     br.name AS branch_in_name,

@@ -468,7 +468,7 @@ router.post('/api/UrlGet', async (req, res) => {
                 'attendancelist', 'attendance_calendar', 'hrattendance', 'rule', 'assignrules',
                 'logs', 'assign_leave', 'rules', 'balance', 'Holidayupdate', 'holidaycalender',
                 'payroll', 'documents_view', 'attendance_setting', 'setting', 'salary',
-                'location', 'location_view', 'attendanceLocationView'
+                'location', 'location_view', 'attendanceLocationView', 'short_leave', 'permissions'
             ];
 
             menuItems = [
@@ -508,6 +508,7 @@ router.post('/api/UrlGet', async (req, res) => {
                         { to: '/logs', icon: 'fas fa-circle', label: 'Leave Logs' },
                         { to: '/assign_leave', icon: 'fas fa-circle', label: 'Assign Leave' },
                         { to: '/rules', icon: 'fas fa-circle', label: 'Leave Rules' },
+                        { to: '/short_leave', icon: 'fas fa-circle', label: 'Short Leave' },
                         { to: '/balance', icon: 'fas fa-circle', label: 'Leave Balance' }
                     ]
                 },
@@ -548,6 +549,7 @@ router.post('/api/UrlGet', async (req, res) => {
                     iName: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="m10.135 21l-.362-2.892q-.479-.145-1.035-.454q-.557-.31-.947-.664l-2.668 1.135l-1.865-3.25l2.306-1.739q-.045-.27-.073-.558q-.03-.288-.03-.559q0-.252.03-.53q.028-.278.073-.626L3.258 9.126l1.865-3.212L7.771 7.03q.448-.373.97-.673q.52-.3 1.013-.464L10.134 3h3.732l.361 2.912q.575.202 1.016.463t.909.654l2.725-1.115l1.865 3.211l-2.382 1.796q.082.31.092.569t.01.51q0 .233-.02.491q-.019.259-.088.626l2.344 1.758l-1.865 3.25l-2.681-1.154q-.467.393-.94.673t-.985.445L13.866 21zM11 20h1.956l.369-2.708q.756-.2 1.36-.549q.606-.349 1.232-.956l2.495 1.063l.994-1.7l-2.189-1.644q.125-.427.166-.786q.04-.358.04-.72q0-.38-.04-.72t-.166-.747l2.227-1.683l-.994-1.7l-2.552 1.07q-.454-.499-1.193-.935q-.74-.435-1.4-.577L13 4h-1.994l-.312 2.689q-.756.161-1.39.52q-.633.358-1.26.985L5.55 7.15l-.994 1.7l2.169 1.62q-.125.336-.175.73t-.05.82q0 .38.05.755t.156.73l-2.15 1.645l.994 1.7l2.475-1.05q.589.594 1.222.953q.634.359 1.428.559zm.973-5.5q1.046 0 1.773-.727T14.473 12t-.727-1.773t-1.773-.727q-1.052 0-1.776.727T9.473 12t.724 1.773t1.776.727M12 12"/></svg>`,
                     links: [
                         { to: '/attendance_setting', icon: 'fas fa-circle', label: 'Attendance Settings' },
+                        { to: '/permissions', icon: 'fas fa-circle', label: 'Permissions' },
                         { to: '/setting', icon: 'fas fa-circle', label: 'System Settings' }
                     ]
                 }
@@ -597,7 +599,7 @@ router.post('/api/UrlGet', async (req, res) => {
                 },
                 {
                     title: 'Salary',
-                    iName: 'fa-brands fa-amazon-pay',
+                    iName: '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" class="iconify iconify--streamline-ultimate" width="24" height="24" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.171 12.79h2.5a.485.485 0 0 1 .5.523v9.41a.483.483 0 0 1-.5.522h-2.5"></path><path stroke-linecap="round" stroke-linejoin="round" d="M10.322 10.584L8.4 12.977a1.4 1.4 0 0 1-1.045.523H6.171m0 7.03c2.144 1.625 4.1 2.716 5.363 2.716h6.273c.76 0 1.238-.054 1.568-1.045c.504-2.53.853-5.088 1.046-7.66c0-.522-.523-1.045-1.568-1.045h-5.932m-2.367-1.291L9.006 1.373a.546.546 0 0 1 .54-.623H17.1"></path><path stroke-linecap="round" stroke-linejoin="round" d="m13.839 13.5l-.916-9.159a.5.5 0 0 1 .5-.553h6.9a.5.5 0 0 1 .5.577l-1.38 9.2"></path><path d="M16.696 9.37a.375.375 0 0 1 0-.75m0 .75a.375.375 0 1 0 0-.75"></path></g></svg>',
                     links: [
                         { to: '/salary', icon: 'fas fa-circle', label: 'Salary Details' }
                     ]

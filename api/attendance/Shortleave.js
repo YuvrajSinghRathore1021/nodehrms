@@ -42,7 +42,7 @@ exports.Shortleave = async ({
         const totalUsed = used[0]?.total || 0;
         const maxShortLeave = short_leave_limit_in + short_leave_limit_out + short_leave_total;
 
-   
+
         if (totalUsed >= maxShortLeave && maxShortLeave > 0) {
             return { status: false, message: "Short leave limit exceeded for this month" };
         }

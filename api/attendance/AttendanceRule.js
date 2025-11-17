@@ -19,7 +19,7 @@ router.post('/api/attendancerulesEdit', async (req, res) => {
         overtime_rate,
         max_overtime_hours,
         leave_approval_required,
-        rule_id, out_time_required, working_hours_required
+        rule_id, out_time_required, working_hours_required, last_in_time, last_out_time
     } = req.body;
     // ,penalty_rule_applied,late_coming_penalty,early_leaving_penalty
     let penalty_rule_applied = req.body.penalty_rule_applied == true || req.body.penalty_rule_applied == "true" ? 1 : 0;
@@ -62,24 +62,16 @@ router.post('/api/attendancerulesEdit', async (req, res) => {
    rule_name=?, rule_description=?, in_time=?, out_time=?, max_working_hours=?, 
   in_grace_period_minutes=?, out_grace_period_minutes=?, half_day=?, total_break_duration=?, 
   overtime_rate=?, max_overtime_hours=?, leave_approval_required=? ,penalty_rule_applied=?,sandwich_leave_applied=?,
-        late_coming_penalty=?,
-        late_coming_allowed_days=?,
-        late_coming_penalty_type =?,
-        early_leaving_penalty=?,
-        early_leaving_allowed_days=?,
-        early_leaving_penalty_type=?,out_time_required=?,working_hours_required=? WHERE company_id=? And rule_id=?
+        late_coming_penalty=?,late_coming_allowed_days=?,late_coming_penalty_type =?,early_leaving_penalty=?,early_leaving_allowed_days=?,
+        early_leaving_penalty_type=?,out_time_required=?,working_hours_required=? ,last_in_time=?,last_out_time=? WHERE company_id=? And rule_id=?
 `;
 
     const values = [
         rule_name, rule_description, in_time, out_time, max_working_hours,
         in_grace_period_minutes, out_grace_period_minutes, half_day, total_break_duration,
         overtime_rate, max_overtime_hours, leave_approval_required, penalty_rule_applied, sandwich_leave_applied,
-        late_coming_penalty,
-        late_coming_allowed_days,
-        late_coming_penalty_type,
-        early_leaving_penalty,
-        early_leaving_allowed_days,
-        early_leaving_penalty_type, out_time_required, working_hours_required, company_id, rule_id
+        late_coming_penalty, late_coming_allowed_days, late_coming_penalty_type, early_leaving_penalty, early_leaving_allowed_days,
+        early_leaving_penalty_type, out_time_required, working_hours_required, last_in_time, last_out_time, company_id, rule_id
     ];
 
     db.query(query, values, (err, result) => {
