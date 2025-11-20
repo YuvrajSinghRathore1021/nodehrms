@@ -519,7 +519,7 @@ app.use('/Profile', authenticateToken, Profile);
 app.use('/WorkWeekApp', authenticateToken, WorkWeek);
 app.use('/PayDetailsApp', authenticateToken, PayDetails);
 app.use('/Employeesdetails', authenticateToken, Employeesdetails);
-
+ app.use('/authentication', authenticateToken, Authentication);
 app.use('/facerecognition', authenticateToken, facerecognition);
 
 // face
