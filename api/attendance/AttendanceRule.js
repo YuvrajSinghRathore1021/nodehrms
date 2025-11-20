@@ -176,7 +176,7 @@ router.get('/api/fetchDetails', async (req, res) => {
             rule_id, company_id, rule_name, rule_description, 
             in_time, out_time, max_working_hours, in_grace_period_minutes, 
             out_grace_period_minutes, half_day, total_break_duration, 
-            overtime_rate, max_overtime_hours, sandwich_leave_applied,
+            overtime_rate, max_overtime_hours, sandwich_leave_applied,last_in_time,last_out_time
             leave_approval_required, created_at , penalty_rule_applied, late_coming_penalty, late_coming_allowed_days, in_grace_period_minutes, late_coming_penalty_type, early_leaving_penalty, early_leaving_allowed_days, out_grace_period_minutes, early_leaving_penalty_type
         ,out_time_required,working_hours_required FROM attendance_rules 
         WHERE 1=1
