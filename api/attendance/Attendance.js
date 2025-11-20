@@ -1075,8 +1075,9 @@ router.get('/api/attendance', async (req, res) => {
     if (employeeIdsArray.length == 0) {
         return res.status(200).json({ status: false, message: 'Invalid employee IDs' });
     }///CONCAT(first_name, " ", last_name,"-",employee_id)
+    // CONCAT_WS(' ', first_name, last_name) 
     try {
-        let empsql = `SELECT id, CONCAT_WS(' ', first_name, last_name)  AS first_name, work_week_id, employee_id FROM employees WHERE company_id=? `;
+        let empsql = `SELECT id,CONCAT(first_name, " ", last_name) AS first_name, work_week_id, employee_id FROM employees WHERE company_id=? `;
         let EmpArrayValue = [decodedUserData.company_id];
         //// filter 
         if (employeeStatus && employeeStatus == 1) {
@@ -1132,7 +1133,7 @@ router.get('/api/attendance', async (req, res) => {
 
             const [attendanceResults] = await db.promise().query(`
                 SELECT status, check_in_time, check_out_time, attendance_date,approval_status,attendance_status
-                FROM attendance
+               ,short_leave,short_leave_type,short_leave_reason FROM attendance
                 WHERE employee_id = ? AND YEAR(attendance_date) = ? AND MONTH(attendance_date) = ?`,
                 [employee.id, year, month]
             );
@@ -1201,6 +1202,10 @@ router.get('/api/attendance', async (req, res) => {
                         if (!attendance.check_out_time) {
                             status = 'NCO';
                             label = 'Not Checked Out';
+                        }
+                        if (decodedUserData.company_id == 10 && attendance.short_leave == 1) {
+                            status = 'sl';
+                            label = attendance.short_leave_reason;
                         }
                     } else if (attendance.status.toLowerCase() == 'half-day') {
                         status = 'HF';
