@@ -293,7 +293,7 @@ router.post("/leave", async (req, res) => {
     }
   } else if (startDate <= currentDate && endDate <= currentDate) {
     // Backdated leave validation
-    if (leave_typeGet[0].negative_leaves == 0) {
+    if (leave_typeGet[0].negative_leaves == 0 && employeeId == decodedUserData?.id) {
       return res.status(400).json({
         status: false,
         message: "You cannot take backdated leaves."
@@ -302,16 +302,16 @@ router.post("/leave", async (req, res) => {
     let currentDateValue = new Date(currentDate.getTime());
 
     // Convert the backdated limit into a Date by subtracting days
-    const backdatedDays = leave_typeGet[0].backdated_leaves_up_to || 0; // fallback in case it's undefined
+    const backdatedDays = leave_typeGet[0].backdated_leaves_up_to || 0;
     const backdatedLimit = new Date(currentDateValue.getTime() - (backdatedDays * 24 * 60 * 60 * 1000));
 
-    if (new Date(startDate) < backdatedLimit) {
+    if (new Date(startDate) < backdatedLimit && employeeId == decodedUserData?.id) {
       return res.status(400).json({
         status: false,
         message: `You can only take backdated leaves up to ${backdatedLimit.toLocaleDateString()}.`
       });
     }
-    if (leave_typeGet[0].backdated_leaves < leaveDays) {
+    if (leave_typeGet[0].backdated_leaves < leaveDays && employeeId == decodedUserData?.id) {
       return res.status(400).json({
         status: false,
         message: `You cannot take backdated leaves for ${leaveDays} days. Only ${leave_typeGet[0].backdated_leaves} days are allowed.`
