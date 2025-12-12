@@ -4,13 +4,12 @@ const cors = require('cors');
 const db = require('../../DB/ConnectionSql');
 const path = require('path');
 const { AdminCheck } = require('.././../model/functlity/AdminCheck');
-const uploadFile = require('../../model/functlity/uploadfunclite')
 router.use(cors());
 const { getEmployeeProfile } = require('../../helpers/getEmployeeProfile');
 
 
-router.post('/api/UploadLogo', uploadFile, async (req, res) => {
-    const { userData, folderName, CheckId } = req.body;
+router.post('/api/UploadLogo', async (req, res) => {
+    const { userData, CheckId, logo } = req.body;
     let decodedUserData = null;
 
     if (userData) {
@@ -26,9 +25,7 @@ router.post('/api/UploadLogo', uploadFile, async (req, res) => {
         return res.status(400).json({ status: false, error: 'Company ID is required' });
     }
 
-    const uploadedFileName = req.file ? path.basename(req.file.path) : null;
-    // const filePath = req.file ? req.file.path.replace(/^.*uploads\\/, '/uploads/') : null;
-    const filePath = req.file ? '/uploads/' + path.relative('uploads', req.file.path) : null;
+
 
     const id = CheckId || decodedUserData.id;
     db.query('SELECT profile_image FROM employees WHERE  employee_status=1 and status=1 and delete_status=0 and id = ?', [id], (err, results) => {
@@ -40,7 +37,7 @@ router.post('/api/UploadLogo', uploadFile, async (req, res) => {
             return res.status(404).json({ status: false, message: 'Company not found.' });
         }
         const currentLogo = results[0].logo;
-        const logoToUse = filePath || currentLogo;
+        const logoToUse = logo || currentLogo;
 
         db.query('UPDATE employees SET profile_image = ? WHERE  employee_status=1 and status=1 and delete_status=0 and id = ?', [logoToUse, decodedUserData.id], (err) => {
             if (err) {
@@ -49,9 +46,7 @@ router.post('/api/UploadLogo', uploadFile, async (req, res) => {
             }
             return res.status(200).json({
                 status: true,
-                message: 'Profile Image uploaded and updated successfully.',
-                folderName: folderName || 'default',
-                imageName: uploadedFileName
+                message: 'Profile Image uploaded and updated successfully.'
             });
         });
     });

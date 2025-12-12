@@ -31,9 +31,9 @@ const upload = multer({ storage: storage });
 
 
 
-router.post('/faceRegister', upload.single('face'), async (req, res) => {
+router.post('/faceRegister', async (req, res) => {
 
-    const { userData, embeddings, employeeId } = req.body;
+    const { userData, embeddings, employeeId, face } = req.body;
     let decodedUserData = null;
 
     // Decode userData safely
@@ -48,17 +48,11 @@ router.post('/faceRegister', upload.single('face'), async (req, res) => {
 
     const company_id = decodedUserData?.company_id;
     const id = employeeId || decodedUserData?.id;
-
+    let userId = id;
     if (!company_id || !id) {
         return res.status(400).json({ status: false, message: 'Invalid input data' });
     }
-    let faceUrl = '';
-    // Handle missing file upload
-    if (!req.file) {
-        faceUrl = '';
-    } else {
-        faceUrl = '/uploads/face/' + req.file.filename;
-    }
+    let faceUrl = face || '';
 
     const result = await getEmployeeProfile(req.body, id);
 
@@ -270,7 +264,7 @@ router.post('/permissionUpdate', async (req, res) => {
                 });
             }
         } else {
-            if (updatedata?.insertId>0) {
+            if (updatedata?.insertId > 0) {
                 return res.json({
                     status: true,
                     message: "Record inserted successfully",

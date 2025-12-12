@@ -40,7 +40,7 @@ const upload = multer({
 });
 
 // Route to handle company submissions
-// upload.single('logo'),
+
 
 router.post('/api/Add', async (req, res) => {
     const { company_name, owner_name, industry, headquarters, website, phone_number, email, address, member } = req.body;
@@ -100,7 +100,7 @@ router.post('/api/Add', async (req, res) => {
 });
 
 
-router.post('/api/Edit', upload.single('logo'), async (req, res) => {
+router.post('/api/Edit', async (req, res) => {
     const {
         company_name,
         owner_name,
@@ -111,7 +111,7 @@ router.post('/api/Edit', upload.single('logo'), async (req, res) => {
         email,
         address,
         editId,
-        member
+        member, logo
     } = req.body;
 
     // Check for required fields
@@ -120,7 +120,7 @@ router.post('/api/Edit', upload.single('logo'), async (req, res) => {
     }
 
     // Get the new logo filename if it exists
-    const newLogo = req.file ? req.file.filename : null;
+    const newLogo = logo ? logo : null;
 
     // Fetch the current logo from the database
     db.query('SELECT logo FROM companies WHERE id = ?', [editId], (err, results) => {
@@ -163,8 +163,8 @@ router.post('/api/Edit', upload.single('logo'), async (req, res) => {
     });
 });
 
-router.post('/api/UploadLogo', uploadFile, async (req, res) => {
-    const { userData, folderName } = req.body;
+router.post('/api/UploadLogo', async (req, res) => {
+    const { userData, logo } = req.body;
     let decodedUserData = null;
 
     if (userData) {
@@ -180,9 +180,8 @@ router.post('/api/UploadLogo', uploadFile, async (req, res) => {
         return res.status(400).json({ status: false, error: 'Company ID is required' });
     }
 
-    const uploadedFileName = req.file ? path.basename(req.file.path) : null;
-    // const filePath = req.file ? req.file.path.replace(/^.*uploads\\/, '/uploads/') : null;
-    const filePath = req.file ? '/uploads/' + path.relative('uploads', req.file.path) : null;
+
+    const filePath = logo ? logo : null;
 
     db.query('SELECT logo FROM companies WHERE id = ?', [decodedUserData.company_id], (err, results) => {
         if (err) {
@@ -203,8 +202,7 @@ router.post('/api/UploadLogo', uploadFile, async (req, res) => {
             return res.status(200).json({
                 status: true,
                 message: 'Logo uploaded and updated successfully.',
-                folderName: folderName || 'default',
-                imageName: uploadedFileName
+
             });
         });
     });

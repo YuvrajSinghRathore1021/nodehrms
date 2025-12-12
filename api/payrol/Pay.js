@@ -713,39 +713,189 @@ router.post('/api/GenerateSalary', async (req, res) => {
     }
 });
 
+// router.get('/api/PayEmployeeSalaryDetails', async (req, res) => {
+//     const { userData, data, departmentId = 0, subDepartmentid = 0, employeeStatus = 1, salaryStatus, limit = 10, page } = req.query;
+
+//     let month = data.month;
+//     let year = data.year;
+//     let search = data.search || "";
+
+
+//     let decodedUserData = null;
+
+//     if (!month || !year) {
+//         return res.status(400).json({ status: false, error: 'Month and Year are required' });
+//     }
+
+//     // Decode and validate userData
+//     if (userData) {
+//         try {
+//             const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+//             decodedUserData = JSON.parse(decodedString);
+//         } catch (error) {
+//             return res.status(400).json({ status: false, error: 'Invalid userData format' });
+//         }
+//     }
+
+//     if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+//         return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
+//     }
+
+//     const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
+//     const searchQuery = `%${search}%`;
+//     try {
+//         let query = `SELECT esd.id AS salary_detail_id,
+//                 esd.employee_id,
+//                 esd.id,
+//                 esd.employee_name,
+//                 esd.present_days,
+//                 esd.month,
+//                 esd.year,
+//                 esd.half_days,
+//                 esd.absentee_days,
+//                 esd.leave_days,
+//                 esd.leave_requests,
+//                 esd.holidays,
+//                 esd.work_off,
+//                 esd.working_days,
+//                 esd.ctc_yearly,
+//                 esd.monthly_salary,
+//                 esd.basic_pay_amount,
+//                 esd.total_monthly_salary,
+//                 esd.status,
+//                 esd.add_stamp,
+//                 sc.component_name,
+//                 sc.amount
+//             FROM employeesalarydetails AS esd
+//             inner JOIN employees AS e ON esd.employee_id = e.id
+//             WHERE esd.company_id = ? AND esd.month = ? AND esd.year = ?`;
+//         let values = [decodedUserData.company_id, month, year];
+//         //  LEFT JOIN salarycomponents AS sc
+//         //     ON esd.id = sc.salary_detail_id
+
+//         if (isAdmin == false) {
+//             query += ` AND esd.employee_id=?`;
+//             values.push(decodedUserData.id);
+
+//         }
+//         if (search) {
+//             query += ` AND esd.employee_name LIKE ?`;
+//             values.push(searchQuery);
+//         }
+//         if (departmentId && departmentId != 0) {
+//             query += ` AND e.department = ?`;
+//             values.push(departmentId);
+//         } if (subDepartmentid && subDepartmentid != 0) {
+//             query += ` AND e.sub_department = ?`;
+//             values.push(subDepartmentid);
+//         }
+//         if (employeeStatus && employeeStatus == 1) {
+//             query += ` AND e.employee_status=1 and e.status=1 and e.delete_status=0 `;
+//         } else {
+//             query += ` AND (e.employee_status=0 or e.status=0 or e.delete_status=1) `;
+//         }
+
+//         // Approved, Pending
+//         if (salaryStatus == 'Approved') {
+//             query += ` AND esd.status=1 `;
+//         } else if (salaryStatus == 'Pending') {
+//             query += ` AND esd.status=0 `;
+//         }
+//         else if (salaryStatus == 'Hold') {
+//             query += ` AND esd.status=2 `;
+//         }
+//         // order by esd.employee_name asc
+//         query += ` ORDER BY esd.employee_name ASC `;
+
+//         // // Pagination
+//         let limitNum = parseInt(limit) || 10;
+//         let pageNum = parseInt(page) || 1;
+//         let offset = (pageNum - 1) * limitNum;
+//         query += ` LIMIT ${limitNum} OFFSET ${offset}`;
+
+//         let groupedData = [];
+//         db.query(query, values, (err, results) => {
+//             console.log(results)
+//             if (err) {
+//                 console.error('Database error:', err);
+//                 return res.status(500).json({ status: false, message: 'Database error', error: err });
+//             }
+//             // Group results by salary detail and attach components
+
+//             results.forEach(row => {
+//                 groupedData = {
+//                     employee_id: row.employee_id,
+//                     employee_name: row.employee_name,
+//                     present_days: row.present_days,
+//                     month: row.month,
+//                     year: row.year,
+//                     half_days: row.half_days,
+//                     absentee_days: row.absentee_days,
+//                     leave_days: row.leave_days,
+//                     leave_requests: row.leave_requests,
+//                     holidays: row.holidays,
+//                     work_off: row.work_off,
+//                     working_days: row.working_days,
+//                     ctc_yearly: row.ctc_yearly,
+//                     monthly_salary: row.monthly_salary,
+//                     basic_pay_amount: row.basic_pay_amount,
+//                     total_monthly_salary: row.total_monthly_salary,
+//                     id: row.id,
+//                     status: row.status,
+//                     components: componentNmme(row.salary_detail_id),
+//                 };
+
+//             })
+
+//             res.json({
+//                 status: true,
+//                 month,
+//                 year,
+//                 data: groupedData
+//             });
+
+//         });
+//     } catch (error) {
+//         console.error('Error:', error);
+//         res.status(500).json({ status: false, error: 'Server error fetching PayDetails' });
+//     }
+// });
+
 router.get('/api/PayEmployeeSalaryDetails', async (req, res) => {
-    const { userData, data, departmentId = 0, subDepartmentid = 0, employeeStatus = 1, salaryStatus } = req.query;
+    const { userData, data, departmentId = 0, subDepartmentid = 0, employeeStatus = 1, salaryStatus, limit = 10, page } = req.query;
+
     let month = data.month;
     let year = data.year;
     let search = data.search || "";
-
-
-    let decodedUserData = null;
 
     if (!month || !year) {
         return res.status(400).json({ status: false, error: 'Month and Year are required' });
     }
 
-    // Decode and validate userData
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData format' });
-        }
+    // Decode user
+    let decodedUserData = null;
+    try {
+        const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+        decodedUserData = JSON.parse(decodedString);
+    } catch (error) {
+        return res.status(400).json({ status: false, error: 'Invalid userData format' });
     }
 
-    if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+    if (!decodedUserData?.id || !decodedUserData?.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
     }
 
-    const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
-    const searchQuery = `%${search}%`;
     try {
-        let query = `SELECT esd.id AS salary_detail_id,
+        const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
+        const searchQuery = `%${search}%`;
+
+        let whereQuery = ''
+        let whereValue = [];
+
+        let query = `
+            SELECT 
+                esd.id AS salary_detail_id,
                 esd.employee_id,
-                esd.id,
                 esd.employee_name,
                 esd.present_days,
                 esd.month,
@@ -761,112 +911,171 @@ router.get('/api/PayEmployeeSalaryDetails', async (req, res) => {
                 esd.monthly_salary,
                 esd.basic_pay_amount,
                 esd.total_monthly_salary,
-                esd.status,
-                esd.add_stamp,
-                sc.component_name,
-                sc.amount
+                esd.status
             FROM employeesalarydetails AS esd
-            inner JOIN employees AS e ON esd.employee_id = e.id
-            LEFT JOIN salarycomponents AS sc
-            ON esd.id = sc.salary_detail_id WHERE esd.company_id = ? AND esd.month = ? AND esd.year = ?`;
+            INNER JOIN employees AS e ON esd.employee_id = e.id
+            WHERE esd.company_id = ? 
+            AND esd.month = ? 
+            AND esd.year = ?
+        `;
+
         let values = [decodedUserData.company_id, month, year];
 
-        if (isAdmin == false) {
-            query += ` AND esd.employee_id=?`;
+        whereQuery += ` AND esd.company_id = ? AND esd.month = ? AND esd.year = ?`;
+        whereValue.push(decodedUserData.company_id, month, year);
+
+        if (!isAdmin) {
+            query += ` AND esd.employee_id = ? `;
             values.push(decodedUserData.id);
-
+            whereQuery += ` AND esd.employee_id = ? `;
+            whereValue.push(decodedUserData.id);
         }
+
         if (search) {
-            query += ` AND esd.employee_name LIKE ?`;
+            query += ` AND esd.employee_name LIKE ? `;
             values.push(searchQuery);
+            whereQuery += ` AND esd.employee_name LIKE ? `;
+            whereValue.push(searchQuery);
         }
-        if (departmentId && departmentId != 0) {
-            query += ` AND e.department = ?`;
+
+        if (departmentId != 0) {
+            query += ` AND e.department = ? `;
             values.push(departmentId);
-        } if (subDepartmentid && subDepartmentid != 0) {
-            query += ` AND e.sub_department = ?`;
+            whereQuery += ` AND e.department = ? `;
+            whereValue.push(departmentId);
+        }
+
+        if (subDepartmentid != 0) {
+            query += ` AND e.sub_department = ? `;
             values.push(subDepartmentid);
+            whereQuery += ` AND e.sub_department = ? `;
+            whereValue.push(subDepartmentid);
         }
-        if (employeeStatus && employeeStatus == 1) {
-            query += ` AND e.employee_status=1 and e.status=1 and e.delete_status=0 `;
+
+        if (employeeStatus == 1) {
+            query += ` AND e.employee_status=1 AND e.status=1 AND e.delete_status=0 `;
+            whereQuery += ` AND e.employee_status=1 AND e.status=1 AND e.delete_status=0 `;
         } else {
-            query += ` AND (e.employee_status=0 or e.status=0 or e.delete_status=1) `;
+            query += ` AND (e.employee_status=0 OR e.status=0 OR e.delete_status=1) `;
+            whereQuery += ` AND (e.employee_status=0 OR e.status=0 OR e.delete_status=1) `;
         }
 
-        // Approved, Pending
-        if (salaryStatus == 'Approved') {
-            query += ` AND esd.status=1 `;
-        } else if (salaryStatus == 'Pending') {
-            query += ` AND esd.status=0 `;
-        }
-        else if (salaryStatus == 'Hold') {
-            query += ` AND esd.status=2 `;
+        if (salaryStatus == "Approved") {
+            query += ` AND esd.status = 1 `;
+        } else if (salaryStatus == "Pending") {
+            query += ` AND esd.status = 0 `;
+        } else if (salaryStatus == "Hold") {
+            query += ` AND esd.status = 2 `;
         }
 
+        query += ` ORDER BY esd.employee_name ASC `;
 
+        // Pagination
+        let limitNum = parseInt(limit) || 10;
+        let pageNum = parseInt(page) || 1;
+        let offset = (pageNum - 1) * limitNum;
 
-        db.query(query, values, (err, results) => {
-            if (err) {
-                console.error('Database error:', err);
-                return res.status(500).json({ status: false, message: 'Database error', error: err });
-            }
-            // Group results by salary detail and attach components
-            const groupedData = results.reduce((acc, row) => {
+        query += ` LIMIT ${limitNum} OFFSET ${offset} `;
 
-                if (!acc[row.salary_detail_id]) {
-                    acc[row.salary_detail_id] = {
-                        employee_id: row.employee_id,
-                        employee_name: row.employee_name,
-                        present_days: row.present_days,
-                        month: row.month,
-                        year: row.year,
-                        half_days: row.half_days,
-                        absentee_days: row.absentee_days,
-                        leave_days: row.leave_days,
-                        leave_requests: row.leave_requests,
-                        holidays: row.holidays,
-                        work_off: row.work_off,
-                        working_days: row.working_days,
-                        ctc_yearly: row.ctc_yearly,
-                        monthly_salary: row.monthly_salary,
-                        basic_pay_amount: row.basic_pay_amount,
-                        total_monthly_salary: row.total_monthly_salary,
-                        id: row.id,
-                        status: row.status,
-                        components: [],
-                    };
-                }
-                if (row.component_name) {
-                    acc[row.salary_detail_id].components.push({
-                        component_name: row.component_name,
-                        amount: row.amount,
-                    });
-                }
-                return acc;
-            }, {});
+        // Fetch Salary Details
+        let [rows] = await db.promise().query(query, values);
 
-            res.json({
-                status: true,
-                month,
-                year,
-                data: Object.values(groupedData),
+        let finalData = [];
+
+        // Loop rows + fetch salary components
+        for (let row of rows) {
+            let components = await componentNmme(row.salary_detail_id);
+            finalData.push({
+                salary_detail_id: row.salary_detail_id,
+                employee_id: row.employee_id,
+                employee_name: row.employee_name,
+                present_days: row.present_days,
+                month: row.month,
+                year: row.year,
+                half_days: row.half_days,
+                absentee_days: row.absentee_days,
+                leave_days: row.leave_days,
+                leave_requests: row.leave_requests,
+                holidays: row.holidays,
+                work_off: row.work_off,
+                working_days: row.working_days,
+                ctc_yearly: row.ctc_yearly,
+                monthly_salary: row.monthly_salary,
+                basic_pay_amount: row.basic_pay_amount,
+                total_monthly_salary: row.total_monthly_salary,
+                status: row.status,
+                components
             });
+        }
 
+        // --------------------------------
+        //   Count Total Rows (Pagination)
+        // --------------------------------
+        const countQuery = ` SELECT COUNT(*) AS total FROM employeesalarydetails esd
+            INNER JOIN employees e ON esd.employee_id=e.id where 1=1  ${whereQuery}
+        `;
+
+        const [[countResult]] = await db.promise().query(countQuery, whereValue);
+        const totalRows = countResult.total;
+        const totalPages = Math.ceil(totalRows / limitNum);
+        if (salaryStatus == "Approved") {
+            query += ` AND esd.status = 1 `;
+        } else if (salaryStatus == "Pending") {
+            query += ` AND esd.status = 0 `;
+        } else if (salaryStatus == "Hold") {
+            query += ` AND esd.status = 2 `;
+        }
+
+        let querySum = `
+    SELECT
+        SUM(esd.monthly_salary) AS total_salary,
+        SUM(esd.total_monthly_salary) AS salary_pay,
+
+        SUM(CASE WHEN esd.status = 1 THEN esd.total_monthly_salary ELSE 0 END) AS total_paid,
+        SUM(CASE WHEN esd.status = 0 THEN esd.total_monthly_salary ELSE 0 END) AS total_pending,
+        SUM(CASE WHEN esd.status = 2 THEN esd.total_monthly_salary ELSE 0 END) AS total_hold
+
+    FROM employeesalarydetails AS esd
+    INNER JOIN employees AS e ON esd.employee_id = e.id
+    WHERE 1=1 ${whereQuery}
+`;
+
+        let [rowsSum] = await db.promise().query(querySum, whereValue);
+
+        res.json({
+            status: true,
+            month,
+            year,
+            data: finalData,
+            limit: limit,
+            page: page,
+            total: totalRows,
+            totalPages: totalPages,
+            salary: rowsSum
         });
+
     } catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({ status: false, error: 'Server error fetching PayDetails' });
+        console.error("Error:", error);
+        res.status(500).json({ status: false, error: "Server error fetching PayDetails" });
     }
 });
 
-// /api/PayEmployeeSalaryDetails  sme on post for app
+const componentNmme = async (id) => {
+    let query = `SELECT component_name, amount FROM salarycomponents WHERE salary_detail_id = ?`;
+    let [rows] = await db.promise().query(query, [id]);
+    return rows;
+};
+
+
+
+
 router.post('/api/EmployeeSalaryDetails', async (req, res) => {
-    const { userData, month, year, salaryStatus } =req.body;
+    const { userData, month, year, salaryStatus } = req.body;
 
 
     let decodedUserData = null;
 
-   
+
     // Decode and validate userData
     if (userData) {
         try {
@@ -880,8 +1089,8 @@ router.post('/api/EmployeeSalaryDetails', async (req, res) => {
     if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
     }
-    
-     if (!month || !year) {
+
+    if (!month || !year) {
         return res.status(400).json({ status: false, error: 'Month and Year are required' });
     }
 
@@ -933,6 +1142,8 @@ router.post('/api/EmployeeSalaryDetails', async (req, res) => {
 
 
         db.query(query, values, (err, results) => {
+            console.log(results)
+
             if (err) {
                 console.error('Database error:', err);
                 return res.status(500).json({ status: false, message: 'Database error', error: err });
@@ -961,6 +1172,7 @@ router.post('/api/EmployeeSalaryDetails', async (req, res) => {
                         id: row.id,
                         status: row.status,
                         components: [],
+
                     };
                 }
                 if (row.component_name) {

@@ -13,8 +13,6 @@ exports.getEmployeeProfile = async ({ userData, CheckId, reload = false }) => {
         } catch {
             throw new Error("Invalid userData format");
         }
-
-
         if (!decodedUserData?.company_id)
             throw new Error("Company ID is missing or invalid");
 
@@ -75,7 +73,49 @@ exports.getEmployeeProfile = async ({ userData, CheckId, reload = false }) => {
         const [permissions] = await db.promise().query(
             `SELECT block_app, location_access,block_delete_button, interval_ms, face_detection, live_face_detection, branch_switch, reload, allow_relogin, block_punch_in_out, block_break_in_out, hide_attendance, hide_leaves, hide_team, hide_register_face, hide_payroll, hide_holiday_calendar, hide_id_card, hide_expenses, hide_employees, hide_chat, hide_permissions, block_get_approve_button, block_approve_button, block_create_leave_button, block_approve_leave, block_reject_leave, block_delete_leave, block_create_holiday, block_create_expense, block_edit_employee, block_edit_profile_button, block_personal_info_edit, block_work_week_edit, block_document_upload, hide_profile_tab, block_work_details_edit, block_department_edit, block_subdepartment_edit, hide_track_employees FROM app_settings WHERE  employee_id=? AND company_id = ?`, [employeeId, decodedUserData.company_id]
         );
-        let permissionData = permissions.length > 0 ? permissions[0] : {};
+        let permissionData = permissions.length > 0 ? permissions[0] : {
+            block_app: 0,
+            location_access: 0,
+            block_delete_button: 0,
+            interval_ms: 0,
+            face_detection: 0,
+            live_face_detection: 0,
+            branch_switch: 1,
+            reload: 0,
+            allow_relogin: 0,
+            block_punch_in_out: 0,
+            block_break_in_out: 0,
+            hide_attendance: 0,
+            hide_leaves: 0,
+            hide_team: 0,
+            hide_register_face: 0,
+            hide_payroll: 1,
+            hide_holiday_calendar: 1,
+            hide_id_card: 0,
+            hide_expenses: 0,
+            hide_employees: 0,
+            hide_chat: 0,
+            hide_permissions: 0,
+            block_get_approve_button: 0,
+            block_approve_button: 0,
+            block_create_leave_button: 0,
+            block_approve_leave: 0,
+            block_reject_leave: 0,
+            block_delete_leave: 0,
+            block_create_holiday: 0,
+            block_create_expense: 0,
+            block_edit_employee: 0,
+            block_edit_profile_button: 0,
+            block_personal_info_edit: 0,
+            block_work_week_edit: 0,
+            block_document_upload: 0,
+            hide_profile_tab: 0,
+            block_work_details_edit: 0,
+            block_department_edit: 0,
+            block_subdepartment_edit: 0,
+            hide_track_employees: 0
+        };
+        console.log("permissionData", permissionData);
         let embeddings = faceAuth.length > 0 ? faceAuth[0].embeddings : null;
 
 

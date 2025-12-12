@@ -41,7 +41,6 @@ const upload = multer({
 
 // Route to handle company submissions
 
-// router.post('/api/Add', upload.single('logo'), async (req, res) => {
 
 router.post('/api/Add', async (req, res) => {
 

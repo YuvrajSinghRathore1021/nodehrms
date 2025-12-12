@@ -106,7 +106,7 @@ const upload = multer({ storage: storage });
 // DB insert function
 const insertFile = (Emp_id, company_id, name, fileName, res) => {
     const query = 'INSERT INTO documents (employee_id, company_id, document_name, file_path) VALUES (?, ?, ?, ?)';
-    const values = [Emp_id, company_id, name, '/uploads/documents/' + fileName];
+    const values = [Emp_id, company_id, name, fileName];
 
     db.query(query, values, (err, results) => {
         if (err) {
@@ -119,9 +119,9 @@ const insertFile = (Emp_id, company_id, name, fileName, res) => {
 };
 
 // Upload route (single file only)  
-router.post('/documentPost', upload.single('document'), async (req, res) => {
+router.post('/documentPost', async (req, res) => {
     // const { Emp_id, company_id, documentName } = req.body;
-    const { userData, documentName } = req.body;
+    const { userData, documentName, document } = req.body;
     let decodedUserData = null;
 
     if (userData) {
@@ -137,11 +137,10 @@ router.post('/documentPost', upload.single('document'), async (req, res) => {
         return res.status(400).json({ status: false, error: "Company ID is missing or invalid" });
     }
     let company_id = decodedUserData.company_id;
+
     let Emp_id = decodedUserData.id;
-    if (!req.file) {
-        return res.status(400).json({ status: false, message: 'No file uploaded' });
-    }
-    const fileName = path.basename(req.file.path);
+
+    const fileName = document;
     try {
         await insertFile(Emp_id, company_id, documentName, fileName, res);
     } catch (err) {

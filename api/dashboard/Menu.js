@@ -27,11 +27,11 @@ const upload = multer({
     }
 });
 
-router.post('/api/add', upload.single('icon'), async (req, res) => {
-    const { title, url, parent_id, is_admin_view, sort_order, is_active, userData } = req.body;
-  
-   
-    
+router.post('/api/add', async (req, res) => {
+    const { title, url, parent_id, is_admin_view, sort_order, is_active, userData, icon } = req.body;
+
+
+
     let decodedUserData = null;
     if (userData) {
         try {
@@ -45,10 +45,8 @@ router.post('/api/add', upload.single('icon'), async (req, res) => {
     if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
     }
-    let iconPath = null;
-    if (req.file) {
-        iconPath = `/uploads/icons/${req.file.filename}`;
-    }
+    let iconPath = icon || null;
+
 
     const query = `
         INSERT INTO menus (title,is_admin_view, url, icon, parent_id, sort_order, is_active)
@@ -169,13 +167,13 @@ router.post('/api/getUrl', async (req, res) => {
 //     SELECT id, title, url, icon, parent_id
 //     FROM menus 
 //     WHERE is_active = 1 and (parent_id ='' OR parent_id =0)
-    
+
 // `;
 
 //     db.query(query,  (err, menus) => {
 //         if (err) return res.status(500).json({ status: false, error: err });
 
-     
+
 
 //         res.json({
 //             status: true,
@@ -237,10 +235,10 @@ router.post('/api/menu/unrestrict', async (req, res) => {
     });
 });
 
-router.post('/api/update', upload.single('icon'), async (req, res) => {
-    const { id, title, url,is_admin_view, parent_id, sort_order, is_active, userData } = req.body;
+router.post('/api/update', async (req, res) => {
+    const { id, title, url, is_admin_view, parent_id, sort_order, is_active, userData ,icon} = req.body;
 
-   
+
     let decodedUserData = null;
     if (userData) {
         try {
@@ -256,8 +254,8 @@ router.post('/api/update', upload.single('icon'), async (req, res) => {
     }
 
     let iconPath = req.body.icon; // default from body (in case no new file uploaded)
-    if (req.file) {
-        iconPath = `/uploads/icons/${req.file.filename}`; // overwrite if a new icon was uploaded
+    if (icon !="") {
+        iconPath =icon; 
     }
 
     const query = `
@@ -266,7 +264,7 @@ router.post('/api/update', upload.single('icon'), async (req, res) => {
         WHERE id = ?
     `;
 
-    db.query(query, [title, url,is_admin_view, iconPath, parent_id || null, sort_order || 0, is_active, id], (err) => {
+    db.query(query, [title, url, is_admin_view, iconPath, parent_id || null, sort_order || 0, is_active, id], (err) => {
         if (err) return res.status(500).json({ status: false, error: err });
         res.json({ status: true, message: 'Menu updated successfully' });
     });
@@ -300,7 +298,7 @@ router.post('/api/menu/delete', async (req, res) => {
 
 router.post('/api/list', async (req, res) => {
     const { userData } = req.body;
-   
+
     let decodedUserData = null;
     if (userData) {
         try {
@@ -352,7 +350,7 @@ router.post('/api/list', async (req, res) => {
         let countQuery = 'SELECT COUNT(id) AS total FROM menus WHERE 1=1';
 
 
-        db.query(countQuery,  (err, countResults) => {
+        db.query(countQuery, (err, countResults) => {
             if (err) {
                 console.error('Error counting data records:', err);
                 return res.status(500).json({ status: false, error: 'Server error' });
@@ -459,7 +457,7 @@ router.post('/api/addBulk', upload.any(), async (req, res) => {
                 icon
             } = menu;
 
-            
+
             const iconPath = icon && uploadedFiles[icon] ? uploadedFiles[icon] : null;
 
             const query = `
@@ -536,7 +534,7 @@ router.post('/api/addBulkBase64', async (req, res) => {
                 icon
             } = menu;
 
-            
+
             const iconPath = icon?.startsWith('data:') ? saveBase64Image(icon) : null;
 
             const query = `
@@ -607,7 +605,7 @@ router.post('/api/getMenuUrl', async (req, res) => {
     // }
 
     query += ` ORDER BY id ASC`;
-    
+
     db.query(query, [employee_id, decodedUserData.company_id], (err, menus) => {
         if (err) return res.status(500).json({ status: false, error: err });
 
@@ -629,7 +627,7 @@ router.post('/api/getMenuUrl', async (req, res) => {
                 };
                 parentMenus.push(menu.id);
             } else {
-               
+
                 if (menuMap[menu.parent_id]) {
                     menuMap[menu.parent_id].sub_pages.push({
                         id: menu.id,
@@ -651,7 +649,7 @@ router.post('/api/getMenuUrl', async (req, res) => {
 
         res.json({
             status: true,
-            data: structuredMenus,            
+            data: structuredMenus,
             adminCheck: isAdmin
         });
     });

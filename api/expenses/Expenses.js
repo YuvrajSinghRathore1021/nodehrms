@@ -1,16 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
-const uploadFile = require('../../model/functlity/uploadfunclite')
-const path = require('path');
-const fs = require('fs');
 const cors = require('cors');
 const db = require('../../DB/ConnectionSql');
-const { Console } = require('console');
 const { AdminCheck } = require('../../model/functlity/AdminCheck');
-const e = require('express');
 router.use(cors());
-const uploadsDir = path.join(__dirname, '../../uploads/logo/');
 
 
 router.post('/api/getExpenses', async (req, res) => {
@@ -128,22 +121,17 @@ WHERE e.company_id = ? AND e.employee_id = ?`;
 
 
 function actionFound(action) {
-    // get approve next
-    // admin 
-    // 0 =pending, 1=approved, 2=rejected
-
+    // // get approve next // admin  // 0 =pending, 1=approved, 2=rejected
     if (action.rm_id == 0 && action.admin_id == 0) {
         return `admin`;
     } else if (action.rm_id > 0 && action.rm_status == 1 && action.admin_status == 0) {
         return `admin`;
     } else if (action.rm_id > 0 && action.rm_status == 1 && action.admin_id > 0) {
         return `admin`;
-    }
-    //    rm 
+    } //    rm 
     else if (action.rm_id > 0 && action.rm_status == 0 && action.admin_id == 0) {
         return `rm`;
-    }
-    // view 
+    } // view 
     else if (action.rm_id > 0 && action.rm_status == 1 && action.admin_status == 1) {
         return `view`;
     }
@@ -156,21 +144,12 @@ function actionFound(action) {
 }
 
 
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'uploads/expenses/');
-    },
-    filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, uniqueSuffix + path.extname(file.originalname));
-    }
-});
 
 
-const upload = multer({ storage });
 
-router.post('/expensesAdd', upload.single('document'), async (req, res) => {
-    const { userData, expense_type, amount, reason, expense_date } = req.body;
+
+router.post('/expensesAdd', async (req, res) => {
+    const { userData, expense_type, amount, reason, expense_date, document } = req.body;
 
     let decodedUserData = null;
     if (userData) {
@@ -186,11 +165,7 @@ router.post('/expensesAdd', upload.single('document'), async (req, res) => {
     if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and company ID are required' });
     }
-    // uploads/expenses/
-    let document = "";
-    if (req.file) {
-        document = 'uploads/expenses/' + (req.file ? req.file.filename : null);
-    }
+
 
     let { employee_id } = req.body;
     employee_id = employee_id || decodedUserData.id;
@@ -221,12 +196,14 @@ router.post('/expensesAdd', upload.single('document'), async (req, res) => {
             }
         }
         let insertQuery = "";
+        const documentJson = JSON.stringify(document || []);
+
         if (isAdmin) {
 
             insertQuery = `INSERT INTO expenses (employee_id, company_id, expense_type, amount, reason, expense_date, document, added_by, rm_id, admin_id, rm_status, admin_status, status, created_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`;
 
-            db.query(insertQuery, [employee_id || decodedUserData.id, decodedUserData.company_id, expense_type, amount, reason || '', expense_date, document, decodedUserData?.id || 0, RmIdValue || 0, decodedUserData.id || 0, '0', 1, 1], (err, result) => {
+            db.query(insertQuery, [employee_id || decodedUserData.id, decodedUserData.company_id, expense_type, amount, reason || '', expense_date, documentJson, decodedUserData?.id || 0, RmIdValue || 0, decodedUserData.id || 0, '0', 1, 1], (err, result) => {
                 if (err) {
                     return res.status(500).json({ status: false, message: 'DB error', error: err });
                 }
@@ -237,7 +214,7 @@ router.post('/expensesAdd', upload.single('document'), async (req, res) => {
             insertQuery = `INSERT INTO expenses (employee_id, company_id, expense_type, amount, reason, expense_date, document, added_by, rm_id, admin_id, rm_status, admin_status, status, created_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`;
 
-            db.query(insertQuery, [decodedUserData.id, decodedUserData.company_id, expense_type, amount, reason || '', expense_date, document, decodedUserData?.id || 0, RmIdValue || 0, 0, '0', '0', 1], (err, result) => {
+            db.query(insertQuery, [decodedUserData.id, decodedUserData.company_id, expense_type, amount, reason || '', expense_date, documentJson, decodedUserData?.id || 0, RmIdValue || 0, 0, '0', '0', 1], (err, result) => {
                 if (err) {
                     return res.status(500).json({ status: false, message: 'DB error', error: err });
                 }
@@ -354,11 +331,10 @@ router.post('/amountCount', async (req, res) => {
 
 
 // expenses edit 
-router.post('/expensesEdit', upload.single('document'), async (req, res) => {
+router.post('/expensesEdit', async (req, res) => {
 
-    const { userData, id, expense_type, amount, reason, expense_date } = req.body;
+    const { userData, id, expense_type, amount, reason, expense_date, document } = req.body;
     let decodedUserData = null;
-
     if (userData) {
         try {
             const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
@@ -377,12 +353,7 @@ router.post('/expensesEdit', upload.single('document'), async (req, res) => {
     if (!id || !expense_type || !amount || !expense_date) {
         return res.status(400).json({ status: false, message: 'Missing required fields.' });
     }
-    let document = "";
-    if (req.file) {
-        document = 'uploads/expenses/' + (req.file ? req.file.filename : null);
-    }
-
-
+    const documentJson = JSON.stringify(document || []);
     try {
         // Check if the expense exists
         const [expenseResults] = await db.promise().query(
@@ -398,7 +369,7 @@ router.post('/expensesEdit', upload.single('document'), async (req, res) => {
         const updateQuery = ` UPDATE expenses SET expense_type = ?, amount = ?, reason = ?, expense_date = ?, document = ?, updated_at = NOW() WHERE id = ? AND company_id = ? `;
 
         await db.promise().query(updateQuery, [
-            expense_type, amount, reason || '', expense_date, document, id, decodedUserData.company_id
+            expense_type, amount, reason || '', expense_date, documentJson, id, decodedUserData.company_id
         ]);
         // console.log({ status: true, message: 'Expense updated successfully' })
         return res.status(200).json({ status: true, message: 'Expense updated successfully' });

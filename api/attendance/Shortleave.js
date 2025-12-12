@@ -19,10 +19,11 @@ exports.Shortleave = async ({
         const [policyRows] = await db.promise().query(
             `SELECT id, company_id, short_leave_limit_in, short_leave_duration_in, short_leave_limit_out, 
             short_leave_duration_out ,total_leave_status ,short_leave_total 
-            FROM attendance_policy WHERE company_id = ? and employee_ids in (?) 
+            FROM attendance_policy WHERE company_id = ? and FIND_IN_SET(?, employee_ids)
              LIMIT 1`,
             [company_id, employee_id]
         );
+
 
         if (!policyRows.length) {
             return { status: false, message: "No attendance policy found for this company" };
@@ -30,8 +31,7 @@ exports.Shortleave = async ({
 
         const policy = policyRows[0];
         const { short_leave_limit_in = 0, short_leave_duration_in = 0, short_leave_limit_out = 0, short_leave_duration_out = 0, total_leave_status = 0, short_leave_total = 0 } = policy;
-
-
+     
         // 2️⃣ Count how many short leaves are already used this month
         const [used] = await db.promise().query(
             `SELECT COUNT(attendance_id) as total FROM attendance WHERE employee_id = ? AND company_id = ? 
@@ -55,9 +55,9 @@ exports.Shortleave = async ({
             return h * 60 + (m || 0);
         };
         // Convert all times to minutes for easy comparison
-        const actualIn = toMinutes(checkInTime);
+        const actualIn = toMinutes(checkInTime); /////emp in time 
         const actualOut = toMinutes(checkOutTime);
-        const scheduledIn = toMinutes(empInTime);
+        const scheduledIn = toMinutes(empInTime); //company rule time
         const scheduledOut = toMinutes(empOutTime);
 
 
@@ -68,9 +68,8 @@ exports.Shortleave = async ({
 
         // 3️⃣ Check for Short Leave (IN) - Late Coming
         if (scheduledIn && actualIn > scheduledIn) {
+            const diffIn = actualIn - scheduledIn;
 
-            const diffIn = actualIn - scheduledIn; // how many minutes late
-            // if (diffIn <= short_leave_duration_in) {
             if (diffIn >= short_leave_duration_in - 30 && diffIn <= short_leave_duration_in + 5) {
                 // Check IN short leave limit
                 const [usedIn] = await db.promise().query(
@@ -87,7 +86,7 @@ exports.Shortleave = async ({
                     leaveType = `Short Leave (IN) - Late by ${diffIn} mins`;
                     shortLeaveType = 1;
                     isEligible = true;
-                } else if (total_leave_status == 1 && totalUsed >= short_leave_total) {
+                } else if (total_leave_status == 1 && totalUsed <= short_leave_total) {
                     leaveType = `Short Leave (IN) - Late by ${diffIn} mins`;
                     shortLeaveType = 1;
                     isEligible = true;
@@ -114,7 +113,7 @@ exports.Shortleave = async ({
                     leaveType = `Short Leave (OUT) - Left early by ${diffOut} mins`;
                     shortLeaveType = 2;
                     isEligible = true;
-                } else if (total_leave_status == 1 && totalUsed >= short_leave_total) {
+                } else if (total_leave_status == 1 && totalUsed <= short_leave_total) {
                     leaveType = `Short Leave (OUT) - Left early by ${diffOut} mins`;
                     shortLeaveType = 2;
                     isEligible = true;
@@ -141,7 +140,6 @@ exports.Shortleave = async ({
         }
         return { status: false, message: "Not eligible for short leave" };
     } catch (err) {
-        console.error("Short Leave Error:", err);
         return { status: false, message: err.message };
     }
 };

@@ -105,7 +105,7 @@ router.post('/Attendancemark', async (req, res) => {
             if (rule?.penalty_rule_applied == 1) {
                 // Late Coming Penalty Check
 
-                if (rule?.late_coming_penalty == 1 && rule?.last_in_time && rule?.last_in_time !== '00:00:00') {
+                if (rule?.late_coming_penalty == 1 && rule?.last_in_time && rule?.last_in_time != '00:00:00') {
                     const lastInTimeFormatted = String(rule.last_in_time).padStart(5, '0');
                     // If employee comes after allowed late time
                     if (formattedTime && lastInTimeFormatted < formattedTime) {
@@ -130,11 +130,12 @@ router.post('/Attendancemark', async (req, res) => {
 
 
         } else if (type === 'out') {
-            const checkInResults = await queryDb('SELECT attendance_id,check_in_time,attendance_date FROM attendance WHERE employee_id = ? AND company_id = ? AND attendance_date = CURDATE()', [empId, companyId]);
+            const checkInResults = await queryDb('SELECT attendance_id,status,check_in_time,attendance_date FROM attendance WHERE employee_id = ? AND company_id = ? AND attendance_date = CURDATE()', [empId, companyId]);
             if (checkInResults.length === 0) {
                 return res.status(400).json({ status: false, message: 'No check-in found for today. Please check in first.' });
             }
             const checkInTime = checkInResults[0].check_in_time;
+            const checkStatus = checkInResults[0]?.status;
             const attendanceDate = checkInResults[0].attendance_date;
             let duration = '00:00';
             // Calculate total break duration --start
@@ -179,7 +180,6 @@ router.post('/Attendancemark', async (req, res) => {
                 duration = await calculateDuration(checkInTime, formattedTime, breakDurationMillis);
 
             } catch (error) {
-                console.error("Server Error:", error.message);
                 return res.status(500).json({
                     status: false,
                     message: 'Something went wrong while calculating break duration'
@@ -194,7 +194,7 @@ router.post('/Attendancemark', async (req, res) => {
             const halfDayHours = rulesResults[0]?.half_day || 0;
 
             let attendanceStatus = 0;
-            let statusValue = 'Present';
+            let statusValue = checkStatus;
             const numericDuration = parseDuration(duration)
 
             if (numericDuration <= maxWorkingHours) {
@@ -204,7 +204,7 @@ router.post('/Attendancemark', async (req, res) => {
             let halfDayDuration = halfDayHours + 0.5;
             if (companyId == 10) {
                 //+4:45 hours
-                halfDayDuration = halfDayHours + 4.70;
+                halfDayDuration = halfDayHours + 4.0;
             }
 
             if (numericDuration >= halfDayHours && numericDuration <= halfDayDuration && halfDayHours != 0) {
@@ -290,9 +290,9 @@ router.post('/Attendancemark', async (req, res) => {
                     timeCount = '00:00';
                 }
             }
-
             //short leave check
-            if ((attendanceStatus == 1 && statusValue == "half-day") || (attendanceStatus == 0 && statusValue == "Present")) {
+            if (statusValue == "half-day" || (attendanceStatus == 0 && statusValue == "Present")) {
+
                 const shortleaveResult = await Shortleave({
                     employee_id: empId,
                     company_id: companyId,
@@ -307,6 +307,7 @@ router.post('/Attendancemark', async (req, res) => {
                     empInTime: rule.in_time,
                     empOutTime: rule.out_time,
                 });
+
 
                 if (shortleaveResult && shortleaveResult.status) {
                     attendanceStatus = shortleaveResult.attendanceStatusNew;
@@ -431,7 +432,6 @@ const calculateDuration = (startTime, endTime, breakDurationMillis = 0) => {
 
             resolve(`${hours} hour ${minutes} minute`);
         } catch (error) {
-            console.error("Duration calculation error:", error.message);
             reject(new Error('Error calculating duration'));
         }
     });

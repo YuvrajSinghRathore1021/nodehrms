@@ -111,6 +111,7 @@
 // ////facerecognition
 // const facerecognition = require('./api/facerecognition/faceVerify');
 // const Attendancepolicy = require('./api/attendance/Attendancepolicy');
+// const Upload = require('./api/uploadFunclity/upload');
 
 // const authenticateToken = (req, res, next) => {
 //     const token = req.headers['authorization']?.split(' ')[1];
@@ -200,6 +201,7 @@
 // app.use('/WorkWeekApp', authenticateToken, WorkWeek);
 // app.use('/PayDetailsApp', authenticateToken, PayDetails);
 // app.use('/Employeesdetails', authenticateToken, Employeesdetails);
+// app.use('/upload', Upload);
 // // app.use('/Excel', authenticateToken, ExcelEmployee);
 // app.use('/Excel', ExcelEmployee);
 
