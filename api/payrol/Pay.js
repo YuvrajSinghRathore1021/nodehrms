@@ -912,7 +912,7 @@ router.get('/api/PayEmployeeSalaryDetails', async (req, res) => {
                 esd.monthly_salary,
                 esd.basic_pay_amount,
                 esd.total_monthly_salary,
-                esd.status,esd.add_stamp,
+                esd.status,esd.add_stamp
             FROM employeesalarydetails AS esd
             INNER JOIN employees AS e ON esd.employee_id = e.id
             WHERE esd.company_id = ? 
