@@ -895,6 +895,7 @@ router.get('/api/PayEmployeeSalaryDetails', async (req, res) => {
         let query = `
             SELECT 
                 esd.id AS salary_detail_id,
+                esd.id,
                 esd.employee_id,
                 esd.employee_name,
                 esd.present_days,
@@ -911,7 +912,7 @@ router.get('/api/PayEmployeeSalaryDetails', async (req, res) => {
                 esd.monthly_salary,
                 esd.basic_pay_amount,
                 esd.total_monthly_salary,
-                esd.status
+                esd.status,esd.add_stamp,
             FROM employeesalarydetails AS esd
             INNER JOIN employees AS e ON esd.employee_id = e.id
             WHERE esd.company_id = ? 
@@ -987,6 +988,7 @@ router.get('/api/PayEmployeeSalaryDetails', async (req, res) => {
             let components = await componentNmme(row.salary_detail_id);
             finalData.push({
                 salary_detail_id: row.salary_detail_id,
+                id:row.id,
                 employee_id: row.employee_id,
                 employee_name: row.employee_name,
                 present_days: row.present_days,
@@ -1004,6 +1006,7 @@ router.get('/api/PayEmployeeSalaryDetails', async (req, res) => {
                 basic_pay_amount: row.basic_pay_amount,
                 total_monthly_salary: row.total_monthly_salary,
                 status: row.status,
+                add_stamp: row.add_stamp,
                 components
             });
         }
