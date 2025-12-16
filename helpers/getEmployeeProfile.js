@@ -115,7 +115,8 @@ exports.getEmployeeProfile = async ({ userData, CheckId, reload = false }) => {
             block_subdepartment_edit: 0,
             hide_track_employees: 0
         };
-        console.log("permissionData", permissionData);
+        console.log(permissionData)
+       
         let embeddings = faceAuth.length > 0 ? faceAuth[0].embeddings : null;
 
 
@@ -166,7 +167,7 @@ exports.getEmployeeProfile = async ({ userData, CheckId, reload = false }) => {
                 interval_ms: permissionData?.interval_ms || 0,
                 face_detection: permissionData?.face_detection || 0,
                 live_face_detection: permissionData?.live_face_detection || 0,
-                branch_switch: permissionData?.branch_switch || permissionData?.branch_switch == 0 ? 0 : true,
+                branch_switch:  permissionData?.branch_switch == 0 ? 0 : true,
                 allow_relogin: permissionData?.allow_relogin || 0,
                 block_punch_in_out: permissionData?.block_punch_in_out || 0,
                 block_break_in_out: permissionData?.block_break_in_out || 0,
