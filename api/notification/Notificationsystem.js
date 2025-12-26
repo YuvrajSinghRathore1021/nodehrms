@@ -75,7 +75,63 @@ router.post('/send', (req, res) => {
     });
 });
 
+router.post('/sendmessage', (req, res) => {
+    const { userData, receiver_id, page_url, img_url, title, message, notification_type } = req.body;
 
+    if (!userData || !receiver_id) {
+        return res.status(400).json({ status: false, error: "Missing userData or receiver_id" });
+    }
+
+    let decodedUserData = null;
+
+    try {
+        const decodedString = Buffer.from(userData, "base64").toString("utf-8");
+        decodedUserData = JSON.parse(decodedString);
+    } catch (error) {
+        return res.status(400).json({ status: false, error: "Invalid userData" });
+    }
+
+    if (!decodedUserData.id || !decodedUserData.company_id) {
+        return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
+    }
+
+    // Store as string in DB
+    const receiverIdStr = receiver_id;
+
+    const sql = `INSERT INTO notifications 
+        (company_id, sender_id, receiver_id, page_url, img_url, title, message, notification_type)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+
+    db.query(sql, [
+        decodedUserData.company_id,
+        decodedUserData.id,
+        receiverIdStr,
+        page_url,
+        img_url,
+        title,
+        message,
+        notification_type
+    ], (err, result) => {
+        if (err) return res.status(500).send(err);
+
+        const notification = {
+            id: result.insertId,
+            company_id: decodedUserData.company_id,
+            sender_id: decodedUserData.id,
+            receiver_id: receiverIdStr,
+            page_url,
+            img_url,
+            title,
+            message,
+            is_read: false,
+            created_at: new Date(),
+            notification_type
+        };
+
+
+        res.status(200).send({ success: true, notification });
+    });
+});
 
 router.post('/NotificationGet', (req, res) => {
     const { userData, notification_type = '' } = req.body;

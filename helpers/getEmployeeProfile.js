@@ -40,12 +40,7 @@ exports.getEmployeeProfile = async ({ userData, CheckId, reload = false }) => {
         e.re_login
       FROM employees e
       LEFT JOIN branches b ON e.branch_id = b.id AND b.company_id = e.company_id
-      WHERE e.employee_status = 1 
-        AND e.status = 1 
-        AND e.delete_status = 0 
-        AND e.id = ?`,
-            [employeeId]
-        );
+      WHERE e.employee_status = 1 AND e.status = 1 AND e.delete_status = 0 AND e.id = ?`, [employeeId] );
 
         if (employees.length === 0) throw new Error("Employee not found");
 
@@ -89,7 +84,7 @@ exports.getEmployeeProfile = async ({ userData, CheckId, reload = false }) => {
             hide_leaves: 0,
             hide_team: 0,
             hide_register_face: 0,
-            hide_payroll: 1,
+            hide_payroll: 0,
             hide_holiday_calendar: 1,
             hide_id_card: 0,
             hide_expenses: 0,
@@ -114,11 +109,9 @@ exports.getEmployeeProfile = async ({ userData, CheckId, reload = false }) => {
             block_department_edit: 0,
             block_subdepartment_edit: 0,
             hide_track_employees: 0
-        };
-        console.log(permissionData)
-       
+        };       
+        
         let embeddings = faceAuth.length > 0 ? faceAuth[0].embeddings : null;
-
 
         if (rules.length > 0) {
             const rule = rules[0];

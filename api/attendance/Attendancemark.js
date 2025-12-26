@@ -17,6 +17,15 @@ function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
     return distance;
 }
 
+function addMinutes(timeStr, minutes) {
+    const [h, m] = timeStr.split(':').map(Number);
+    const date = new Date();
+    date.setHours(h, m, 0, 0);
+    date.setMinutes(date.getMinutes() + Number(minutes));
+
+    return date.toTimeString().slice(0, 5); // HH:mm
+}
+
 
 router.post('/Attendancemark', async (req, res) => {
     const { type, userData, latitude, longitude, attendanceType = "", employeeId = "0", attendanceTime = "", attendanceDate = "", reason = "", liveFaceRecognition = 0 } = req.body;
@@ -48,8 +57,10 @@ router.post('/Attendancemark', async (req, res) => {
     if (empId != decodedUserData.id) {
         applyBy = decodedUserData.id;
     }
+
     try {
         const employeeResults = await queryDb('SELECT attendance_rules_id,branch_id ,work_week_id FROM employees WHERE employee_status=1 and status=1 and delete_status=0 and  id = ? AND company_id = ?', [empId, companyId]);
+
         if (employeeResults.length === 0) {
             return res.status(500).json({ status: false, message: 'Employee not found' });
         }
@@ -78,7 +89,7 @@ router.post('/Attendancemark', async (req, res) => {
             }
         }
 
-        const rulesResults = await queryDb('SELECT in_time,out_time,out_time_required,max_working_hours,working_hours_required,half_day,penalty_rule_applied,late_coming_penalty,last_in_time,early_leaving_penalty,last_out_time FROM attendance_rules WHERE rule_id = ? AND company_id = ?', [employeeResults[0].attendance_rules_id, companyId]);
+        const rulesResults = await queryDb('SELECT in_time,out_time,out_time_required,max_working_hours,working_hours_required,half_day,penalty_rule_applied,late_coming_penalty,last_in_time,early_leaving_penalty,last_out_time,in_grace_period_minutes FROM attendance_rules WHERE rule_id = ? AND company_id = ?', [employeeResults[0].attendance_rules_id, companyId]);
         const rule = rulesResults.length > 0 ? rulesResults[0] : { in_time: '09:30', out_time: '18:30' };
 
         let dailyStatus = '';
@@ -86,6 +97,7 @@ router.post('/Attendancemark', async (req, res) => {
 
         if (type === 'in') {
             const inTimeFormatted = rule.in_time ? `${String(rule.in_time).padStart(5, '0')}` : `${String('09:30').padStart(5, '0')}`;
+            let late_coming_leaving = 0;
             if (inTimeFormatted > formattedTime) {
                 dailyStatus = 'Early';
                 timeCount = trackTime(inTimeFormatted, formattedTime);
@@ -96,15 +108,28 @@ router.post('/Attendancemark', async (req, res) => {
                 dailyStatus = 'On Time';
                 timeCount = '00:00';
             }
+
+
             const attendanceResults = await queryDb('SELECT attendance_id FROM attendance WHERE employee_id = ? AND company_id = ? AND attendance_date = CURDATE()', [empId, companyId]);
             if (attendanceResults.length > 0) {
                 return res.status(400).json({ status: false, message: 'Attendance for today is already marked as in.' });
             }
+            
             let empAttendanceStatus = 'Present';
             ////neew addd////
             if (rule?.penalty_rule_applied == 1) {
                 // Late Coming Penalty Check
-
+                if (rule?.in_grace_period_minutes) {
+                    // office time + grace minutes
+                    const allowedTime = addMinutes(
+                        inTimeFormatted,
+                        rule?.in_grace_period_minutes
+                    );
+                    // If employee comes after allowed time
+                    if (formattedTime > allowedTime) {
+                        late_coming_leaving = 1;
+                    }
+                }
                 if (rule?.late_coming_penalty == 1 && rule?.last_in_time && rule?.last_in_time != '00:00:00') {
                     const lastInTimeFormatted = String(rule.last_in_time).padStart(5, '0');
                     // If employee comes after allowed late time
@@ -115,12 +140,12 @@ router.post('/Attendancemark', async (req, res) => {
 
 
             }
+
             ////neew addd////
 
 
-
-            let attendanceCheckInsert = await queryDb('INSERT INTO attendance (status,in_latitude, in_longitude, daily_status_in, daily_status_intime, employee_id, company_id, attendance_date, check_in_time, in_ip,branch_id_in,apply_by,reason) VALUES (?,?,?, ?, ?, ?, ?,CURDATE(), ?,  ?, ?,?,?)',
-                [empAttendanceStatus, latitude, longitude, dailyStatus, timeCount, empId, companyId, formattedTime, IpHandal, empbranch_id, applyBy, reason]);
+            let attendanceCheckInsert = await queryDb('INSERT INTO attendance (status,in_latitude, in_longitude, daily_status_in, daily_status_intime, employee_id, company_id, attendance_date, check_in_time, in_ip,branch_id_in,apply_by,reason,late_coming_leaving) VALUES (?,?,?, ?, ?, ?, ?,CURDATE(), ?,  ?, ?,?,?,?)',
+                [empAttendanceStatus, latitude, longitude, dailyStatus, timeCount, empId, companyId, formattedTime, IpHandal, empbranch_id, applyBy, reason, late_coming_leaving]);
             if (!attendanceCheckInsert || !attendanceCheckInsert.insertId) {
 
                 return res.status(500).json({ status: false, message: 'Failed to mark attendance. Please try again.', error: attendanceCheckInsert });

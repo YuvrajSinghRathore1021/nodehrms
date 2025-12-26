@@ -26,7 +26,7 @@ router.post('/api/Birthday', async (req, res) => {
 
         // Build SQL and params
         let query = `
-            SELECT id, profile_image, CONCAT(first_name, ' ', last_name) AS name, dob
+            SELECT id, profile_image, CONCAT(first_name, ' ', last_name) AS name, dob,gender
             FROM employees
             WHERE company_id = ? AND employee_status = 1 AND status = 1 AND delete_status = 0 
             AND DATE_FORMAT(dob, '%m-%d') 
@@ -107,7 +107,7 @@ router.post('/api/workAnniversaries', async (req, res) => {
 
         // Build SQL query
         let query = `
-            SELECT id, profile_image, CONCAT(first_name, ' ', last_name) AS name, date_of_Joining
+            SELECT id, profile_image, CONCAT(first_name, ' ', last_name) AS name, date_of_Joining,gender
             FROM employees
             WHERE company_id = ? AND employee_status = 1 AND status = 1 AND delete_status = 0 
             AND DATE_FORMAT(date_of_Joining, '%m-%d')
@@ -187,7 +187,7 @@ router.post('/api/newJoiners', async (req, res) => {
         const useCustomRange = startDate && endDate;
         const queryParams = [decodedUserData.company_id];
         let query = `
-            SELECT id, profile_image, CONCAT(first_name, ' ', last_name) AS name, date_of_Joining
+            SELECT id, profile_image, CONCAT(first_name, ' ', last_name) AS name, date_of_Joining,gender
             FROM employees
             WHERE company_id = ? AND employee_status = 1 AND status = 1 AND delete_status = 0 
         `;

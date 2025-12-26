@@ -455,7 +455,9 @@ router.post("/FetchLeaveCount", async (req, res) => {
       if (today < eligibleDate) {
         results.push({
           employee_id: employeeId,
+          employee_id: employeeId,
           leave_rule_id: rule.id,
+          leave_number_hide: rule.leave_number_hide,
           leave_type: rule.leave_type,
           used_leaves: "0",
           available_leaves: "0",
@@ -534,6 +536,7 @@ router.post("/FetchLeaveCount", async (req, res) => {
       results.push({
         employee_id: employeeId,
         leave_rule_id: rule.id,
+        leave_number_hide: rule.leave_number_hide,
         leave_type: rule.leave_type,
         total_credited: totalCredited,
         used_leaves: used.toString(),

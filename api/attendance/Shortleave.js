@@ -20,8 +20,7 @@ exports.Shortleave = async ({
             `SELECT id, company_id, short_leave_limit_in, short_leave_duration_in, short_leave_limit_out, 
             short_leave_duration_out ,total_leave_status ,short_leave_total 
             FROM attendance_policy WHERE company_id = ? and FIND_IN_SET(?, employee_ids)
-             LIMIT 1`,
-            [company_id, employee_id]
+             LIMIT 1`, [company_id, employee_id]
         );
 
 
@@ -31,7 +30,7 @@ exports.Shortleave = async ({
 
         const policy = policyRows[0];
         const { short_leave_limit_in = 0, short_leave_duration_in = 0, short_leave_limit_out = 0, short_leave_duration_out = 0, total_leave_status = 0, short_leave_total = 0 } = policy;
-     
+
         // 2️⃣ Count how many short leaves are already used this month
         const [used] = await db.promise().query(
             `SELECT COUNT(attendance_id) as total FROM attendance WHERE employee_id = ? AND company_id = ? 
@@ -70,7 +69,7 @@ exports.Shortleave = async ({
         if (scheduledIn && actualIn > scheduledIn) {
             const diffIn = actualIn - scheduledIn;
 
-            if (diffIn >= short_leave_duration_in - 30 && diffIn <= short_leave_duration_in + 5) {
+            if (diffIn >= short_leave_duration_in - 60 && diffIn <= short_leave_duration_in + 5) {
                 // Check IN short leave limit
                 const [usedIn] = await db.promise().query(
                     `SELECT COUNT(attendance_id) as total 

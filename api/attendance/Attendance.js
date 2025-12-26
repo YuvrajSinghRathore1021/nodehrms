@@ -1133,7 +1133,7 @@ router.get('/api/attendance', async (req, res) => {
 
             const [attendanceResults] = await db.promise().query(`
                 SELECT status, check_in_time, check_out_time, attendance_date,approval_status,attendance_status
-               ,short_leave,short_leave_type,short_leave_reason FROM attendance
+               ,short_leave,short_leave_type,short_leave_reason,late_coming_leaving FROM attendance
                 WHERE employee_id = ? AND YEAR(attendance_date) = ? AND MONTH(attendance_date) = ?`,
                 [employee.id, year, month]
             );
@@ -1218,7 +1218,7 @@ router.get('/api/attendance', async (req, res) => {
                 else if (leaveRecord) {
                     status = "L";
                     // label = 'Leave';
-                    label = `Leave - ${leaveRecord.leave_type}`;
+                    label = `${leaveRecord.leave_type}`;
                 } else if (isWeeklyOff) {
                     status = 'WO';
                     label = 'Weekly Off';
@@ -1239,7 +1239,9 @@ router.get('/api/attendance', async (req, res) => {
                     label: label,
                     date: date,
                     in_time: attendance ? attendance.check_in_time : '',
-                    out_time: attendance ? attendance.check_out_time : ''
+                    out_time: attendance ? attendance.check_out_time : '',
+                    late_coming_leaving: attendance ? attendance?.late_coming_leaving : 0,
+
                 });
             }
 

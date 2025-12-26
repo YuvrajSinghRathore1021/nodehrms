@@ -149,7 +149,8 @@ router.post("/RulesUpdate", (req, res) => {
     backdated_leaves_up_to,
     apply_leaves_next_year,
     auto_deduction, deduction_count, deduction_date, deduction_start_date, deduction_end_date,
-    userData
+
+    userData,leave_number_hide=0
   } = req.body;
   const recordId = id;
   let decodedUserData = null;
@@ -204,7 +205,7 @@ router.post("/RulesUpdate", (req, res) => {
         backdated_leaves = ?,
         backdated_leaves_up_to = ?,
         apply_leaves_next_year = ?,
-        auto_deduction=?, deduction_count=?, deduction_date=?, deduction_start_date=?, deduction_end_date=?
+        auto_deduction=?, deduction_count=?, deduction_date=?, deduction_start_date=?, deduction_end_date=?,leave_number_hide=?
       WHERE id = ?
     `;
     const values = [
@@ -229,7 +230,7 @@ router.post("/RulesUpdate", (req, res) => {
       backdated_leaves,
       backdated_leaves_up_to,
       apply_leaves_next_year, auto_deduction, deduction_count, deduction_date, deduction_start_date, deduction_end_date,
-      id
+      leave_number_hide,id
     ];
     db.query(query, values, (err, results) => {
       if (err) {
