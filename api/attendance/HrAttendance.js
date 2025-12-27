@@ -106,7 +106,7 @@ const db = require('../../DB/ConnectionSql');
 //         let result;
 //         if (type === "AttendanceSubmit") {
 
-            
+
 //             [result] = await db.promise().query(
 //                 `INSERT INTO attendance 
 //                 (attendance_status, status, check_in_time, check_out_time, duration, reason, 
@@ -616,7 +616,15 @@ WHERE (att.attendance_id = ? or (att.attendance_date=? and att.employee_id=?)) A
         }
 
         if (results.length === 0) {
-            return res.status(200).json({ status: false, message: ' record not found.' });
+            return res.status(200).json({
+                status: true, message: ' record not found.',
+                data: [
+                    {
+                        "attendance_id": 0,
+                        attendance_date:attendanceDate
+                    }]
+               
+            });
         }
 
         return res.status(200).json({

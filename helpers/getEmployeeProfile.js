@@ -85,7 +85,7 @@ exports.getEmployeeProfile = async ({ userData, CheckId, reload = false }) => {
             hide_team: 0,
             hide_register_face: 0,
             hide_payroll: 0,
-            hide_holiday_calendar: 1,
+            hide_holiday_calendar: 0,
             hide_id_card: 0,
             hide_expenses: 0,
             hide_employees: 0,
