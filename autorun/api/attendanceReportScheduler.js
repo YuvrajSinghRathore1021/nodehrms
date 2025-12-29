@@ -97,6 +97,7 @@ Total Employees: ${summary.totalEmployees}
 Present: ${summary.attendanceCount}
 On Leave: ${summary.leaveCount}
 Absent: ${summary.absentees}
+LWP: ${summary?.lwp}
 
 Please find the detailed attendance report attached.`,
       attachments: [

@@ -458,59 +458,6 @@ function trackTime(officeStartTime, arrivalTimeOrCloseTime) {
     }
 };
 
-// router.post('/attendanceRequestEdit', async (req, res) => {
-//     const { userData, attendanceId, request_type, in_time, out_time, reason, rm_id, rm_status, admin_id, admin_status, request_id } = req.body;
-
-//     let decodedUserData = null;
-//     // Decode and validate userData
-//     if (userData) {
-//         try {
-//             const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-//             decodedUserData = JSON.parse(decodedString);
-//         } catch (error) {
-//             return res.status(400).json({
-//                 status: false, error: 'Invalid userData', message: 'Invalid userData'
-//             });
-//         }
-//     }
-
-//     // Validate company_id
-//     if (!decodedUserData || !decodedUserData.company_id) {
-//         return res.status(400).json({
-//             status: false, error: 'Company ID is required', message: 'Company ID is required'
-//         });
-//     }
-
-//     const company_id = decodedUserData.company_id;
-//     try {
-//         const [result] = await db.promise().query(
-//             `UPDATE attendance_requests SET request_type=?,in_time=?,out_time=?,reason=?,rm_id=?,rm_status=?,admin_id=?,admin_status=? WHERE id=? and company_id=?`,
-//             [request_type, in_time, out_time, reason, rm_id, rm_status, admin_id, admin_status, request_id, company_id]
-//         );
-
-//         if (result.affectedRows > 0) {
-//             return res.status(200).json({
-//                 status: true,
-//                 message: 'update successfully',
-//                 data: result
-//             });
-//         }
-
-//         else {
-//             return res.status(200).json({
-//                 status: false,
-//                 message: 'failed',
-//                 data: result
-//             });
-//         }
-//     } catch (err) {
-//         return res.status(200).json({
-//             status: false,
-//             message: 'failed'
-//         });
-//     }
-// });
-
 router.post('/attendanceDetails', async (req, res) => {
     const { userData, attendanceId, attendanceDate, employeeId } = req.body;
     let decodedUserData = null;
@@ -637,97 +584,97 @@ WHERE (att.attendance_id = ? or (att.attendance_date=? and att.employee_id=?)) A
 });
 
 
-router.post('/attendanceDetailsSummary', async (req, res) => {
-    const { userData, employeeId, timeAllow = "00:20", startDate, endDate } = req.body;
+// router.post('/attendanceDetailsSummary', async (req, res) => {
+//     const { userData, employeeId, timeAllow = "00:20", startDate, endDate } = req.body;
 
-    let decodedUserData = null;
-    try {
-        decodedUserData = JSON.parse(Buffer.from(userData, 'base64').toString('utf-8'));
-    } catch (error) {
-        return res.status(400).json({ status: false, message: "Invalid userData" });
-    }
+//     let decodedUserData = null;
+//     try {
+//         decodedUserData = JSON.parse(Buffer.from(userData, 'base64').toString('utf-8'));
+//     } catch (error) {
+//         return res.status(400).json({ status: false, message: "Invalid userData" });
+//     }
 
-    if (!decodedUserData?.company_id) {
-        return res.status(400).json({ status: false, message: "Company ID is required" });
-    }
+//     if (!decodedUserData?.company_id) {
+//         return res.status(400).json({ status: false, message: "Company ID is required" });
+//     }
 
-    const company_id = decodedUserData.company_id;
+//     const company_id = decodedUserData.company_id;
 
-    // office timings
-    const officeIn = "09:30:00";
-    const officeOut = "18:30:00";
+//     // office timings
+//     const officeIn = "09:30:00";
+//     const officeOut = "18:30:00";
 
-    try {
-        // 1️⃣ Attendance summary
-        const [attendanceSummary] = await db.promise().query(
-            `
-            SELECT 
-                COUNT(*) AS present,
-                SUM(CASE WHEN check_in_time > ADDTIME(?, ?) THEN 1 ELSE 0 END) AS lateComing,
-                SUM(CASE WHEN check_out_time < SUBTIME(?, ?) THEN 1 ELSE 0 END) AS earlyGoing,
-                SUM(CASE WHEN check_in_time <= ADDTIME(?, ?) 
-                          AND check_out_time >= SUBTIME(?, ?) THEN 1 ELSE 0 END) AS attendanceProper,
-                SUM(CASE WHEN approval_status = 'approved' THEN 1 ELSE 0 END) AS attendanceApprove
-            FROM attendance
-            WHERE company_id = ? 
-              AND employee_id = ? 
-              AND attendance_date BETWEEN ? AND ? 
-              AND status = 'present'
-            `,
-            [officeIn, timeAllow, officeOut, timeAllow, officeIn, timeAllow, officeOut, timeAllow,
-                company_id, employeeId, startDate, endDate]
-        );
+//     try {
+//         // 1️⃣ Attendance summary
+//         const [attendanceSummary] = await db.promise().query(
+//             `
+//             SELECT 
+//                 COUNT(*) AS present,
+//                 SUM(CASE WHEN check_in_time > ADDTIME(?, ?) THEN 1 ELSE 0 END) AS lateComing,
+//                 SUM(CASE WHEN check_out_time < SUBTIME(?, ?) THEN 1 ELSE 0 END) AS earlyGoing,
+//                 SUM(CASE WHEN check_in_time <= ADDTIME(?, ?) 
+//                           AND check_out_time >= SUBTIME(?, ?) THEN 1 ELSE 0 END) AS attendanceProper,
+//                 SUM(CASE WHEN approval_status = 'approved' THEN 1 ELSE 0 END) AS attendanceApprove
+//             FROM attendance
+//             WHERE company_id = ? 
+//               AND employee_id = ? 
+//               AND attendance_date BETWEEN ? AND ? 
+//               AND status = 'present'
+//             `,
+//             [officeIn, timeAllow, officeOut, timeAllow, officeIn, timeAllow, officeOut, timeAllow,
+//                 company_id, employeeId, startDate, endDate]
+//         );
 
-        // 2️⃣ Leave count
-        const [leaveSummary] = await db.promise().query(
-            `SELECT COUNT(*) AS leaveCount
-            FROM leaves
-            WHERE company_id = ?
-              AND employee_id = ?
-              AND status = 'approved'
-              AND ((start_date BETWEEN ? AND ?) OR (end_date BETWEEN ? AND ?))`,
-            [company_id, employeeId, startDate, endDate, startDate, endDate]
-        );
+//         // 2️⃣ Leave count
+//         const [leaveSummary] = await db.promise().query(
+//             `SELECT COUNT(*) AS leaveCount
+//             FROM leaves
+//             WHERE company_id = ?
+//               AND employee_id = ?
+//               AND status = 'approved'
+//               AND ((start_date BETWEEN ? AND ?) OR (end_date BETWEEN ? AND ?))`,
+//             [company_id, employeeId, startDate, endDate, startDate, endDate]
+//         );
 
-        // 3️⃣ Holiday count
-        const [holidaySummary] = await db.promise().query(
-            `SELECT COUNT(*) AS holiday FROM holiday WHERE company_id = ? AND date BETWEEN ? AND ? AND 
-            status = 1`,
-            [company_id, startDate, endDate]
-        );
+//         // 3️⃣ Holiday count
+//         const [holidaySummary] = await db.promise().query(
+//             `SELECT COUNT(*) AS holiday FROM holiday WHERE company_id = ? AND date BETWEEN ? AND ? AND 
+//             status = 1`,
+//             [company_id, startDate, endDate]
+//         );
 
-        // 4️⃣ Calculate absent = totalDays - (present + leave + holiday)
-        const [totalDaysResult] = await db.promise().query(
-            `SELECT DATEDIFF(?, ?) + 1 AS totalDays`,
-            [endDate, startDate]
-        );
-        const totalDays = totalDaysResult[0].totalDays || 0;
+//         // 4️⃣ Calculate absent = totalDays - (present + leave + holiday)
+//         const [totalDaysResult] = await db.promise().query(
+//             `SELECT DATEDIFF(?, ?) + 1 AS totalDays`,
+//             [endDate, startDate]
+//         );
+//         const totalDays = totalDaysResult[0].totalDays || 0;
 
-        const present = attendanceSummary[0].present || 0;
-        const leaveCount = leaveSummary[0].leaveCount || 0;
-        const holiday = holidaySummary[0].holiday || 0;
+//         const present = attendanceSummary[0].present || 0;
+//         const leaveCount = leaveSummary[0].leaveCount || 0;
+//         const holiday = holidaySummary[0].holiday || 0;
 
-        const absent = Math.max(0, totalDays - (present + leaveCount + holiday));
+//         const absent = Math.max(0, totalDays - (present + leaveCount + holiday));
 
-        return res.json({
-            status: true,
-            data: {
-                present,
-                leaveCount,
-                holiday,
-                absent,
-                lateComing: attendanceSummary[0].lateComing,
-                earlyGoing: attendanceSummary[0].earlyGoing,
-                attendanceProper: attendanceSummary[0].attendanceProper,
-                attendanceApprove: attendanceSummary[0].attendanceApprove
-            }
-        });
+//         return res.json({
+//             status: true,
+//             data: {
+//                 present,
+//                 leaveCount,
+//                 holiday,
+//                 absent,
+//                 lateComing: attendanceSummary[0].lateComing,
+//                 earlyGoing: attendanceSummary[0].earlyGoing,
+//                 attendanceProper: attendanceSummary[0].attendanceProper,
+//                 attendanceApprove: attendanceSummary[0].attendanceApprove
+//             }
+//         });
 
-    } catch (err) {
-        console.error(err);
-        return res.status(500).json({ status: false, message: "Error fetching attendance summary" });
-    }
-});
+//     } catch (err) {
+//         console.error(err);
+//         return res.status(500).json({ status: false, message: "Error fetching attendance summary" });
+//     }
+// });
 
 
 /////AttendanceRequestDetails
