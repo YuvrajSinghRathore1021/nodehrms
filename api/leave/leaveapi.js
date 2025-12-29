@@ -189,8 +189,8 @@ const db = require("../../DB/ConnectionSql");
 
 router.post("/leave", async (req, res) => {
   //   // leave_type in this come leave_rule_id
-  const { leave_type, userData, start_date, end_date, reason, start_half, end_half, employeeId, type = "" } = req.body;
-
+  const { leave_type, userData, start_date, end_date, reason, start_half, end_half, employeeId } = req.body;
+  let type = "";
   // Basic validation to ensure required fields are provided
   if (!leave_type || !userData || !start_date || !end_date || !reason) {
     return res.status(400).json({
@@ -221,6 +221,10 @@ router.post("/leave", async (req, res) => {
     return res.status(400).json({ status: false, error: "Missing userData" });
   }
   const employeeIdNew = employeeId || decodedUserData?.id;
+
+  if (employeeId != decodedUserData?.id) {
+    type = "admin";
+  }
 
   const EmployeeData = await db.promise().query('SELECT id, leave_rule_id, first_name, last_name, date_of_Joining, contact_number, probation_period, probation_status,notice_period FROM employees WHERE id=?', [employeeIdNew]);
   if (EmployeeData.length === 0) {
@@ -273,10 +277,9 @@ router.post("/leave", async (req, res) => {
   }
 
   const currentDate = new Date();
-
   if (startDate >= currentDate && endDate >= currentDate) {
     // Future leave validation
-    if (leave_typeGet[0].future_dated_leaves_after > 0) {
+    if (leave_typeGet[0]?.future_dated_leaves_after > 0) {
       const futureLeavesDateLimit = new Date(currentDate.getTime() + leave_typeGet[0].future_dated_leaves_after);
       if (startDate > futureLeavesDateLimit) {
         return res.status(400).json({
@@ -349,11 +352,21 @@ router.post("/leave", async (req, res) => {
       }
     }
     // Step 2: Insert leave record into the database
+    let insertResult;
+    if (type == "admin") {
+      [insertResult] = await db.promise().query(
+        "INSERT INTO leaves (company_id,employee_id,leave_type, leave_rule_id, start_date, end_date, status, reason,start_half,end_half,admin_status,admin_remark) VALUES (?,?,?,?,?, ?, ?, ?, ?, ?,?,?)",
+        [decodedUserData.company_id, employeeIdNew, leave_typeGet[0].leave_type, leave_type, start_date, end_date, 1, reason, start_half, end_half, 1, reason]
+      );
 
-    const [insertResult] = await db.promise().query(
-      "INSERT INTO leaves (company_id,employee_id,leave_type, leave_rule_id, start_date, end_date, status, reason,rm_id,start_half,end_half) VALUES (?,?,?,?, ?, ?, ?, ?, ?,?,?)",
-      [decodedUserData.company_id, employeeIdNew, leave_typeGet[0].leave_type, leave_type, start_date, end_date, 1, reason, RmIdValue, start_half, end_half]
-    );
+    } else {
+      [insertResult] = await db.promise().query(
+        "INSERT INTO leaves (company_id,employee_id,leave_type, leave_rule_id, start_date, end_date, status, reason,rm_id,start_half,end_half) VALUES (?,?,?,?, ?, ?, ?, ?, ?,?,?)",
+        [decodedUserData.company_id, employeeIdNew, leave_typeGet[0].leave_type, leave_type, start_date, end_date, 1, reason, RmIdValue, start_half, end_half]
+      );
+    }
+
+
     return res.status(200).json({
       status: true,
       message: "Data inserted successfully.",

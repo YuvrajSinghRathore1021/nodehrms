@@ -311,7 +311,7 @@ router.get('/api/Attendancedirectory', async (req, res) => {
             attendanceResults.map(async (attendance) => {
                 const leave = leaveResults.find(l => l.employee_id == attendance.employee_id);
                 const holiday = holidayResults.length > 0 ? holidayResults[0] : null;
-                let status = 'A'; 
+                let status = 'A';
 
                 if (attendance.check_in_time) {
                     if (attendance.status == 'absent') {
@@ -327,7 +327,7 @@ router.get('/api/Attendancedirectory', async (req, res) => {
                         status = 'lwp';
                     }
                     else {
-                        status = 'P'; 
+                        status = 'P';
                     }
 
                 } else if (holiday) {
@@ -779,10 +779,312 @@ const createAttendanceResponse = (record, status, date) => {
     };
 };
 
+const isAbsentLike = (attendance, leaveRecord) => {
+    if (attendance) {
+        const st = attendance.status.toLowerCase();
+        return st === 'absent' || st === 'lwp';
+    }
+    if (leaveRecord) return true;
+    return true;
+};
+
+// ///proper work key is less 
+// router.get('/api/attendance', async (req, res) => {
+//     const { data, userData, employeeId, departmentId = 0, subDepartmentid = 0, employeeStatus = 1 } = req.query;
+
+//     let year = null;
+//     let month = null;
+//     let searchData = null;
+//     let decodedUserData = null;
+//     if (userData) {
+//         decodedUserData = decodeUserData(userData);
+//         if (!decodedUserData) {
+//             return res.status(200).json({ status: false, message: 'Invalid userData', error: 'Invalid userData' });
+//         }
+//     }
+
+//     if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+//         return res.status(400).json({ status: false, message: 'Employee ID is required', error: 'Employee ID is required' });
+//     }
+
+
+//     if (data) {
+//         year = parseInt(data['Year'], 10) || null;
+//         month = parseInt(data['Month'], 10) || null;
+//         searchData = data['searchData'] || null;
+//     }
+
+//     // let employeeIds = employeeId || decodedUserData.id.toString();
+
+//     let employeeIds;
+//     if (!employeeId || employeeId.trim() == "" || employeeId.trim().toLowerCase() == "null" || employeeId.trim().toLowerCase() == "undefined" || employeeId.trim() == '""' // 👈 catch "%22%22"
+//     ) {
+//         employeeIds = decodedUserData.id.toString();
+//     } else {
+//         employeeIds = employeeId;
+//     }
+
+//     const cleanIds = employeeIds.replace(/^,|,$/g, '').trim();
+//     let employeeIdsArray = cleanIds.split(',').map(id => parseInt(id.trim(), 10)).filter(id => !isNaN(id));
+
+//     if (!employeeIds || !month || !year || month < 1 || month > 12 || year < 1900 || year > new Date().getFullYear()) {
+//         return res.status(200).json({ status: false, message: 'Invalid or missing parameters' });
+//     }
+
+//     if (employeeIdsArray.length == 0) {
+//         return res.status(200).json({ status: false, message: 'Invalid employee IDs' });
+//     }///CONCAT(first_name, " ", last_name,"-",employee_id)
+//     // CONCAT_WS(' ', first_name, last_name) 
+//     try {
+//         let empsql = `SELECT id,CONCAT(first_name, " ", last_name) AS first_name, work_week_id, employee_id FROM employees WHERE company_id=? `;
+//         let EmpArrayValue = [decodedUserData.company_id];
+//         //// filter 
+//         if (employeeStatus && employeeStatus == 1) {
+//             empsql += ` AND employee_status=1 and status=1 and delete_status=0 AND id IN (?)`;
+//             EmpArrayValue.push(employeeIdsArray);
+
+//         } else {
+//             empsql += ` AND (employee_status=0 or status=0 or delete_status=1) `;
+//         }
+
+//         if (departmentId && departmentId != 0) {
+//             empsql += ` AND department = ?`;
+//             EmpArrayValue.push(departmentId);
+//         } if (subDepartmentid && subDepartmentid != 0) {
+//             empsql += ` AND sub_department = ?`;
+//             EmpArrayValue.push(subDepartmentid);
+//         }
+
+//         if (searchData) {
+//             empsql += ` AND (first_name LIKE ? OR last_name LIKE ? OR employee_id LIKE ?)`;
+//             EmpArrayValue.push(`%${searchData}%`, `%${searchData}%`, `%${searchData}%`);
+//         }
+//         empsql += ' ORDER BY first_name ASC';
+//         const [empResults] = await db.promise().query(empsql, EmpArrayValue);
+//         if (empResults.length == 0) {
+//             return res.status(200).json({ status: false, message: 'Employees not found' });
+//         }
+
+//         const [holidayResults] = await db.promise().query(`
+//             SELECT date, holiday FROM holiday WHERE company_id=? And status = 1 AND YEAR(date) = ? AND 
+//             MONTH(date) = ?`, [decodedUserData.company_id, year, month]
+//         );
+
+//         // const holidays = new Set(holidayResults.map(holiday => new Date(holiday.date).toISOString().split('T')[0]));
+//         const holidays = {};
+//         holidayResults.forEach(h => {
+//             const dateKey = new Date(h.date).toISOString().split('T')[0];
+//             holidays[dateKey] = h.holiday;
+//         });
+//         const employeesAttendanceData = [];
+
+//         for (const employee of empResults) {
+//             const [WorkWeek] = await db.promise().query(
+//                 `SELECT id, mon1, tue1, wed1, thu1, fri1, sat1, sun1, mon2, tue2, wed2, thu2, fri2, sat2, sun2, 
+//                 mon3, tue3, wed3, thu3, fri3, sat3, sun3, mon4, tue4, wed4, thu4, fri4, sat4, sun4, 
+//                 mon5, tue5, wed5, thu5, fri5, sat5, sun5 
+//                 FROM work_week 
+//                 WHERE id = ? AND company_id=?`,
+//                 [employee.work_week_id, decodedUserData.company_id]
+//             );
+
+//             const workWeekData = WorkWeek.length > 0 ? WorkWeek[0] : null;
+
+//             const [attendanceResults] = await db.promise().query(`
+//                 SELECT status, check_in_time, check_out_time, attendance_date,approval_status,attendance_status
+//                ,short_leave,short_leave_type,short_leave_reason,late_coming_leaving FROM attendance
+//                 WHERE employee_id = ? AND YEAR(attendance_date) = ? AND MONTH(attendance_date) = ?`,
+//                 [employee.id, year, month]
+//             );
+
+
+//             const monthStr = String(month).padStart(2, '0'); // ensures "08" instead of "8"
+//             const monthStart = `${year}-${monthStr}-01`;
+//             const monthEnd = `${year}-${monthStr}-${new Date(year, month, 0).getDate()}`;
+
+//             const [leaveResultsRequest] = await db.promise().query(
+//                 `SELECT employee_id, start_date, end_date, start_half, end_half,leave_type FROM leaves WHERE deletestatus = 0 AND status = 1 AND admin_status = 1 AND company_id = ?  AND employee_id = ?  
+//      AND ((start_date BETWEEN ? AND ?)  OR  (end_date BETWEEN ? AND ?) OR  (start_date <= ? AND end_date >= ?))`,
+//                 [decodedUserData.company_id, employee.id, monthStart, monthEnd, monthStart, monthEnd, monthStart, monthEnd]
+//             );
+
+//             const monthlyAttendanceLogs = [];
+//             const daysInMonth = new Date(year, month, 0).getDate();
+
+//             const daysOfWeek = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+
+//             for (let dayNo = 1; dayNo <= daysInMonth; dayNo++) {
+//                 const dateValue = new Date(year, month - 1, dayNo);
+//                 const date1 = `${dateValue.getFullYear()}-${String(dateValue.getMonth() + 1).padStart(2, '0')}-${String(dateValue.getDate()).padStart(2, '0')}`;
+//                 const date = new Date(date1);
+
+//                 if (date.getMonth() !== month - 1) break;
+
+//                 const dayOfWeek = date.getDay();
+//                 const weekNumber = Math.ceil(dayNo / 7);
+//                 const dayKey = `${daysOfWeek[dayOfWeek]}${weekNumber}`;
+//                 // console.log(dayKey);
+//                 const isWeeklyOff = workWeekData && workWeekData[dayKey] == 3;
+//                 // const isHoliday = holidays.has(date.toISOString().split('T')[0]);
+
+
+//                 const attendance = attendanceResults.find(a => {
+//                     const attDate = new Date(a.attendance_date);
+//                     return attDate.getDate() == dayNo && attDate.getMonth() == month - 1;
+//                 });
+//                 const formattedDate = new Date(date).toISOString().split("T")[0];
+//                 const isHoliday = holidays[formattedDate];
+//                 // converts "2025-08-01T00:00:00.000Z" → "2025-08-01"
+
+//                 const leaveRecord = leaveResultsRequest.find(leave =>
+//                     formattedDate >= leave.start_date.split("T")[0] &&
+//                     formattedDate <= leave.end_date.split("T")[0]
+//                 );
+
+//                 let status = '';
+//                 let label = '';
+
+
+
+//                 if (attendance) {
+//                     if (attendance.status.toLowerCase() == 'present') {
+//                         status = 'P';
+//                         const checkInTime = new Date(`1970-01-01T${attendance.check_in_time}Z`);
+//                         const checkOutTime = attendance.check_out_time ? new Date(`1970-01-01T${attendance.check_out_time}Z`) : null;
+//                         if (checkInTime && checkOutTime && attendance.approval_status != 1 && attendance.attendance_status != 1) {
+//                             const workDuration = (checkOutTime - checkInTime) / (1000 * 60);
+//                             if (workDuration < 510) {
+//                                 status = '-WD';
+//                                 label = 'Less Work Duration';
+//                             }
+//                         }
+//                         if (!attendance.check_out_time) {
+//                             status = 'NCO';
+//                             label = 'Not Checked Out';
+//                         }
+//                         if (decodedUserData.company_id == 10 && attendance.short_leave == 1) {
+//                             status = 'sl';
+//                             label = attendance.short_leave_reason;
+//                         }
+//                     } else if (attendance.status.toLowerCase() == 'half-day') {
+//                         status = 'HF';
+//                         label = 'Half Day';
+//                     } else if (attendance.status.toLowerCase() == 'absent') {
+//                         status = 'A';
+//                         label = 'Absent (Applied)';
+
+//                     } else if (attendance.status.toLowerCase() == 'lwp') {
+//                         status = 'lwp';
+//                         label = 'Leave Without Pay(LWP)';
+//                     }
+
+//                 }
+//                 else if (leaveRecord) {
+//                     status = "L";
+//                     label = `${leaveRecord.leave_type}`;
+//                 }
+//                 // proper work 
+//                 // else if (isWeeklyOff) {
+//                 //     status = 'WO';
+//                 //     label = 'Weekly Off';
+//                 // } else if (isHoliday) {
+//                 //     status = 'H';
+//                 //     // label = `Holiday`;                   
+//                 //     label = `Holiday - ${isHoliday}`;
+//                 // }
+//                 else if (isHoliday || isWeeklyOff) {
+
+//                     const prevDate = new Date(date);
+//                     prevDate.setDate(prevDate.getDate() - 1);
+//                     const nextDate = new Date(date);
+//                     nextDate.setDate(nextDate.getDate() + 1);
+
+//                     const prevStr = prevDate.toISOString().split("T")[0];
+//                     const nextStr = nextDate.toISOString().split("T")[0];
+
+//                     const prevAttendance = attendanceResults.find(a =>
+//                         new Date(a.attendance_date).toISOString().split("T")[0] === prevStr
+//                     );
+
+//                     const nextAttendance = attendanceResults.find(a =>
+//                         new Date(a.attendance_date).toISOString().split("T")[0] === nextStr
+//                     );
+
+//                     const prevLeave = leaveResultsRequest.find(l =>
+//                         prevStr >= l.start_date.split("T")[0] &&
+//                         prevStr <= l.end_date.split("T")[0]
+//                     );
+
+//                     const nextLeave = leaveResultsRequest.find(l =>
+//                         nextStr >= l.start_date.split("T")[0] &&
+//                         nextStr <= l.end_date.split("T")[0]
+//                     );
+
+//                     const isSandwich =
+//                         isAbsentLike(prevAttendance, prevLeave) &&
+//                         isAbsentLike(nextAttendance, nextLeave);
+
+//                     if (isSandwich) {
+//                         status = 'SP';
+//                         label = 'Sandwich Penalty';
+//                     } else {
+//                         status = isHoliday ? 'H' : 'WO';
+//                         label = isHoliday ? `Holiday - ${isHoliday}` : 'Weekly Off';
+//                     }
+//                 }
+
+
+//                 else {
+//                     status = 'A';
+//                     label = 'Absent';
+//                 }
+
+//                 monthlyAttendanceLogs.push({
+//                     day_no: dayNo,
+//                     status: status,
+//                     label: label,
+//                     date: date,
+//                     in_time: attendance ? attendance.check_in_time : '',
+//                     out_time: attendance ? attendance.check_out_time : '',
+//                     late_coming_leaving: attendance ? attendance?.late_coming_leaving : 0,
+
+//                 });
+//             }
+
+//             employeesAttendanceData.push({
+//                 emp_details: {
+//                     name: employee.first_name,
+//                     first_name: employee.first_name,
+//                     userId: employee.employee_id,
+//                     Id: employee.id
+//                 },
+//                 monthly_attendance_logs: monthlyAttendanceLogs
+//             });
+//         }
+
+//         res.json({
+//             status: true,
+//             employees: employeesAttendanceData
+//         });
+//     } catch (err) {
+//         console.error('Error occurred:', err);
+//         res.status(500).json({ message: 'An error occurred while fetching attendance data', error: err.message });
+//     }
+// });
+
+
+
+
+
+
+
+
+
+
 
 router.get('/api/attendance', async (req, res) => {
-
     const { data, userData, employeeId, departmentId = 0, subDepartmentid = 0, employeeStatus = 1 } = req.query;
+
     let year = null;
     let month = null;
     let searchData = null;
@@ -927,66 +1229,90 @@ router.get('/api/attendance', async (req, res) => {
                 const isHoliday = holidays[formattedDate];
                 // converts "2025-08-01T00:00:00.000Z" → "2025-08-01"
 
-                const leaveRecord = leaveResultsRequest.find(leave =>
+                // const leaveRecord = leaveResultsRequest.find(leave =>
+                const leave = leaveResultsRequest.find(leave =>
                     formattedDate >= leave.start_date.split("T")[0] &&
                     formattedDate <= leave.end_date.split("T")[0]
                 );
 
-                let status = '';
-                let label = '';
 
+                let status = 'A';
+                let label = 'Absent';
 
-
+                // ================= ATTENDANCE =================
                 if (attendance) {
-                    if (attendance.status.toLowerCase() == 'present') {
-                        status = 'P';
-                        const checkInTime = new Date(`1970-01-01T${attendance.check_in_time}Z`);
-                        const checkOutTime = attendance.check_out_time ? new Date(`1970-01-01T${attendance.check_out_time}Z`) : null;
-                        if (checkInTime && checkOutTime && attendance.approval_status != 1 && attendance.attendance_status != 1) {
-                            const workDuration = (checkOutTime - checkInTime) / (1000 * 60);
-                            if (workDuration < 510) {
-                                status = '-WD';
-                                label = 'Less Work Duration';
-                            }
+                    const st = attendance.status.toLowerCase();
+
+                    if (st === 'present') {
+                        if (isHoliday) {
+                            status = 'PH';
+                            label = `Present on Holiday - ${isHoliday}`;
+                        } else if (isWeeklyOff) {
+                            status = 'PWO';
+                            label = 'Present on Weekly Off';
+                        } else {
+                            status = 'P';
+                            label = 'Present';
                         }
+
                         if (!attendance.check_out_time) {
                             status = 'NCO';
                             label = 'Not Checked Out';
                         }
-                        if (decodedUserData.company_id == 10 && attendance.short_leave == 1) {
-                            status = 'sl';
-                            label = attendance.short_leave_reason;
+
+                        if (attendance.short_leave == 1) {
+                            status = 'SL';
+                            label = attendance.short_leave_reason || 'Short Leave';
                         }
-                    } else if (attendance.status.toLowerCase() == 'half-day') {
-                        status = 'HF';
-                        label = 'Half Day';
-                    } else if (attendance.status.toLowerCase() == 'absent') {
-                        status = 'A';
-                        label = 'Absent (Applied)';
-                    
-                    } else if (attendance.status.toLowerCase() == 'lwp') {
-                        status = 'lwp';
-                        label = 'Leave Without Pay(LWP)';
                     }
-
-                }
-                else if (leaveRecord) {
-                    status = "L";
-                    // label = 'Leave';
-                    label = `${leaveRecord.leave_type}`;
-                } else if (isWeeklyOff) {
-                    status = 'WO';
-                    label = 'Weekly Off';
-                } else if (isHoliday) {
-                    status = 'H';
-                    // label = `Holiday`;                   
-                    label = `Holiday - ${isHoliday}`;
+                    else if (st === 'half-day') {
+                        status = 'HF';
+                        label = 'Half Day Attendance';
+                    }
+                    else if (st === 'lwp') {
+                        status = 'LWP';
+                        label = 'Leave Without Pay';
+                    }
                 }
 
-                else {
-                    status = 'A';
-                    label = 'Absent';
+                // ================= LEAVE =================
+                else if (leave) {
+                    if (
+                        (leave.start_half && date === leave.start_date.split("T")[0]) ||
+                        (leave.end_half && date === leave.end_date.split("T")[0])
+                    ) {
+                        status = 'HL';
+                        label = `Half Day Leave - ${leave.leave_type}`;
+                    } else {
+                        status = 'L';
+                        label = leave.leave_type;
+                    }
                 }
+
+                // ================= HOLIDAY / WO / SANDWICH =================
+                else if (isHoliday || isWeeklyOff) {
+
+                    const prev = new Date(dateValue); prev.setDate(prev.getDate() - 1);
+                    const next = new Date(dateValue); next.setDate(next.getDate() + 1);
+
+                    const prevStr = prev.toISOString().split("T")[0];
+                    const nextStr = next.toISOString().split("T")[0];
+
+                    const prevAtt = attendanceResults.find(a => new Date(a.attendance_date).toISOString().split("T")[0] === prevStr);
+                    const nextAtt = attendanceResults.find(a => new Date(a.attendance_date).toISOString().split("T")[0] === nextStr);
+
+                    const prevLeave = leaveResultsRequest.find(l => prevStr >= l.start_date.split("T")[0] && prevStr <= l.end_date.split("T")[0]);
+                    const nextLeave = leaveResultsRequest.find(l => nextStr >= l.start_date.split("T")[0] && nextStr <= l.end_date.split("T")[0]);
+
+                    if (isAbsentLike(prevAtt, prevLeave) && isAbsentLike(nextAtt, nextLeave)) {
+                        status = 'SP';
+                        label = 'Sandwich Penalty';
+                    } else {
+                        status = isHoliday ? 'H' : 'WO';
+                        label = isHoliday ? `Holiday - ${isHoliday}` : 'Weekly Off';
+                    }
+                }
+
 
                 monthlyAttendanceLogs.push({
                     day_no: dayNo,
@@ -1020,6 +1346,11 @@ router.get('/api/attendance', async (req, res) => {
         res.status(500).json({ message: 'An error occurred while fetching attendance data', error: err.message });
     }
 });
+
+
+
+
+
 
 
 
@@ -1149,7 +1480,7 @@ router.post('/api/AttendanceTypeDetails', async (req, res) => {
             attendanceResults.map(async (attendance) => {
                 const leave = leaveResults.find(l => l.employee_id == attendance.employee_id);
                 const holiday = holidayResults.length > 0 ? holidayResults[0] : null;
-                let status = 'A'; 
+                let status = 'A';
 
                 if (attendance.check_in_time) {
                     if (attendance.status == 'absent') {

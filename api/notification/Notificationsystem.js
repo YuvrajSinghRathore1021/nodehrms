@@ -156,6 +156,60 @@ router.post('/NotificationGet', (req, res) => {
         return res.status(200).json({ status: true, data: results, message: 'Notification fetched successfully' });
     });
 });
+router.post("/announcementGet", (req, res) => {
+    const { userData, notification_type = "message" } = req.body;
+
+    if (!userData) {
+        return res.status(400).json({ status: false, error: "Missing userData" });
+    }
+
+    let decodedUserData;
+    try {
+        const decodedString = Buffer.from(userData, "base64").toString("utf-8");
+        decodedUserData = JSON.parse(decodedString);
+    } catch (error) {
+        return res.status(400).json({ status: false, error: "Invalid userData" });
+    }
+
+    if (!decodedUserData.id || !decodedUserData.company_id) {
+        return res
+            .status(400)
+            .json({ status: false, error: "Employee ID and Company ID are required" });
+    }
+
+    const sql = `
+    SELECT 
+      n.*,
+      e.first_name,
+      e.last_name,
+      e.profile_image,
+      e.gender
+    FROM notifications n
+    LEFT JOIN employees e ON e.id = n.sender_id
+    WHERE 
+      FIND_IN_SET(?, n.receiver_id)
+      AND n.notification_type = ?
+      AND n.company_id = ?
+    ORDER BY n.created_at DESC
+  `;
+
+    db.query(
+        sql,
+        [decodedUserData.id, notification_type, decodedUserData.company_id],
+        (err, results) => {
+            if (err) {
+                return res.status(500).json({ status: false, error: err });
+            }
+
+            return res.status(200).json({
+                status: true,
+                data: results,
+                message: "Notification fetched successfully",
+            });
+        }
+    );
+});
+
 
 
 router.post('/read', (req, res) => {
