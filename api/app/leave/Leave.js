@@ -425,6 +425,8 @@ router.post("/api/Review", async (req, res) => {
         query += ` ORDER BY l.leave_id DESC LIMIT ? OFFSET ?`;
         queryParams.push(limit, offset);
 
+        // console.log(query)
+        // console.log(queryParams)
         // Execute the query to get results
         const [results] = await db.promise().query(query, queryParams);
 

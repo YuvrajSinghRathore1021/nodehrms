@@ -1083,6 +1083,7 @@ const isAbsentLike = (attendance, leaveRecord) => {
 
 
 router.get('/api/attendance', async (req, res) => {
+
     const { data, userData, employeeId, departmentId = 0, subDepartmentid = 0, employeeStatus = 1 } = req.query;
 
     let year = null;
@@ -1095,11 +1096,9 @@ router.get('/api/attendance', async (req, res) => {
             return res.status(200).json({ status: false, message: 'Invalid userData', error: 'Invalid userData' });
         }
     }
-
     if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
         return res.status(400).json({ status: false, message: 'Employee ID is required', error: 'Employee ID is required' });
     }
-
 
     if (data) {
         year = parseInt(data['Year'], 10) || null;
@@ -1184,7 +1183,7 @@ router.get('/api/attendance', async (req, res) => {
             const workWeekData = WorkWeek.length > 0 ? WorkWeek[0] : null;
 
             const [attendanceResults] = await db.promise().query(`
-                SELECT status, check_in_time, check_out_time, attendance_date,approval_status,attendance_status
+                SELECT attendance_id,status, check_in_time, check_out_time, attendance_date,approval_status,attendance_status
                ,short_leave,short_leave_type,short_leave_reason,late_coming_leaving FROM attendance
                 WHERE employee_id = ? AND YEAR(attendance_date) = ? AND MONTH(attendance_date) = ?`,
                 [employee.id, year, month]
@@ -1313,7 +1312,6 @@ router.get('/api/attendance', async (req, res) => {
                     }
                 }
 
-
                 monthlyAttendanceLogs.push({
                     day_no: dayNo,
                     status: status,
@@ -1321,6 +1319,7 @@ router.get('/api/attendance', async (req, res) => {
                     date: date,
                     in_time: attendance ? attendance.check_in_time : '',
                     out_time: attendance ? attendance.check_out_time : '',
+                    attendance_id: attendance ? attendance.attendance_id : 0,
                     late_coming_leaving: attendance ? attendance?.late_coming_leaving : 0,
 
                 });
@@ -1574,6 +1573,195 @@ router.post('/api/AttendanceTypeDetails', async (req, res) => {
         res.status(500).json({ status: false, error: 'Server error' });
     }
 });
+
+
+
+// // // // attendanceDetails  
+router.post('/attendanceDetails', async (req, res) => {
+    const { userData, employee_id, attendance_date, attendance_id } = req.body;
+
+    /* ================= USER DATA ================= */
+    let decodedUserData = null;
+    if (userData) {
+        try {
+            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+            decodedUserData = JSON.parse(decodedString);
+        } catch (error) {
+            return res.status(400).json({ status: false, error: 'Invalid userData format' });
+        }
+    }
+
+    if (!decodedUserData || !decodedUserData.company_id) {
+        return res.status(400).json({
+            status: false,
+            error: 'Company ID required'
+        });
+    }
+
+    if (!employee_id) {
+        return res.status(400).json({
+            status: false,
+            error: 'employee_id is required'
+        });
+    }
+
+    try {
+        /* ================= EMPLOYEE DETAILS ================= */
+        const [employeeDetails] = await db.promise().query(`
+            SELECT 
+                e.id AS employee_id,
+                e.type,
+                e.first_name,
+                e.last_name,
+                e.official_email_id,
+                e.email_id,
+                e.date_of_Joining,
+                e.contact_number,
+                e.gender,
+                e.profile_image,
+
+                d.id AS department_id,
+                d.name AS department_name,
+
+                ar.rule_id AS attendance_rule_id,
+                ar.rule_name AS attendance_rule_name,
+
+                lr.id AS leave_rule_id,
+                lr.leave_type AS leave_type,
+
+                ww.id AS work_week_id,
+                ww.rule_name AS work_week_name
+
+            FROM employees e
+            LEFT JOIN departments d ON d.id = e.department
+            LEFT JOIN attendance_rules ar ON ar.rule_id = e.attendance_rules_id
+            LEFT JOIN leave_rules lr ON lr.id = e.leave_rule_id
+            LEFT JOIN work_week ww ON ww.id = e.work_week_id
+
+            WHERE e.company_id = ? AND e.id = ?
+            LIMIT 1
+        `, [decodedUserData.company_id, employee_id]);
+
+        if (employeeDetails.length === 0) {
+            return res.status(200).json({
+                status: false,
+                message: 'Employee not found'
+            });
+        }
+
+        /* ================= ATTENDANCE DETAILS ================= */
+        let attendanceQuery = `
+            SELECT 
+                a.attendance_id,
+                a.attendance_date,
+                a.status,
+                a.check_in_time,
+                a.check_out_time,
+                a.duration,
+                a.daily_status_in,
+                a.daily_status_intime,
+                a.daily_status_out,
+                a.daily_status_outtime,
+                a.late_coming_leaving,
+                a.short_leave,
+                a.short_leave_type,
+                a.short_leave_reason,
+                bi.name AS branch_in,
+                bo.name AS branch_out
+            FROM attendance a
+            LEFT JOIN branches bi ON bi.id = a.branch_id_in
+            LEFT JOIN branches bo ON bo.id = a.branch_id_out
+            WHERE a.company_id = ? AND a.employee_id = ? AND a.attendance_id = ?
+        `;
+
+        const params = [decodedUserData.company_id, employee_id, attendance_id];
+        const [attendanceDetails] = await db.promise().query(attendanceQuery, params);
+
+        return res.status(200).json({
+            status: true,
+            message: 'Data Found',
+            employee: employeeDetails[0],
+            attendance: attendanceDetails.length ? attendanceDetails[0] : null
+        });
+
+    } catch (error) {
+        console.error('attendanceDetails error:', error);
+        return res.status(500).json({
+            status: false,
+            error: 'Server error'
+        });
+    }
+});
+
+router.post("/convertAttendanceToLeave", async (req, res) => {
+
+    const { userData, employee_id, attendance_id, attendance_date, leave_rule_id, leave_type = "", convert_reason, previous_status } = req.body;
+
+    /* ================= Decode User Data ================= */
+    let decodedUserData = null;
+    if (userData) {
+        try {
+            decodedUserData = JSON.parse(
+                Buffer.from(userData, "base64").toString("utf-8")
+            );
+        } catch (err) {
+            return res.status(400).json({
+                status: false,
+                message: "Invalid userData format"
+            });
+        }
+    }
+
+    if (!decodedUserData?.company_id || !employee_id || !attendance_id || !leave_rule_id) {
+        return res.status(400).json({
+            status: false,
+            message: "Required fields missing"
+        });
+    }
+
+    if (!attendance_date || !previous_status) {
+        return res.status(400).json({
+            status: false,
+            message: "Attendance date or previous status missing"
+        });
+    }
+
+
+
+    try {
+        /* ================= INSERT INTO CONVERSION TABLE ================= */
+        let query = `INSERT INTO attendance_leave_conversions (
+        company_id, employee_id, attendance_id, attendance_date, leave_rule_id, leave_type, converted_by, convert_reason, previous_status, new_status, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'L', NOW())`;
+
+        let params = [
+            decodedUserData.company_id,
+            employee_id,
+            attendance_id,
+            attendance_date,
+            leave_rule_id,
+            leave_type || null,
+            decodedUserData.id || null,
+            convert_reason || null,
+            previous_status
+        ]
+        const [leaveConverted] = await db.promise().query(query, params);
+        if (leaveConverted.affectedRows === 0) {
+            return res.status(500).json({
+                status: false,
+                message: "Failed to convert attendance to leave"
+            });
+        }
+        return res.json({
+            status: true,
+            message: "Attendance successfully converted to leave"
+        });
+
+    } catch (error) {
+
+    }
+});
+
 
 
 // Export the router
