@@ -382,7 +382,6 @@ const { json } = require("body-parser");
 
 
 ////// working code 
-
 router.post("/FetchLeaveCount", async (req, res) => {
   const { userData, employee_Id = 0 } = req.body;
 
@@ -532,13 +531,20 @@ router.post("/FetchLeaveCount", async (req, res) => {
       let monthly_balance_leave = (parseFloat(available) + parseFloat(rule.old_balance) - parseFloat(pending)).toFixed(1);
 
       if (available < 0) available = 0;
+      let totalCreditedNew = totalCredited;
+
+      if (decodedUserData?.company_id == 10) {
+        // employeeId
+        const leavecount = await handleleave(employeeId, rule.id);
+        totalCreditedNew = totalCredited + leavecount;
+      }
 
       results.push({
         employee_id: employeeId,
         leave_rule_id: rule.id,
         leave_number_hide: rule.leave_number_hide,
         leave_type: rule.leave_type,
-        total_credited: totalCredited,
+        total_credited: totalCreditedNew,
         used_leaves: used.toString(),
         available_leaves: available.toString(),
         monthly_balance_leave: monthly_balance_leave.toString(),
@@ -557,7 +563,23 @@ router.post("/FetchLeaveCount", async (req, res) => {
     });
   }
 });
+const handleleave = async (employeeId, rule_id) => {
+  const [rows] = await db.promise().query(
+    `SELECT count(id) as total 
+        FROM attendance_leave_conversions 
+        WHERE employee_id=? and  leave_rule_id=?`,
+    [employeeId, rule_id]
+  );
 
+  // ✅ If converted to leave
+  if (rows.length > 0) {
+    return rows[0].total;
+  }
+
+  // ❌ No conversion found
+  return 0;
+
+};
 
 function calculateLeaveDays(startDate, endDate, startHalf, endHalf) {
   const start = new Date(startDate);

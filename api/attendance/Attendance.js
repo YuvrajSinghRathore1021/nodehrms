@@ -228,6 +228,7 @@ router.post('/AttendanceGet', (req, res) => {
     });
 });
 
+
 router.get('/api/Attendancedirectory', async (req, res) => {
     const { userData, data } = req.query;
     let SearchDate = null;
@@ -516,6 +517,35 @@ const calculateDuration = (checkInTime, checkOutTime) => {
     const minutes = totalMinutes % 60;
     return `${hours} hour ${minutes} minute`;
 };
+const handleCheck = async (data) => {
+
+    if (!data?.attendance_id) return null;
+
+    const attendance_id = data.attendance_id;
+
+    const [rows] = await db.promise().query(
+        `SELECT 
+            al.id,
+            al.attendance_id,
+            al.attendance_date,
+            al.leave_rule_id,
+            l.leave_type
+        FROM attendance_leave_conversions al
+        INNER JOIN leave_rules l ON l.id = al.leave_rule_id
+        WHERE al.attendance_id = ?
+        LIMIT 1`,
+        [attendance_id]
+    );
+
+    // ✅ If converted to leave
+    if (rows.length > 0) {
+        return rows[0].leave_type; // CL / SL / LWP etc
+    }
+
+    // ❌ No conversion found
+    return null;
+};
+
 
 // Helper function to query the database with Promise
 const queryDb = (query, params) => {
@@ -1125,11 +1155,15 @@ router.get('/api/attendance', async (req, res) => {
 
     if (employeeIdsArray.length == 0) {
         return res.status(200).json({ status: false, message: 'Invalid employee IDs' });
-    }///CONCAT(first_name, " ", last_name,"-",employee_id)
+    }
+
+    ///CONCAT(first_name, " ", last_name,"-",employee_id)
     // CONCAT_WS(' ', first_name, last_name) 
+
     try {
         let empsql = `SELECT id,CONCAT(first_name, " ", last_name) AS first_name, work_week_id, employee_id FROM employees WHERE company_id=? `;
         let EmpArrayValue = [decodedUserData.company_id];
+
         //// filter 
         if (employeeStatus && employeeStatus == 1) {
             empsql += ` AND employee_status=1 and status=1 and delete_status=0 AND id IN (?)`;
@@ -1163,6 +1197,7 @@ router.get('/api/attendance', async (req, res) => {
         );
 
         // const holidays = new Set(holidayResults.map(holiday => new Date(holiday.date).toISOString().split('T')[0]));
+
         const holidays = {};
         holidayResults.forEach(h => {
             const dateKey = new Date(h.date).toISOString().split('T')[0];
@@ -1249,16 +1284,24 @@ router.get('/api/attendance', async (req, res) => {
                         } else if (isWeeklyOff) {
                             status = 'PWO';
                             label = 'Present on Weekly Off';
+                            //// cl check
+                            if (status == 'PWO' && decodedUserData.company_id == 10) {
+                                const leaveType = await handleCheck(attendance);
+                                if (leaveType) {
+                                    status = leaveType;
+                                    label = `Present on Weekly Off, Leave - ${leaveType}`;
+                                } else {
+                                    status = 'PWO';
+                                }
+                            }
                         } else {
                             status = 'P';
                             label = 'Present';
                         }
-
                         if (!attendance.check_out_time) {
                             status = 'NCO';
                             label = 'Not Checked Out';
                         }
-
                         if (attendance.short_leave == 1) {
                             status = 'SL';
                             label = attendance.short_leave_reason || 'Short Leave';
