@@ -355,8 +355,8 @@ router.post("/leave", async (req, res) => {
     let insertResult;
     if (type == "admin") {
       [insertResult] = await db.promise().query(
-        "INSERT INTO leaves (company_id,employee_id,leave_type, leave_rule_id, start_date, end_date, status, reason,start_half,end_half,admin_status,admin_remark) VALUES (?,?,?,?,?, ?, ?, ?, ?, ?,?,?)",
-        [decodedUserData.company_id, employeeIdNew, leave_typeGet[0].leave_type, leave_type, start_date, end_date, 1, reason, start_half, end_half, 1, reason]
+        "INSERT INTO leaves (company_id,employee_id,leave_type, leave_rule_id, start_date, end_date, status, reason,start_half,end_half,admin_status,admin_remark,admin_id) VALUES (?,?,?,?,?, ?, ?, ?, ?, ?,?,?,?)",
+        [decodedUserData.company_id, employeeIdNew, leave_typeGet[0].leave_type, leave_type, start_date, end_date, 1, reason, start_half, end_half, 1, reason, decodedUserData.id]
       );
 
     } else {
