@@ -158,7 +158,9 @@ router.post("/FetchLeaveCount", async (req, res) => {
       if (decodedUserData?.company_id == 10) {
         // employeeId
         const leavecount = await handleleave(employeeId, rule.id);
-        totalCreditedNew = totalCredited + leavecount;
+        // totalCreditedNew = totalCredited + leavecount;
+        const totalCreditedNew = Number((totalCredited + leavecount).toFixed(2));
+        console.log("leavecount", totalCredited, leavecount, totalCreditedNew);
       }
 
       results.push({
