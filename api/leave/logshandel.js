@@ -150,18 +150,18 @@ router.post("/FetchLeaveCount", async (req, res) => {
       let available = totalCredited - used;
       const pending = pendingDaysByRule[rule.id] || 0;
       // let monthly_balance_leave = available + rule.old_balance - pending;
-      let monthly_balance_leave = (parseFloat(available) + parseFloat(rule.old_balance) - parseFloat(pending)).toFixed(1);
 
       if (available < 0) available = 0;
-      let totalCreditedNew = totalCredited;
+      let totalCreditedNew = available;
 
       if (decodedUserData?.company_id == 10) {
         // employeeId
         const leavecount = await handleleave(employeeId, rule.id);
         // totalCreditedNew = totalCredited + leavecount;
-        const totalCreditedNew = Number((totalCredited + leavecount).toFixed(2));
-        console.log("leavecount", totalCredited, leavecount, totalCreditedNew);
+        totalCreditedNew = Number((available + leavecount).toFixed(2));
+        available = totalCreditedNew;
       }
+      let monthly_balance_leave = (parseFloat(available) + parseFloat(rule.old_balance) - parseFloat(pending)).toFixed(1);
 
       results.push({
         employee_id: employeeId,

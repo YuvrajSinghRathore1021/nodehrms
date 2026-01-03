@@ -89,7 +89,7 @@ router.post('/Attendancemark', async (req, res) => {
             }
         }
 
-        const rulesResults = await queryDb('SELECT in_time,out_time,out_time_required,max_working_hours,working_hours_required,half_day,penalty_rule_applied,late_coming_penalty,last_in_time,early_leaving_penalty,last_out_time,in_grace_period_minutes FROM attendance_rules WHERE rule_id = ? AND company_id = ?', [employeeResults[0].attendance_rules_id, companyId]);
+        const rulesResults = await queryDb('SELECT in_time,out_time,out_time_required,max_working_hours,working_hours_required,half_day,penalty_rule_applied,late_coming_penalty,late_coming_allowed_days,last_in_time,early_leaving_penalty,last_out_time,in_grace_period_minutes FROM attendance_rules WHERE rule_id = ? AND company_id = ?', [employeeResults[0].attendance_rules_id, companyId]);
         const rule = rulesResults.length > 0 ? rulesResults[0] : { in_time: '09:30', out_time: '18:30' };
 
         let dailyStatus = '';
@@ -114,7 +114,7 @@ router.post('/Attendancemark', async (req, res) => {
             if (attendanceResults.length > 0) {
                 return res.status(400).json({ status: false, message: 'Attendance for today is already marked as in.' });
             }
-            
+
             let empAttendanceStatus = 'Present';
             ////neew addd////
             if (rule?.penalty_rule_applied == 1) {
@@ -130,6 +130,20 @@ router.post('/Attendancemark', async (req, res) => {
                         late_coming_leaving = 1;
                     }
                 }
+                if (late_coming_leaving == 1 && decodedUserData.company_id == 10 && rule?.late_coming_penalty == 1) {
+
+                    // const attendanceCount = await queryDb('SELECT COUNT(attendance_id) as total FROM attendance WHERE employee_id = ? AND company_id = ? and late_coming_leaving=1 and attendance_date', [empId, companyId]);
+                    const attendanceCount = await queryDb(` 
+                        SELECT COUNT(attendance_id) AS total FROM attendance WHERE employee_id = ? AND 
+                        company_id = ? AND late_coming_leaving = 1 AND MONTH(attendance_date) =  AND 
+                        YEAR(attendance_date) = ? `,
+                        [empId, companyId, currentDate.getMonth() + 1, currentDate.getFullYear()]);
+
+                    if (attendanceCount[0]?.total >= rule?.late_coming_allowed_days) {
+                        empAttendanceStatus = "half-day";
+                    }
+                }
+
                 if (rule?.late_coming_penalty == 1 && rule?.last_in_time && rule?.last_in_time != '00:00:00') {
                     const lastInTimeFormatted = String(rule.last_in_time).padStart(5, '0');
                     // If employee comes after allowed late time
@@ -137,13 +151,9 @@ router.post('/Attendancemark', async (req, res) => {
                         empAttendanceStatus = "half-day";
                     }
                 }
-
-
             }
 
             ////neew addd////
-
-
             let attendanceCheckInsert = await queryDb('INSERT INTO attendance (status,in_latitude, in_longitude, daily_status_in, daily_status_intime, employee_id, company_id, attendance_date, check_in_time, in_ip,branch_id_in,apply_by,reason,late_coming_leaving) VALUES (?,?,?, ?, ?, ?, ?,CURDATE(), ?,  ?, ?,?,?,?)',
                 [empAttendanceStatus, latitude, longitude, dailyStatus, timeCount, empId, companyId, formattedTime, IpHandal, empbranch_id, applyBy, reason, late_coming_leaving]);
             if (!attendanceCheckInsert || !attendanceCheckInsert.insertId) {
