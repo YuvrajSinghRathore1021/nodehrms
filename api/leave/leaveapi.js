@@ -1040,8 +1040,8 @@ router.post("/api/ApprovalSubmit", async (req, res) => {
         // 3. Get employee leave balance
         const balanceResults = await queryDb(
           `SELECT * FROM leave_balance 
-           WHERE employee_id = ? AND leave_rules_id = ? AND year = ? AND company_id = ?`,
-          [leave.employee_id, leave.leave_rule_id, currentYear, company_id]
+           WHERE employee_id = ? AND leave_rules_id = ? AND company_id = ? AND ? BETWEEN session_start AND session_end`,
+          [leave.employee_id, leave.leave_rule_id, company_id, leave.start_date]
         );
 
         if (balanceResults.length > 0) {

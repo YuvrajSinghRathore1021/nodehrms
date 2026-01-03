@@ -150,7 +150,7 @@ router.post("/RulesUpdate", (req, res) => {
     apply_leaves_next_year,
     auto_deduction, deduction_count, deduction_date, deduction_start_date, deduction_end_date,
 
-    userData,leave_number_hide=0
+    userData, leave_number_hide = 0
   } = req.body;
   const recordId = id;
   let decodedUserData = null;
@@ -167,7 +167,7 @@ router.post("/RulesUpdate", (req, res) => {
   const checkQuery = `SELECT * FROM leave_rules WHERE id = ?`;
   db.query(checkQuery, [id], (err, results) => {
     if (err) {
-      console.error("SQL Error:", err);
+      // console.error("SQL Error:", err);
       return res.status(200).json({
         status: false,
         message: "Error checking leave record.",
@@ -230,7 +230,7 @@ router.post("/RulesUpdate", (req, res) => {
       backdated_leaves,
       backdated_leaves_up_to,
       apply_leaves_next_year, auto_deduction, deduction_count, deduction_date, deduction_start_date, deduction_end_date,
-      leave_number_hide,id
+      leave_number_hide, id
     ];
     db.query(query, values, (err, results) => {
       if (err) {
@@ -285,14 +285,14 @@ router.get("/Assign_Rules", (req, res) => {
   const values = [decodedUserData.company_id];
   db.query(query, values, (error, results) => {
     if (error) {
-      console.error("Error fetching leave rules:", error);
+      // console.error("Error fetching leave rules:", error);
       return res.status(200).send("Error fetching leave rules");
     }
     if (results.length > 0) {
       const sql = `SELECT id, leave_rule_id FROM employees WHERE  employee_status=1 and status=1 and delete_status=0 and id = ?`;
       db.query(sql, [UserId], (error2, results2) => {
         if (error2) {
-          console.error("Error fetching related data:", error2);
+          // console.error("Error fetching related data:", error2);
           return res.status(500).send("Error fetching related data");
         }
         if (results2.length > 0) {
@@ -401,7 +401,7 @@ router.post("/update-leave-type", (req, res) => {
         });
       }
 
-      const currentYear = new Date().getFullYear();
+      const currentYear = new Date(assign_date).getFullYear();
 
       // Step 2: Get employee joining date
       db.query("SELECT date_of_Joining FROM employees WHERE id = ?", [id], (err, empResults) => {
@@ -421,8 +421,8 @@ router.post("/update-leave-type", (req, res) => {
               const rule = ruleResults[0];
 
               db.query(
-                "SELECT * FROM leave_balance WHERE employee_id = ? AND leave_rules_id = ? AND year = ?",
-                [id, ruleId, currentYear],
+                "SELECT * FROM leave_balance WHERE employee_id = ? AND leave_rules_id = ? AND CURDATE() BETWEEN session_start AND session_end",
+                [id, ruleId],
                 (err, balResults) => {
                   if (err) return;
 
@@ -439,12 +439,21 @@ router.post("/update-leave-type", (req, res) => {
                     sessionEndDate = new Date(currentYear + 1, sessionStartMonth - 1, 0);
                   }
 
-                  // Effective Date = max(joiningDate, assignDate, sessionStartDate)
+                  //// Effective Date = max(joiningDate, assignDate, sessionStartDate)
+                  // const effectiveDate = new Date(Math.max(
+                  //   effectiveAssignDate.getTime(),
+                  //   joiningDate.getTime(),
+                  //   sessionStartDate.getTime()
+                  // ));
                   const effectiveDate = new Date(Math.max(
                     effectiveAssignDate.getTime(),
-                    joiningDate.getTime(),
-                    sessionStartDate.getTime()
+                    joiningDate.getTime()
                   ));
+                  // console.log("assign_date=", assign_date)
+                  // console.log("effectiveAssignDate=", effectiveAssignDate)
+                  // console.log("effectiveDate=", effectiveDate)
+                  // console.log("sessionStartDate=", sessionStartDate)
+                  // console.log("sessionEndDate=", sessionEndDate)
 
                   // ---- PRORATE CALCULATION ----
                   const totalMonths =
@@ -455,19 +464,27 @@ router.post("/update-leave-type", (req, res) => {
 
                   // ---- INSERT OR UPDATE BALANCE ----
                   if (balResults.length === 0) {
+                    // rule?.apply_leaves_next_year
+                    // console.log(effectiveDate, rule?.apply_leaves_next_year)
+                    const { sessionStartDate, sessionEndDate } = getSessionDates(effectiveDate, rule?.apply_leaves_next_year);
+                    // console.log("sessionStartDate=", sessionStartDate, "sessionEndDate=", sessionEndDate)
+
+                    let session_start = sessionStartDate.toISOString().split('T')[0];
+                    let session_end = sessionEndDate.toISOString().split('T')[0];
+
                     const insertQuery = `
                     INSERT INTO leave_balance 
-                    (company_id, employee_id, leave_rules_id, year, total_leaves, used_leaves, remaining_leaves, assign_date, add_stamp, last_updated) 
-                    VALUES (?, ?, ?, ?, ?, 0, ?, ?, NOW(), NOW())
+                    (company_id, employee_id, leave_rules_id,  total_leaves, used_leaves, remaining_leaves, assign_date, add_stamp, last_updated, session_start, session_end) 
+                    VALUES (?, ?,  ?, ?, 0, ?, ?, NOW(), NOW(), ?, ?)
                   `;
                     db.query(insertQuery, [
                       company_id,
                       id,
                       ruleId,
-                      currentYear,
                       proratedLeaves,
                       proratedLeaves,
-                      effectiveDate
+                      effectiveDate,
+                      session_start, session_end
                     ]);
                   } else {
                     const balance = balResults[0];
@@ -507,6 +524,25 @@ router.post("/update-leave-type", (req, res) => {
     // .../
   });
 });
+
+function getSessionDates(referenceDate, resetMonth = 1) {
+  const refDate = new Date(referenceDate);
+
+  const year = refDate.getFullYear();
+  const month = refDate.getMonth() + 1;
+
+  let sessionStartDate, sessionEndDate;
+
+  if (month >= resetMonth) {
+    sessionStartDate = new Date(year, resetMonth - 1, 1, 12, 0, 0);
+    sessionEndDate = new Date(year + 1, resetMonth - 1, 0, 12, 0, 0);
+  } else {
+    sessionStartDate = new Date(year - 1, resetMonth - 1, 1, 12, 0, 0);
+    sessionEndDate = new Date(year, resetMonth - 1, 0, 12, 0, 0);
+  }
+
+  return { sessionStartDate, sessionEndDate };
+}
 
 
 
@@ -1038,7 +1074,7 @@ router.get("/Balance", async (req, res) => {
                lb.used_leaves, lb.old_balance, lb.assign_date
         FROM leave_rules lr
         INNER JOIN leave_balance lb ON lr.id = lb.leave_rules_id 
-        WHERE lb.employee_id=? AND lb.company_id=? AND lb.year=YEAR(CURDATE())
+        WHERE lb.employee_id=? AND lb.company_id=? AND CURDATE() BETWEEN lb.session_start AND lb.session_end
       `, [emp.id, decodedUserData.company_id]);
 
       const [pendingLeaves] = await db.promise().query(`
@@ -1131,7 +1167,7 @@ function calculateLeaveDays(startDate, endDate, startHalf, endHalf) {
 // deleteAssignedLeave
 
 router.post("/deleteAssignedLeave", async (req, res) => {
-  const { userData, employee_id = 0, type, leave_rule_id  } = req.body;
+  const { userData, employee_id = 0, type, leave_rule_id } = req.body;
 
   if (!userData) {
     return res.status(400).json({ status: false, message: "UserData is required." });
@@ -1148,7 +1184,7 @@ router.post("/deleteAssignedLeave", async (req, res) => {
   const companyId = decodedUserData?.company_id;
   const employeeId = employee_id || decodedUserData?.id;
 
-  if (!companyId || !employeeId || !leave_rule_id ) {
+  if (!companyId || !employeeId || !leave_rule_id) {
     return res.status(400).json({
       status: false,
       message: "Company ID, Employee ID, and Leave ID are required.",
@@ -1169,7 +1205,7 @@ router.post("/deleteAssignedLeave", async (req, res) => {
       ? empRows[0].leave_rule_id.split(",").map((id) => id.trim()) : [];
 
     // ✅ Step 2: Remove the selected leave_rule_id 
-    const updatedRules = leaveRules.filter((id) => id !== leave_rule_id .toString());
+    const updatedRules = leaveRules.filter((id) => id !== leave_rule_id.toString());
     const updatedRuleString = updatedRules.join(",");
 
     // ✅ Step 3: Update the employee record
@@ -1179,7 +1215,7 @@ router.post("/deleteAssignedLeave", async (req, res) => {
     // ✅ Step 4: Optionally delete leave balance if requested
     if (type == "removeAssignWithBalance") {
       await db.promise().query("DELETE FROM leave_balance WHERE employee_id = ? AND leave_rules_id = ? AND company_id = ?",
-        [employeeId, leave_rule_id , companyId]
+        [employeeId, leave_rule_id, companyId]
       );
     }
 
