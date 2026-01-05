@@ -1354,10 +1354,13 @@ router.get('/api/attendance', async (req, res) => {
                         label = isHoliday ? `Holiday - ${isHoliday}` : 'Weekly Off';
                     }
                 }
+                let newStatus = lwpcheck(date, status, '2026-01-04');
 
+                // let newStatus = status;
                 monthlyAttendanceLogs.push({
                     day_no: dayNo,
-                    status: status == 'A' ? lwpcheck(date, status, decodedUserData.company_id) : status,
+                    // status: status == 'A' ? lwpcheck(date, status, decodedUserData.company_id) : status,
+                    status: newStatus,
                     label: label,
                     date: date,
                     in_time: attendance ? attendance.check_in_time : '',
@@ -1390,89 +1393,37 @@ router.get('/api/attendance', async (req, res) => {
 });
 
 
-// const lwpcheck = async (attendanceDate, status, companyId) => {
-//   if (status !== 'A') return status;
-
-//   const attendanceDate = new Date(attendanceDate);
-
-//   const [lock] = await queryDb(
-//     `
-//     SELECT is_locked, locked_at
-//     FROM data_locks
-//     WHERE company_id = ?
-//       AND module = 'attendance'
-//       AND is_locked = 1
-//     ORDER BY locked_at DESC
-//     LIMIT 1
-//     `,
-//     [companyId]
-//   );
-
-//   if (!lock) return status;
-
-//   const lockDate = new Date(lock.locked_at);
-//   const lockDay = lockDate.getDate(); // always 04
-//   const lockMonth = lockDate.getMonth(); // 0-11
-// const attendanceMonth = attendanceDate.getMonth();
-//   // 🔑 ONLY condition
-//   if ( attendanceDate <= lockDate && attendanceMonth == lockMonth-1) {
-//     return 'LWP';
-//   }
-
-//   return status;
-// };
-
-const lwpcheck = async (attDate, status, companyId) => {
+const lwpcheck = (attDate, status, lockDate) => {
+    // Only Absent can become LWP
     if (status !== 'A') return status;
 
-    const attendanceDate = new Date(attDate);
+    // Normalize attendance date
+    const attendanceDate =
+        attDate instanceof Date
+            ? new Date(attDate.getFullYear(), attDate.getMonth(), attDate.getDate())
+            : new Date(attDate + 'T00:00:00');
 
-    const [lock] = await queryDb(
-        `
-    SELECT locked_at
-    FROM data_locks
-    WHERE company_id = ?
-      AND module = 'attendance'
-      AND is_locked = 1
-    ORDER BY locked_at DESC
-    LIMIT 1
-    `,
-        [companyId]
+    if (!lockDate) return status;
+
+    const lock = new Date(lockDate);
+
+    // Previous month of lock
+    const prevMonthDate = new Date(
+        lock.getFullYear(),
+        lock.getMonth() - 1,
+        1
     );
 
-    if (!lock?.locked_at) return status;
-
-    const lockDate = new Date(lock.locked_at);
-
-
-    // attendance month & year
-    const attMonth = attendanceDate.getMonth(); // 0-11
-    const attYear = attendanceDate.getFullYear();
-
-    // previous month from lock date
-    const prevMonthDate = new Date(lockDate.getFullYear(), lockDate.getMonth() - 1, 1);
-    const prevMonth = prevMonthDate.getMonth();
-    const prevYear = prevMonthDate.getFullYear();
-
-    // 🔑 FINAL CONDITION
     if (
-        attMonth === prevMonth &&
-        attYear === prevYear &&
-        attendanceDate <= lockDate
+        attendanceDate.getMonth() === prevMonthDate.getMonth() &&
+        attendanceDate.getFullYear() === prevMonthDate.getFullYear() &&
+        attendanceDate <= lock
     ) {
         return 'LWP';
     }
 
     return status;
 };
-
-
-
-
-
-
-
-
 
 
 router.post('/api/BreakDetails', async (req, res) => {
