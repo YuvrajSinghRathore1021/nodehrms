@@ -1219,7 +1219,7 @@ router.get('/api/attendance', async (req, res) => {
 
             const [attendanceResults] = await db.promise().query(`
                 SELECT attendance_id,status, check_in_time, check_out_time, attendance_date,approval_status,attendance_status
-               ,short_leave,short_leave_type,short_leave_reason,late_coming_leaving FROM attendance
+               ,short_leave,short_leave_type,short_leave_reason,late_coming_leaving,approval_status,attendance_status FROM attendance
                 WHERE employee_id = ? AND YEAR(attendance_date) = ? AND MONTH(attendance_date) = ?`,
                 [employee.id, year, month]
             );
@@ -1359,7 +1359,6 @@ router.get('/api/attendance', async (req, res) => {
                 // let newStatus = status;
                 monthlyAttendanceLogs.push({
                     day_no: dayNo,
-                    // status: status == 'A' ? lwpcheck(date, status, decodedUserData.company_id) : status,
                     status: newStatus,
                     label: label,
                     date: date,
@@ -1367,7 +1366,8 @@ router.get('/api/attendance', async (req, res) => {
                     out_time: attendance ? attendance.check_out_time : '',
                     attendance_id: attendance ? attendance.attendance_id : 0,
                     late_coming_leaving: attendance ? attendance?.late_coming_leaving : 0,
-
+                    approval_status: attendance ? attendance?.approval_status : 0,
+                    attendance_status: attendance ? attendance?.attendance_status : 0,
                 });
             }
 

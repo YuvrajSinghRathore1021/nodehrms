@@ -138,64 +138,212 @@ const decodeUserData = (userData) => {
 };
 
 // new 
+// router.post('/api/ChackViewDetails', (req, res) => {
+//     const { userData, Logid,attendanceId=0 } = req.body;
+//     let decodedUserData = null;
+//     if (userData) {
+//         try {
+//             const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+//             decodedUserData = JSON.parse(decodedString);
+//         } catch (error) {
+//             return res.status(400).json({
+//                 status: false,
+//                 error: 'Invalid userData',
+//                 message: 'Invalid userData'
+//             });
+//         }
+//     }
+//     if (!decodedUserData || !decodedUserData.company_id) {
+//         return res.status(400).json({
+//             status: false,
+//             error: 'ID is required',
+//             message: 'ID is required'
+//         });
+//     }
+//     const company_id = decodedUserData.company_id;
+//     if (!company_id) {
+//         return res.status(400).json({
+//             status: false,
+//             error: 'Company ID is missing or invalid',
+//             message: 'Company ID is missing or invalid'
+//         });
+
+//     }
+
+//     const query = `SELECT AR.rm_status,AR.id, AR.rm_id,AR.employee_id, AR.admin_id, AR.admin_status, AR.request_type,AR.rm_remark,AR.admin_remark, AR.request_date, AR.in_time, AR.out_time, AR.status, AR.reason, AR.created, e.first_name AS employee_first_name, e.employee_id, d.name AS department_name, em.first_name AS Rm FROM attendance_requests AS AR INNER JOIN employees AS e ON e.id = AR.employee_id LEFT JOIN departments AS d ON e.department = d.id LEFT JOIN employees AS em ON e.reporting_manager = em.id WHERE AR.company_id = ? AND AR.id=?`;
+
+//     db.query(query, [company_id, Logid], (err, results) => {
+//         if (err) {
+//             return res.status(500).json({
+//                 status: false,
+//                 message: 'Database error occurred while fetching employees',
+//                 error: err.message || err
+//             });
+//         }
+//         if (results.length === 0) {
+//             return res.status(200).json({
+//                 status: false,
+//                 message: 'No employees found for this company'
+//             });
+//         }
+
+//         res.json({
+//             status: true,
+//             data: results[0],
+//             message: 'Data found successfully'
+//         });
+
+//     });
+
+// });
+
 router.post('/api/ChackViewDetails', (req, res) => {
-    const { userData, Logid } = req.body;
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({
-                status: false,
-                error: 'Invalid userData',
-                message: 'Invalid userData'
-            });
-        }
+  const { userData, Logid, attendanceId = 0 } = req.body;
+const attendanceIdNum = Number(attendanceId);
+  let decodedUserData = null;
+
+  // 🔐 Decode userData
+  if (userData) {
+    try {
+      const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+      decodedUserData = JSON.parse(decodedString);
+    } catch (error) {
+      return res.status(400).json({
+        status: false,
+        message: 'Invalid userData'
+      });
     }
-    if (!decodedUserData || !decodedUserData.company_id) {
-        return res.status(400).json({
-            status: false,
-            error: 'ID is required',
-            message: 'ID is required'
-        });
-    }
-    const company_id = decodedUserData.company_id;
-    if (!company_id) {
-        return res.status(400).json({
-            status: false,
-            error: 'Company ID is missing or invalid',
-            message: 'Company ID is missing or invalid'
-        });
+  }
 
-    }
-
-    const query = `SELECT AR.rm_status,AR.id, AR.rm_id,AR.employee_id, AR.admin_id, AR.admin_status, AR.request_type,AR.rm_remark,AR.admin_remark, AR.request_date, AR.in_time, AR.out_time, AR.status, AR.reason, AR.created, e.first_name AS employee_first_name, e.employee_id, d.name AS department_name, em.first_name AS Rm FROM attendance_requests AS AR INNER JOIN employees AS e ON e.id = AR.employee_id LEFT JOIN departments AS d ON e.department = d.id LEFT JOIN employees AS em ON e.reporting_manager = em.id WHERE AR.company_id = ? AND AR.id=?`;
-
-    db.query(query, [company_id, Logid], (err, results) => {
-        if (err) {
-            return res.status(500).json({
-                status: false,
-                message: 'Database error occurred while fetching employees',
-                error: err.message || err
-            });
-        }
-        if (results.length === 0) {
-            return res.status(200).json({
-                status: false,
-                message: 'No employees found for this company'
-            });
-        }
-
-        res.json({
-            status: true,
-            data: results[0],
-            message: 'Data found successfully'
-        });
-
+  if (!decodedUserData?.company_id) {
+    return res.status(400).json({
+      status: false,
+      message: 'Company ID is required'
     });
+  }
 
+  const company_id = decodedUserData.company_id;
+
+  /* =====================================================
+     CASE 1️⃣ : attendanceId AVAILABLE → attendance table
+     ===================================================== */
+  if (attendanceIdNum > 0) {
+    const attendanceQuery = `
+      SELECT 
+        a.attendance_id,
+        a.employee_id,
+        a.attendance_date,
+        a.status,
+        a.check_in_time,
+        a.check_out_time,
+        a.duration,
+        a.approval_status,
+        a.attendance_status,
+        a.late_coming_leaving,
+        a.short_leave,
+        a.reason,
+        a.created,
+
+        e.first_name AS employee_name,
+        e.employee_id AS emp_code,
+        d.name AS department_name
+
+      FROM attendance a
+      INNER JOIN employees e ON e.id = a.employee_id
+      LEFT JOIN departments d ON d.id = e.department
+      WHERE a.company_id = ?
+        AND a.attendance_id = ?
+    `;
+
+    return db.query(attendanceQuery, [company_id, attendanceIdNum], (err, results) => {
+      if (err) {
+        return res.status(500).json({
+          status: false,
+          message: 'Database error',
+          error: err.message
+        });
+      }
+   
+
+      if (!results.length) {
+        return res.json({
+          status: false,
+          message: 'Attendance record not found'
+        });
+      }
+
+      return res.json({
+        status: true,
+        type: 'attendance',
+        data: results[0],
+        message: 'Attendance data fetched successfully'
+      });
+    });
+  }else{
+
+  
+
+  /* =====================================================
+     CASE 2️⃣ : attendanceId NOT available → request table
+     ===================================================== */
+  const requestQuery = `
+    SELECT 
+      AR.rm_status,
+      AR.id,
+      AR.rm_id,
+      AR.employee_id,
+      AR.admin_id,
+      AR.admin_status,
+      AR.request_type,
+      AR.rm_remark,
+      AR.admin_remark,
+      AR.request_date,
+      AR.in_time,
+      AR.out_time,
+      AR.status,
+      AR.reason,
+      AR.created,
+
+      e.first_name AS employee_name,
+      e.employee_id AS emp_code,
+      d.name AS department_name,
+      em.first_name AS rm_name
+
+    FROM attendance_requests AR
+    INNER JOIN employees e ON e.id = AR.employee_id
+    LEFT JOIN departments d ON d.id = e.department
+    LEFT JOIN employees em ON em.id = e.reporting_manager
+    WHERE AR.company_id = ?
+      AND AR.id = ?
+  `;
+
+  db.query(requestQuery, [company_id, Logid], (err, results) => {
+    if (err) {
+      return res.status(500).json({
+        status: false,
+        message: 'Database error',
+        error: err.message
+      });
+    }
+
+    if (!results.length) {
+      return res.json({
+        status: false,
+        message: 'Attendance request not found'
+      });
+    }
+
+    return res.json({
+      status: true,
+      type: 'request',
+      data: results[0],
+      message: 'Attendance request fetched successfully'
+    });
+    
+  });
+  }
 });
+
 
 router.post('/api/ApprovalSubmit', async (req, res) => {
     const { userData, ApprovalRequests_id, Type, ApprovalStatus, employee_id, in_time, out_time, reason, request_date, request_type } = req.body;
@@ -311,8 +459,7 @@ router.post('/api/ApprovalSubmit', async (req, res) => {
                     , employee_id, company_id, attendanceRequestType[0].attendance_id];
 
                 actionType = 'update';
-                // console.log(insertQuery);
-                // console.log(insertParams);
+               
             } else {
                 insertQuery = `
                 INSERT INTO attendance (request_id,daily_status_in, daily_status_intime, daily_status_out, daily_status_outtime, 
