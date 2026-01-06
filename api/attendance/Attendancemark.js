@@ -135,7 +135,7 @@ router.post('/Attendancemark', async (req, res) => {
                     // const attendanceCount = await queryDb('SELECT COUNT(attendance_id) as total FROM attendance WHERE employee_id = ? AND company_id = ? and late_coming_leaving=1 and attendance_date', [empId, companyId]);
                     const attendanceCount = await queryDb(` 
                         SELECT COUNT(attendance_id) AS total FROM attendance WHERE employee_id = ? AND 
-                        company_id = ? AND late_coming_leaving = 1 AND MONTH(attendance_date) =  AND 
+                        company_id = ? AND late_coming_leaving = 1 AND MONTH(attendance_date) = ? AND 
                         YEAR(attendance_date) = ? `,
                         [empId, companyId, currentDate.getMonth() + 1, currentDate.getFullYear()]);
 

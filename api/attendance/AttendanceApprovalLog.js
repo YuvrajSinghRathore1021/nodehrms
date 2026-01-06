@@ -198,39 +198,40 @@ const decodeUserData = (userData) => {
 // });
 
 router.post('/api/ChackViewDetails', (req, res) => {
-  const { userData, Logid, attendanceId = 0 } = req.body;
-const attendanceIdNum = Number(attendanceId);
-  let decodedUserData = null;
+    const { userData, Logid, attendanceId = 0 } = req.body;
+    const attendanceIdNum = Number(attendanceId);
+    let decodedUserData = null;
 
-  // 🔐 Decode userData
-  if (userData) {
-    try {
-      const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-      decodedUserData = JSON.parse(decodedString);
-    } catch (error) {
-      return res.status(400).json({
-        status: false,
-        message: 'Invalid userData'
-      });
+    // 🔐 Decode userData
+    if (userData) {
+        try {
+            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+            decodedUserData = JSON.parse(decodedString);
+        } catch (error) {
+            return res.status(400).json({
+                status: false,
+                message: 'Invalid userData'
+            });
+        }
     }
-  }
 
-  if (!decodedUserData?.company_id) {
-    return res.status(400).json({
-      status: false,
-      message: 'Company ID is required'
-    });
-  }
+    if (!decodedUserData?.company_id) {
+        return res.status(400).json({
+            status: false,
+            message: 'Company ID is required'
+        });
+    }
 
-  const company_id = decodedUserData.company_id;
+    const company_id = decodedUserData.company_id;
 
-  /* =====================================================
-     CASE 1️⃣ : attendanceId AVAILABLE → attendance table
-     ===================================================== */
-  if (attendanceIdNum > 0) {
-    const attendanceQuery = `
+    /* =====================================================
+       CASE 1️⃣ : attendanceId AVAILABLE → attendance table
+       ===================================================== */
+    if (attendanceIdNum > 0) {
+        const attendanceQuery = `
       SELECT 
         a.attendance_id,
+        a.request_id,
         a.employee_id,
         a.attendance_date,
         a.status,
@@ -255,38 +256,36 @@ const attendanceIdNum = Number(attendanceId);
         AND a.attendance_id = ?
     `;
 
-    return db.query(attendanceQuery, [company_id, attendanceIdNum], (err, results) => {
-      if (err) {
-        return res.status(500).json({
-          status: false,
-          message: 'Database error',
-          error: err.message
+        return db.query(attendanceQuery, [company_id, attendanceIdNum], (err, results) => {
+            if (err) {
+                return res.status(500).json({
+                    status: false,
+                    message: 'Database error',
+                    error: err.message
+                });
+            }
+
+
+            if (!results.length) {
+                return res.json({
+                    status: false,
+                    message: 'Attendance record not found'
+                });
+            }
+
+            return res.json({
+                status: true,
+                type: 'attendance',
+                data: results[0],
+                message: 'Attendance data fetched successfully'
+            });
         });
-      }
-   
+    } else {
 
-      if (!results.length) {
-        return res.json({
-          status: false,
-          message: 'Attendance record not found'
-        });
-      }
-
-      return res.json({
-        status: true,
-        type: 'attendance',
-        data: results[0],
-        message: 'Attendance data fetched successfully'
-      });
-    });
-  }else{
-
-  
-
-  /* =====================================================
-     CASE 2️⃣ : attendanceId NOT available → request table
-     ===================================================== */
-  const requestQuery = `
+        /* =====================================================
+           CASE 2️⃣ : attendanceId NOT available → request table
+           ===================================================== */
+        const requestQuery = `
     SELECT 
       AR.rm_status,
       AR.id,
@@ -317,31 +316,31 @@ const attendanceIdNum = Number(attendanceId);
       AND AR.id = ?
   `;
 
-  db.query(requestQuery, [company_id, Logid], (err, results) => {
-    if (err) {
-      return res.status(500).json({
-        status: false,
-        message: 'Database error',
-        error: err.message
-      });
-    }
+        db.query(requestQuery, [company_id, Logid], (err, results) => {
+            if (err) {
+                return res.status(500).json({
+                    status: false,
+                    message: 'Database error',
+                    error: err.message
+                });
+            }
 
-    if (!results.length) {
-      return res.json({
-        status: false,
-        message: 'Attendance request not found'
-      });
-    }
+            if (!results.length) {
+                return res.json({
+                    status: false,
+                    message: 'Attendance request not found'
+                });
+            }
 
-    return res.json({
-      status: true,
-      type: 'request',
-      data: results[0],
-      message: 'Attendance request fetched successfully'
-    });
-    
-  });
-  }
+            return res.json({
+                status: true,
+                type: 'request',
+                data: results[0],
+                message: 'Attendance request fetched successfully'
+            });
+
+        });
+    }
 });
 
 
@@ -459,7 +458,7 @@ router.post('/api/ApprovalSubmit', async (req, res) => {
                     , employee_id, company_id, attendanceRequestType[0].attendance_id];
 
                 actionType = 'update';
-               
+
             } else {
                 insertQuery = `
                 INSERT INTO attendance (request_id,daily_status_in, daily_status_intime, daily_status_out, daily_status_outtime, 

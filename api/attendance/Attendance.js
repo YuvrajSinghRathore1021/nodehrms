@@ -704,6 +704,7 @@ router.post('/api/data', async (req, res) => {
                     attendance_date, profile_image,
                     branch_in_name, branch_out_name
                     , late_coming_leaving, short_leave, short_leave_type, short_leave_reason
+
                 } = record[0];
 
                 allData.push({
