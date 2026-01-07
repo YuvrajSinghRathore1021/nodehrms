@@ -687,6 +687,7 @@ router.post('/api/data', async (req, res) => {
             if (record.length > 0) {
                 const {
                     id,
+                    employee_id,
                     first_name,
                     name,
                     in_ip,
@@ -709,6 +710,7 @@ router.post('/api/data', async (req, res) => {
 
                 allData.push({
                     id,
+                    employee_id,
                     first_name,
                     name,
                     in_ip,
@@ -758,7 +760,7 @@ const getAttendanceData = (companyId, employeeId, date) => {
 
     return new Promise((resolve, reject) => {
         // db.query('SELECT b.id, CONCAT(b.first_name, " ", b.last_name,"-",b.employee_id) AS first_name,CONCAT(b.first_name, " ", b.last_name,"-",b.employee_id) AS name,b.profile_image,a.in_ip,out_ip,a.in_latitude,a.out_ip, a.in_longitude,a.out_latitude,a.out_longitude, a.attendance_id, a.status, a.check_in_time, a.check_out_time, a.duration, a.created, a.attendance_date FROM employees b LEFT JOIN attendance a ON a.employee_id = b.id WHERE  b.employee_status=1 and b.status=1 and b.delete_status=0 and b.company_id = ? AND b.id = ? AND (a.attendance_date = ? OR a.attendance_date IS NULL)',
-        db.query(`SELECT b.id, CONCAT(b.first_name, " ", b.last_name,"-",b.employee_id) AS first_name,CONCAT(b.first_name, " ", b.last_name,"-",b.employee_id) AS name,b.profile_image,a.in_ip,out_ip,a.in_latitude,a.out_ip, a.in_longitude,a.out_latitude,a.out_longitude, a.attendance_id, a.status, a.check_in_time, a.check_out_time, a.duration, a.created, a.attendance_date
+        db.query(`SELECT b.id, b.id as employee_id, CONCAT(b.first_name, " ", b.last_name,"-",b.employee_id) AS first_name,CONCAT(b.first_name, " ", b.last_name,"-",b.employee_id) AS name,b.profile_image,a.in_ip,out_ip,a.in_latitude,a.out_ip, a.in_longitude,a.out_latitude,a.out_longitude, a.attendance_id, a.status, a.check_in_time, a.check_out_time, a.duration, a.created, a.attendance_date
             ,bi.name AS branch_in_name,bo.name AS branch_out_name , a.late_coming_leaving, a.short_leave, a.short_leave_type, a.short_leave_reason
             
             FROM employees b LEFT JOIN attendance a ON a.employee_id = b.id
@@ -786,7 +788,7 @@ const checkHoliday = (companyId, date) => {
 
 const getEmployeeInfo = (companyId, employeeId) => {
     return new Promise((resolve, reject) => {
-        db.query('SELECT b.id, CONCAT(b.first_name, " ", b.last_name,"-",b.employee_id) AS first_name,b.profile_image FROM employees b WHERE b.company_id = ? AND b.id = ?',
+        db.query('SELECT b.id,b.id AS employee_id, CONCAT(b.first_name, " ", b.last_name,"-",b.employee_id) AS first_name,b.profile_image FROM employees b WHERE b.company_id = ? AND b.id = ?',
             [companyId, employeeId], (err, results) => {
                 if (err) reject(err);
                 resolve(results);
@@ -797,6 +799,7 @@ const getEmployeeInfo = (companyId, employeeId) => {
 const createAttendanceResponse = (record, status, date) => {
     return {
         id: record.id,
+        employee_id: record.employee_id,
         name: record.first_name,
         first_name: record.first_name,
         profile_image: record.profile_image,

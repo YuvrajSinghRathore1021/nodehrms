@@ -116,6 +116,7 @@ router.post('/Attendancemark', async (req, res) => {
             }
 
             let empAttendanceStatus = 'Present';
+            let attendance_reason = "";
             ////neew addd////
             if (rule?.penalty_rule_applied == 1) {
                 // Late Coming Penalty Check
@@ -131,8 +132,6 @@ router.post('/Attendancemark', async (req, res) => {
                     }
                 }
                 if (late_coming_leaving == 1 && decodedUserData.company_id == 10 && rule?.late_coming_penalty == 1) {
-
-                    // const attendanceCount = await queryDb('SELECT COUNT(attendance_id) as total FROM attendance WHERE employee_id = ? AND company_id = ? and late_coming_leaving=1 and attendance_date', [empId, companyId]);
                     const attendanceCount = await queryDb(` 
                         SELECT COUNT(attendance_id) AS total FROM attendance WHERE employee_id = ? AND 
                         company_id = ? AND late_coming_leaving = 1 AND MONTH(attendance_date) = ? AND 
@@ -141,6 +140,7 @@ router.post('/Attendancemark', async (req, res) => {
 
                     if (attendanceCount[0]?.total >= rule?.late_coming_allowed_days) {
                         empAttendanceStatus = "half-day";
+                        attendance_reason = "Late coming exceeded allowed days.allows dayes in month is " + rule?.late_coming_allowed_days;
                     }
                 }
 
@@ -149,13 +149,14 @@ router.post('/Attendancemark', async (req, res) => {
                     // If employee comes after allowed late time
                     if (formattedTime && lastInTimeFormatted < formattedTime) {
                         empAttendanceStatus = "half-day";
+                        attendance_reason = "Late coming exceeded allowed time.allowed time is " + lastInTimeFormatted;
                     }
                 }
             }
 
             ////neew addd////
-            let attendanceCheckInsert = await queryDb('INSERT INTO attendance (status,in_latitude, in_longitude, daily_status_in, daily_status_intime, employee_id, company_id, attendance_date, check_in_time, in_ip,branch_id_in,apply_by,reason,late_coming_leaving) VALUES (?,?,?, ?, ?, ?, ?,CURDATE(), ?,  ?, ?,?,?,?)',
-                [empAttendanceStatus, latitude, longitude, dailyStatus, timeCount, empId, companyId, formattedTime, IpHandal, empbranch_id, applyBy, reason, late_coming_leaving]);
+            let attendanceCheckInsert = await queryDb('INSERT INTO attendance (status,in_latitude, in_longitude, daily_status_in, daily_status_intime, employee_id, company_id, attendance_date, check_in_time, in_ip,branch_id_in,apply_by,reason,late_coming_leaving,attendance_reason) VALUES (?,?,?, ?, ?, ?, ?,CURDATE(), ?,  ?, ?,?,?,?,?)',
+                [empAttendanceStatus, latitude, longitude, dailyStatus, timeCount, empId, companyId, formattedTime, IpHandal, empbranch_id, applyBy, reason, late_coming_leaving, attendance_reason]);
             if (!attendanceCheckInsert || !attendanceCheckInsert.insertId) {
 
                 return res.status(500).json({ status: false, message: 'Failed to mark attendance. Please try again.', error: attendanceCheckInsert });

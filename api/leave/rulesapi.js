@@ -940,10 +940,10 @@ router.post("/leaveBalanceUpdate", (req, res) => {
   const fetchQuery = `
     SELECT id, old_balance 
     FROM leave_balance
-    WHERE employee_id = ? AND leave_rules_id = ? AND year = ?
+    WHERE employee_id = ? AND leave_rules_id = ? AND ? BETWEEN session_start AND session_end
   `;
 
-  db.query(fetchQuery, [employee_id, leave_rule_id, currentYear], (err, results) => {
+  db.query(fetchQuery, [employee_id, leave_rule_id, new Date()], (err, results) => {
     if (err) {
       console.error("Error fetching leave balance:", err);
       return res.status(500).json({ status: false, message: "Database error while fetching leave balance." });
@@ -995,6 +995,171 @@ router.post("/leaveBalanceUpdate", (req, res) => {
 
 
 // new balance
+// router.get("/Balance", async (req, res) => {
+//   try {
+//     const {
+//       page = 1,
+//       limit = 10,
+//       userData,
+//       departmentId = 0,
+//       subDepartmentid = 0,
+//       employeeStatus = 1,
+//       search = ''
+//     } = req.query;
+
+//     const offset = (page - 1) * limit;
+
+//     if (!userData) {
+//       return res.status(400).json({ status: false, message: "userData is required" });
+//     }
+
+//     // --- Decode userData
+//     let decodedUserData;
+//     try {
+//       decodedUserData = JSON.parse(Buffer.from(userData, "base64").toString("utf-8"));
+//     } catch {
+//       return res.status(400).json({ status: false, message: "Invalid userData" });
+//     }
+
+//     if (!decodedUserData.company_id) {
+//       return res.status(400).json({ status: false, message: "Invalid company_id" });
+//     }
+
+//     let whereCond = ` WHERE e.company_id=? `;
+//     const params = [decodedUserData.company_id];
+
+//     if (search) {
+//       whereCond += ` AND (e.employee_id LIKE ? OR e.first_name LIKE ? OR e.last_name LIKE ?) `;
+//       params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+//     }
+
+//     if (departmentId && departmentId != 0) {
+//       whereCond += ` AND e.department=? `;
+//       params.push(departmentId);
+//     } if (subDepartmentid && subDepartmentid != 0) {
+//       whereCond += ` AND e.sub_department=? `;
+//       params.push(subDepartmentid);
+//     }
+
+//     if (employeeStatus && employeeStatus == 1) {
+//       whereCond += ` AND e.employee_status=1 AND e.status=1 AND e.delete_status=0 `;
+//     } else {
+//       whereCond += ` AND (e.employee_status=0 OR e.status=0 OR e.delete_status=1) `;
+//     }
+
+//     // --- Get paginated employee list
+//     const [employees] = await db.promise().query(`
+//       SELECT e.id, e.employee_id, CONCAT(e.first_name, ' ', e.last_name, '-', e.employee_id) AS employee_name
+//       FROM employees e
+//       ${whereCond}
+//       ORDER BY e.first_name ASC
+//       LIMIT ${parseInt(limit)} OFFSET ${parseInt(offset)};
+//     `, params);
+
+//     // --- Get total employees count
+//     const [countRows] = await db.promise().query(`
+//       SELECT COUNT(DISTINCT e.id) AS total
+//       FROM employees e
+//       ${whereCond};
+//     `, params);
+
+//     // --- Prepare final data
+//     const finalResult = [];
+
+//     for (const emp of employees) {
+//       // --- Get leave balance data per rule (like FetchLeaveCount logic)
+//       const [rules] = await db.promise().query(`
+//         SELECT lr.id AS leave_rule_id, lr.leave_type, lr.leaves_allowed_year, lr.accrual_frequency, 
+//                lr.eligible_after_days, lr.apply_leaves_next_year, 
+//                lb.used_leaves, lb.old_balance, lb.assign_date
+//         FROM leave_rules lr
+//         INNER JOIN leave_balance lb ON lr.id = lb.leave_rules_id 
+//         WHERE lb.employee_id=? AND lb.company_id=? AND CURDATE() BETWEEN lb.session_start AND lb.session_end
+//       `, [emp.id, decodedUserData.company_id]);
+
+//       const [pendingLeaves] = await db.promise().query(`
+//         SELECT leave_rule_id, start_date, end_date, start_half, end_half
+//         FROM leaves
+//         WHERE employee_id=? AND company_id=? AND admin_status=0 AND deletestatus=0
+//       `, [emp.id, decodedUserData.company_id]);
+
+//       // Group pending leave days
+//       const pendingByRule = {};
+//       for (const lv of pendingLeaves) {
+//         const days = calculateLeaveDays(lv.start_date, lv.end_date, lv.start_half, lv.end_half);
+//         pendingByRule[lv.leave_rule_id] = (pendingByRule[lv.leave_rule_id] || 0) + days;
+//       }
+
+//       const empData = {
+//         id: emp.id,
+//         employee_id: emp.employee_id,
+//         first_name: emp.employee_name
+//       };
+
+//       for (const rule of rules) {
+//         const today = new Date();
+//         const joiningDate = new Date(rule.assign_date || today);
+//         const eligibleDate = new Date(joiningDate);
+//         eligibleDate.setDate(eligibleDate.getDate() + (rule.eligible_after_days || 0));
+
+//         if (today < eligibleDate) {
+//           empData[rule.leave_type] = { total: 0, used: 0, old_balance: 0, balance: 0 };
+//           continue;
+//         }
+
+//         let periodsPerYear = 1;
+//         switch (rule.accrual_frequency) {
+//           case "monthly": periodsPerYear = 12; break;
+//           case "quarterly": periodsPerYear = 4; break;
+//           case "half-yearly": periodsPerYear = 2; break;
+//           default: periodsPerYear = 1;
+//         }
+
+//         const leavesPerPeriod = rule.leaves_allowed_year / periodsPerYear;
+//         const assignDate = new Date(rule.assign_date || joiningDate);
+//         const monthsDiff = (today.getFullYear() - assignDate.getFullYear()) * 12 + (today.getMonth() - assignDate.getMonth());
+//         let creditedPeriods = 0;
+//         if (rule.accrual_frequency === "monthly") creditedPeriods = monthsDiff + 1;
+//         else if (rule.accrual_frequency === "quarterly") creditedPeriods = Math.floor(monthsDiff / 3) + 1;
+//         else if (rule.accrual_frequency === "half-yearly") creditedPeriods = Math.floor(monthsDiff / 6) + 1;
+//         else creditedPeriods = today >= assignDate ? 1 : 0;
+//         if (creditedPeriods > periodsPerYear) creditedPeriods = periodsPerYear;
+
+//         const totalCredited = leavesPerPeriod * creditedPeriods;
+//         const used = parseFloat(rule.used_leaves || 0);
+//         const oldBalance = parseFloat(rule.old_balance || 0);
+//         const pending = parseFloat(pendingByRule[rule.leave_rule_id] || 0);
+//         const balance = (totalCredited + oldBalance - used - pending).toFixed(1);
+
+//         empData[rule.leave_type] = {
+//           total: parseFloat(totalCredited.toFixed(1)),
+//           used,
+//           old_balance: oldBalance,
+//           balance: parseFloat(balance)
+//         };
+//       }
+
+//       finalResult.push(empData);
+//     }
+
+//     return res.status(200).json({
+//       status: true,
+//       total: countRows[0].total,
+//       data: finalResult
+//     });
+
+//   } catch (error) {
+//     console.error("Error in /Balance:", error);
+//     return res.status(500).json({ status: false, error: error.message });
+//   }
+// });
+
+
+
+
+
+
+
 router.get("/Balance", async (req, res) => {
   try {
     const {
@@ -1064,89 +1229,124 @@ router.get("/Balance", async (req, res) => {
     `, params);
 
     // --- Prepare final data
-    const finalResult = [];
+    // --- Prepare final data
+const finalResult = [];
+const leaveTypeSet = new Set(); // to collect leave types
 
-    for (const emp of employees) {
-      // --- Get leave balance data per rule (like FetchLeaveCount logic)
-      const [rules] = await db.promise().query(`
-        SELECT lr.id AS leave_rule_id, lr.leave_type, lr.leaves_allowed_year, lr.accrual_frequency, 
-               lr.eligible_after_days, lr.apply_leaves_next_year, 
-               lb.used_leaves, lb.old_balance, lb.assign_date
-        FROM leave_rules lr
-        INNER JOIN leave_balance lb ON lr.id = lb.leave_rules_id 
-        WHERE lb.employee_id=? AND lb.company_id=? AND CURDATE() BETWEEN lb.session_start AND lb.session_end
-      `, [emp.id, decodedUserData.company_id]);
+for (const emp of employees) {
 
-      const [pendingLeaves] = await db.promise().query(`
-        SELECT leave_rule_id, start_date, end_date, start_half, end_half
-        FROM leaves
-        WHERE employee_id=? AND company_id=? AND admin_status=0 AND deletestatus=0
-      `, [emp.id, decodedUserData.company_id]);
+  const [rules] = await db.promise().query(`
+    SELECT lr.id AS leave_rule_id, lr.leave_type, lr.leaves_allowed_year,
+           lr.accrual_frequency, lr.eligible_after_days,
+           lb.used_leaves, lb.old_balance, lb.assign_date
+    FROM leave_rules lr
+    INNER JOIN leave_balance lb ON lr.id = lb.leave_rules_id 
+    WHERE lb.employee_id=? 
+      AND lb.company_id=? 
+      AND CURDATE() BETWEEN lb.session_start AND lb.session_end
+  `, [emp.id, decodedUserData.company_id]);
 
-      // Group pending leave days
-      const pendingByRule = {};
-      for (const lv of pendingLeaves) {
-        const days = calculateLeaveDays(lv.start_date, lv.end_date, lv.start_half, lv.end_half);
-        pendingByRule[lv.leave_rule_id] = (pendingByRule[lv.leave_rule_id] || 0) + days;
-      }
+  const [pendingLeaves] = await db.promise().query(`
+    SELECT leave_rule_id, start_date, end_date, start_half, end_half
+    FROM leaves
+    WHERE employee_id=? 
+      AND company_id=? 
+      AND admin_status=0 
+      AND deletestatus=0
+  `, [emp.id, decodedUserData.company_id]);
 
-      const empData = {
-        id: emp.id,
-        employee_id: emp.employee_id,
-        first_name: emp.employee_name
+  // --- pending days by rule
+  const pendingByRule = {};
+  for (const lv of pendingLeaves) {
+    const days = calculateLeaveDays(
+      lv.start_date,
+      lv.end_date,
+      lv.start_half,
+      lv.end_half
+    );
+    pendingByRule[lv.leave_rule_id] =
+      (pendingByRule[lv.leave_rule_id] || 0) + days;
+  }
+
+  const empData = {
+    id: emp.id,
+    employee_id: emp.employee_id,
+    first_name: emp.employee_name,
+    leave_balances: {}
+  };
+
+  for (const rule of rules) {
+    leaveTypeSet.add(rule.leave_type);
+
+    const today = new Date();
+    const assignDate = new Date(rule.assign_date || today);
+
+    // eligibility check
+    const eligibleDate = new Date(assignDate);
+    eligibleDate.setDate(
+      eligibleDate.getDate() + (rule.eligible_after_days || 0)
+    );
+
+    if (today < eligibleDate) {
+      empData.leave_balances[rule.leave_type] = {
+        total: 0,
+        used: 0,
+        old: 0,
+        balance: 0
       };
-
-      for (const rule of rules) {
-        const today = new Date();
-        const joiningDate = new Date(rule.assign_date || today);
-        const eligibleDate = new Date(joiningDate);
-        eligibleDate.setDate(eligibleDate.getDate() + (rule.eligible_after_days || 0));
-
-        if (today < eligibleDate) {
-          empData[rule.leave_type] = { total: 0, used: 0, old_balance: 0, balance: 0 };
-          continue;
-        }
-
-        let periodsPerYear = 1;
-        switch (rule.accrual_frequency) {
-          case "monthly": periodsPerYear = 12; break;
-          case "quarterly": periodsPerYear = 4; break;
-          case "half-yearly": periodsPerYear = 2; break;
-          default: periodsPerYear = 1;
-        }
-
-        const leavesPerPeriod = rule.leaves_allowed_year / periodsPerYear;
-        const assignDate = new Date(rule.assign_date || joiningDate);
-        const monthsDiff = (today.getFullYear() - assignDate.getFullYear()) * 12 + (today.getMonth() - assignDate.getMonth());
-        let creditedPeriods = 0;
-        if (rule.accrual_frequency === "monthly") creditedPeriods = monthsDiff + 1;
-        else if (rule.accrual_frequency === "quarterly") creditedPeriods = Math.floor(monthsDiff / 3) + 1;
-        else if (rule.accrual_frequency === "half-yearly") creditedPeriods = Math.floor(monthsDiff / 6) + 1;
-        else creditedPeriods = today >= assignDate ? 1 : 0;
-        if (creditedPeriods > periodsPerYear) creditedPeriods = periodsPerYear;
-
-        const totalCredited = leavesPerPeriod * creditedPeriods;
-        const used = parseFloat(rule.used_leaves || 0);
-        const oldBalance = parseFloat(rule.old_balance || 0);
-        const pending = parseFloat(pendingByRule[rule.leave_rule_id] || 0);
-        const balance = (totalCredited + oldBalance - used - pending).toFixed(1);
-
-        empData[rule.leave_type] = {
-          total: parseFloat(totalCredited.toFixed(1)),
-          used,
-          old_balance: oldBalance,
-          balance: parseFloat(balance)
-        };
-      }
-
-      finalResult.push(empData);
+      continue;
     }
 
-    return res.status(200).json({
-      status: true,
-      total: countRows[0].total,
-      data: finalResult
-    });
+    let periodsPerYear = 1;
+    if (rule.accrual_frequency === "monthly") periodsPerYear = 12;
+    else if (rule.accrual_frequency === "quarterly") periodsPerYear = 4;
+    else if (rule.accrual_frequency === "half-yearly") periodsPerYear = 2;
+
+    const leavesPerPeriod =
+      rule.leaves_allowed_year / periodsPerYear;
+
+    const monthsDiff =
+      (today.getFullYear() - assignDate.getFullYear()) * 12 +
+      (today.getMonth() - assignDate.getMonth());
+
+    let creditedPeriods = 1;
+    if (rule.accrual_frequency === "monthly")
+      creditedPeriods = monthsDiff + 1;
+    else if (rule.accrual_frequency === "quarterly")
+      creditedPeriods = Math.floor(monthsDiff / 3) + 1;
+    else if (rule.accrual_frequency === "half-yearly")
+      creditedPeriods = Math.floor(monthsDiff / 6) + 1;
+
+    creditedPeriods = Math.min(creditedPeriods, periodsPerYear);
+
+    const totalCredited = leavesPerPeriod * creditedPeriods;
+    const used = Number(rule.used_leaves || 0);
+    const old = Number(rule.old_balance || 0);
+    const pending = Number(pendingByRule[rule.leave_rule_id] || 0);
+
+    const balance = Number(
+      (totalCredited + old - used - pending).toFixed(1)
+    );
+
+    empData.leave_balances[rule.leave_type] = {
+      total: Number(totalCredited.toFixed(1)),
+      used,
+      old,
+      balance
+    };
+  }
+
+  finalResult.push(empData);
+}
+
+// --- FINAL RESPONSE
+return res.status(200).json({
+  status: true,
+  total: countRows[0].total,
+  leave_types: Array.from(leaveTypeSet),
+  data: finalResult
+});
+
 
   } catch (error) {
     console.error("Error in /Balance:", error);

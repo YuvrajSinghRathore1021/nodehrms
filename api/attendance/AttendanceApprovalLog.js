@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../../DB/ConnectionSql');
+const e = require('express');
 
 function formatDate(date) {
     const year = date.getFullYear();
@@ -339,6 +340,269 @@ router.post('/api/ChackViewDetails', (req, res) => {
                 message: 'Attendance request fetched successfully'
             });
 
+        });
+    }
+});
+
+
+router.post('/api/ChackViewDetailsNew', async (req, res) => {
+    const { userData, attendanceDate, employeeId = 0, status } = req.body;
+    // status =>a:-absence, p:-present, l:-leave, h:-holiday,hf:-halfday,lwp:-leave without pay,wo:-week off,
+    if (!attendanceDate) {
+        return res.status(400).json({ status: false, message: 'attendanceDate is required' });
+    }
+
+    let decodedUserData;
+    try {
+        const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+        decodedUserData = JSON.parse(decodedString);
+    } catch (err) {
+        return res.status(400).json({ status: false, message: 'Invalid userData' });
+    }
+
+    const { company_id } = decodedUserData;
+
+    let employee_id = employeeId || decodedUserData.id;
+
+    if (!employee_id || !company_id) {
+        return res.status(400).json({ status: false, message: 'Invalid employee or company' });
+    }
+
+    try {
+        /* ===================== employee ===================== */
+        const [employee] = await db.promise().query(`
+            SELECT CONCAT(first_name," ",last_name, " - ", employee_id) AS name,profile_image FROM employees WHERE id=? LIMIT 1
+        `, [employee_id]);
+
+        /* ===================== ATTENDANCE ===================== */
+        const [attendance] = await db.promise().query(`
+           SELECT a.attendance_id, a.request_id, a.attendance_date, a.status, a.daily_status_in, a.daily_status_out, a.daily_status_intime, a.daily_status_outtime, a.check_in_time, a.check_out_time, a.duration, a.approval_status, a.attendance_status,  a.in_latitude, a.in_longitude, a.out_latitude, a.out_longitude, a.reason, a.hr_reason, a.late_coming_leaving, a.attendance_reason, a.short_leave, a.short_leave_type, a.short_leave_reason, bi.name AS branch_in_name, bo.name AS branch_out_name , CONCAT(e.first_name," ",e.last_name, " - ", e.employee_id) AS apply_by_name,e.profile_image as apply_by_profile_image
+FROM attendance as a
+LEFT JOIN branches AS bi ON a.branch_id_in = bi.id
+LEFT JOIN branches AS bo  ON a.branch_id_out = bo.id
+LEFT JOIN employees AS e  ON a.apply_by = e.id WHERE a.employee_id = ? AND a.company_id = ? AND a.attendance_date = ? LIMIT 1
+        `, [employee_id, company_id, attendanceDate]);
+
+        /* ===================== REQUEST ===================== */
+        const [request] = await db.promise().query(`
+    SELECT 
+        ar.id AS request_id,
+        ar.attendance_id,
+        ar.request_type,
+        ar.request_date,
+        ar.in_time,
+        ar.out_time,
+        ar.status AS request_status,
+        ar.reason AS employee_reason,
+        ar.reason_rm,
+        ar.reason_admin,
+        ar.created,
+
+        -- RM Info
+        ar.rm_id,
+        CONCAT(rm.first_name, ' ', rm.last_name, ' - ', rm.employee_id) AS rm_name,
+        rm.profile_image AS rm_profile_image,
+        ar.rm_status,
+        ar.rm_remark,
+
+        -- Admin Info
+        ar.admin_id,
+        CONCAT(ad.first_name, ' ', ad.last_name, ' - ', ad.employee_id) AS admin_name,
+        ad.profile_image AS admin_profile_image,
+        ar.admin_status,
+        ar.admin_remark,
+
+        -- Applied By
+        CONCAT(emp.first_name, ' ', emp.last_name, ' - ', emp.employee_id) AS applied_by_name,
+        emp.profile_image AS applied_by_profile_image,
+
+        -- Status Labels
+        CASE 
+            WHEN ar.admin_status = 1 THEN 'Approved'
+            WHEN ar.admin_status = 2 THEN 'Rejected'
+            WHEN ar.rm_status = 1 AND ar.admin_status = 0 THEN 'RM Approved'
+            WHEN ar.rm_status = 2 THEN 'RM Rejected'
+            ELSE 'Pending'
+        END AS final_request_status
+
+    FROM attendance_requests ar
+
+    LEFT JOIN employees emp ON emp.id = ar.employee_id
+    LEFT JOIN employees rm  ON rm.id  = ar.rm_id
+    LEFT JOIN employees ad  ON ad.id  = ar.admin_id
+
+    WHERE ar.employee_id = ?
+      AND ar.company_id = ?
+      AND ar.request_date = ?
+
+    ORDER BY ar.id DESC
+    LIMIT 1
+`, [employee_id, company_id, attendanceDate]);
+
+        /* ===================== LEAVE ===================== */
+        const [leave] = await db.promise().query(`
+    SELECT 
+        l.leave_id,
+        l.start_date,
+        l.end_date,
+        l.start_half,
+        l.end_half,
+
+        l.status,
+        l.deletestatus,
+        l.created,
+
+        -- Leave Rule Info
+        lr.leave_type AS leave_rule_name,
+
+        -- Reasons
+        l.reason AS employee_reason,
+        l.rm_remark,
+        l.admin_remark,
+
+        -- RM Info
+        l.rm_id,
+        CONCAT(rm.first_name, ' ', rm.last_name, ' - ', rm.employee_id) AS rm_name,
+        rm.profile_image AS rm_profile_image,
+        l.rm_status,
+
+        -- Admin Info
+        l.admin_id,
+        CONCAT(ad.first_name, ' ', ad.last_name, ' - ', ad.employee_id) AS admin_name,
+        ad.profile_image AS admin_profile_image,
+        l.admin_status,
+
+        -- Applied By
+        CONCAT(emp.first_name, ' ', emp.last_name, ' - ', emp.employee_id) AS applied_by_name,
+        emp.profile_image AS applied_by_profile_image,
+
+        -- FINAL STATUS
+        CASE
+            WHEN l.admin_status = 1 THEN 'Approved'
+            WHEN l.admin_status = 2 THEN 'Rejected'
+            WHEN l.rm_status = 1 AND l.admin_status = 0 THEN 'RM Approved'
+            WHEN l.rm_status = 2 THEN 'RM Rejected'
+            ELSE 'Pending'
+        END AS final_leave_status,
+
+        -- LEAVE TYPE LABEL
+        CASE
+            WHEN l.start_half = 'First Half' AND l.end_half = 'First Half' THEN 'Half Day'
+            WHEN l.start_half = 'Second Half' AND l.end_half = 'Second Half' THEN 'Half Day'
+            ELSE 'Full Day'
+        END AS leave_day_type
+
+    FROM leaves l
+
+    LEFT JOIN employees emp ON emp.id = l.employee_id
+    LEFT JOIN employees rm  ON rm.id  = l.rm_id
+    LEFT JOIN employees ad  ON ad.id  = l.admin_id
+    LEFT JOIN leave_rules lr ON lr.id = l.leave_rule_id
+
+    WHERE l.employee_id = ?
+      AND l.company_id = ?
+      AND ? BETWEEN l.start_date AND l.end_date
+      AND l.deletestatus = 0
+
+    ORDER BY l.leave_id DESC
+    LIMIT 1
+`, [employee_id, company_id, attendanceDate]);
+
+        /* ===================== HOLIDAY ===================== */
+        const [holiday] = await db.promise().query(`
+            SELECT holiday
+            FROM holiday
+            WHERE company_id = ?
+              AND status = 1
+              AND date = ?
+            LIMIT 1
+        `, [company_id, attendanceDate]);
+
+        /* ===================== FINAL STATUS ===================== */
+        let finalStatus = 'A';
+        let label = 'Absent';
+
+        // ---- Attendance ----
+        if (attendance.length > 0) {
+            const att = attendance[0];
+
+            if (att.status === 'present') {
+                finalStatus = 'P';
+                label = 'Present';
+
+                if (!att.check_out_time) {
+                    finalStatus = 'NCO';
+                    label = 'Not Checked Out';
+                }
+                if (att.short_leave == 1) {
+                    finalStatus = 'SL';
+                    label = att.short_leave_reason || 'Short Leave';
+                }
+            }
+            else if (att.status === 'half-day') {
+                finalStatus = 'HF';
+                label = 'Half Day';
+            }
+            else if (att.status === 'lwp') {
+                finalStatus = 'LWP';
+                label = 'Leave Without Pay';
+            }
+        }
+
+        // ---- Leave ----
+        else if (leave.length > 0) {
+            const lv = leave[0];
+
+            if (lv.start_half == lv.end_half) {
+                finalStatus = 'HL';
+                label = `Half Day Leave (${lv.leave_rule_name})`;
+            } else {
+                finalStatus = 'L';
+                label = lv.leave_rule_name;
+            }
+        }
+        // ---- Holiday ----
+        else if (holiday.length > 0) {
+            finalStatus = 'H';
+            label = `Holiday - ${holiday[0].holiday}`;
+        } else if (status) {
+            finalStatus = status;
+            if (status == 'P' || status == 'p') {
+                label = 'Present';
+            } else if (status == 'A' || status == 'a') {
+                label = 'Absent';
+            } else if (status == 'H' || status == 'h') {
+                label = 'Holiday';
+            } else if (status == 'L' || status == 'l') {
+                label = 'Leave';
+            } else if (status == 'HF' || status == 'hf') {
+                label = 'Half Day';
+            } else if (status == 'LWP' || status == 'lwp') {
+                label = 'Leave Without Pay';
+            } else if (status == 'WO' || status == 'wo') {
+                label = 'Week Off';
+            }
+        }
+
+        /* ===================== RESPONSE ===================== */
+        res.json({
+            status: true,
+            date: attendanceDate,
+            final_status: finalStatus,
+            label,
+            employee: employee[0] || null,
+            attendance: attendance[0] || null,
+            leave: leave[0] || null,
+            request: request[0] || null,
+            holiday: holiday[0] || null
+        });
+
+    } catch (error) {
+        console.error('CheckViewDetails Error:', error);
+        res.status(500).json({
+            status: false,
+            message: 'Error fetching attendance details',
+            error: error.message
         });
     }
 });
