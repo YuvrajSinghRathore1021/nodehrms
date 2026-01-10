@@ -23,16 +23,7 @@ function getWorkWeekStatus(workWeekResults, date) {
     return workWeek && workWeek[statusKey] ? workWeek[statusKey] : null;
 }
 
-// function getWorkWeekStatus(workWeekResults, date) {
-//     if (!workWeekResults || workWeekResults.length == 0) {
-//         return null;
-//     }
-//     const dayOfWeek = new Date(date).getDay(); // 0 (Sunday) - 6 (Saturday)
-//     const workWeek = workWeekResults[0];
-//     const workWeekStatusMap = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-//     const statusKey = `${workWeekStatusMap[dayOfWeek]}1`;
-//     return workWeek && workWeek[statusKey] == 3 ? 'WO' : null;
-// }
+
 
 const PendingForFunction = async (ReqId) => {
     if (ReqId == '') {
@@ -326,7 +317,7 @@ function queryDb(query, params) {
 // new 
 router.post('/api/AttendanceReqSubmit', async (req, res) => {
 
-    const { userData, request_date, request_type, in_time, out_time, reason } = req.body;
+    const { userData, request_date, request_type, in_time, out_time, reason ,short_leave=0,short_leave_type=0,short_leave_reason=''} = req.body;
     let attendance_id = Number(req.body.attendance_id) || 0;
 
     if (!userData) {
@@ -370,8 +361,8 @@ router.post('/api/AttendanceReqSubmit', async (req, res) => {
         }
         // Step 2: Insert the attendance request
         const [insertResults] = await db.promise().query(
-            'INSERT INTO attendance_requests (attendance_id,rm_id, employee_id, company_id, request_type, request_date, in_time, out_time, reason) VALUES (?,?, ?, ?, ?, ?, ?, ?, ?)',
-            [attendance_id, RmIdValue, employee_id, decodedUserData.company_id, request_type, request_date, in_time, out_time, reason]
+            'INSERT INTO attendance_requests (attendance_id,rm_id, employee_id, company_id, request_type, request_date, in_time, out_time, reason,short_leave,short_leave_type,short_leave_reason) VALUES (?,?, ?, ?, ?, ?, ?, ?, ?,?,?,?)',
+            [attendance_id, RmIdValue, employee_id, decodedUserData.company_id, request_type, request_date, in_time, out_time, reason,short_leave,short_leave_type,short_leave_reason]
         );
         res.json({ status: true, message: 'INSERT successful', data: insertResults });
     } catch (err) {
@@ -429,7 +420,7 @@ router.post('/api/AttendancePending', async (req, res) => {
                 return res.status(400).json({ status: false, message: 'Invalid startDate or endDate format. Expected YYYY-MM-DD.' });
             }
 
-            let empsql = `SELECT id, CONCAT(first_name,' ', last_name) AS first_name, employee_id 
+            let empsql = `SELECT id, id as employee_id,CONCAT(first_name,' ', last_name) AS first_name, employee_id 
                   FROM employees 
                   WHERE employee_status=1 AND status=1 AND delete_status=0 AND id=? AND company_id=?`;
             let EmpArrayValue = [EmployeeId, decodedUserData.company_id];
@@ -440,6 +431,7 @@ router.post('/api/AttendancePending', async (req, res) => {
             }
 
             const [empResults] = await db.promise().query(empsql, EmpArrayValue);
+
             if (empResults.length == 0) {
                 return res.status(200).json({ status: false, message: 'Employees not found' });
             }
@@ -512,6 +504,7 @@ router.post('/api/AttendancePending', async (req, res) => {
                     const outTime = attendance ? attendance.check_out_time : ApprovalRequests ? ApprovalRequests.out_time : '';
                     const request_id = attendance ? attendance.request_id : 0;
                     const attendance_date = attendance ? attendance.attendance_date : '';
+                    const date = attendance ? attendance.attendance_date : '';
                     const duration = attendance ? attendance.duration : '';
                     const attendance_id = attendance ? attendance.attendance_id : '';
                     const ApprovalRequests_id = ApprovalRequests ? ApprovalRequests.id : '';
@@ -530,11 +523,14 @@ router.post('/api/AttendancePending', async (req, res) => {
                             name: employee.first_name,
                             userId: employee.employee_id,
                             Id: employee.id,
+                            employee_id: employee.id,
                             date: formattedDate,
                             status: status,
                             in_time: inTime,
+                            check_in_time: inTime,
                             rm_status: rm_status, rm_id: rm_id, admin_id: admin_id, admin_status: admin_status,
                             out_time: outTime,
+                            check_out_time: outTime,
                             duration: duration,
                             attendance_id: attendance_id,
                             ApprovalRequests_id: ApprovalRequests_id,
@@ -548,11 +544,14 @@ router.post('/api/AttendancePending', async (req, res) => {
                                 name: employee.first_name,
                                 userId: employee.employee_id,
                                 Id: employee.id,
+                                employee_id: employee.id,
                                 date: formattedDate,
                                 status: status,
                                 in_time: inTime,
+                                check_in_time: inTime,
                                 rm_status: rm_status, rm_id: rm_id, admin_id: admin_id, admin_status: admin_status,
                                 out_time: outTime,
+                                check_out_time: outTime,
                                 duration: duration,
                                 attendance_id: attendance_id,
                                 ApprovalRequests_id: ApprovalRequests_id,
@@ -578,7 +577,7 @@ router.post('/api/AttendancePending', async (req, res) => {
     } else {
 
         const query = `
-        SELECT AR.id,AR.id as ApprovalRequests_id,AR.employee_id, AR.company_id, AR.rm_status, AR.rm_id, AR.rm_remark, AR.admin_id, AR.admin_status, AR.admin_remark, AR.request_type, AR.request_date, AR.in_time, AR.out_time, AR.request_type as status, AR.reason, AR.reason_admin, AR.reason_rm, AR.created,Emp.first_name AS name,Emp.employee_id AS userId
+        SELECT AR.id,AR.id as ApprovalRequests_id,AR.employee_id, AR.company_id, AR.rm_status, AR.rm_id, AR.rm_remark, AR.admin_id, AR.admin_status, AR.admin_remark, AR.request_type, AR.request_date,AR.request_date as date, AR.in_time, AR.in_time as check_in_time, AR.out_time as check_out_time, AR.out_time, AR.request_type as status, AR.reason, AR.reason_admin, AR.reason_rm, AR.created,Emp.first_name AS name,Emp.employee_id AS userId
         FROM 
             attendance_requests AS AR
         INNER JOIN 
@@ -708,7 +707,10 @@ router.post('/api/AttendanceApprovalLog', async (req, res) => {
         AR.admin_remark, 
         AR.request_type, 
         AR.request_date, 
+        AR.request_date as date, 
         AR.in_time, 
+        AR.in_time as check_in_time, 
+        AR.out_time as check_out_time, 
         AR.out_time, 
         AR.request_type as status, 
         AR.reason, 
@@ -850,7 +852,7 @@ LEFT JOIN branches AS bo
         const attendanceResults = await new Promise((resolve, reject) => {
             let query = `
                 SELECT b.id AS employee_id,b.branch_id, concat(b.first_name,' ',b.last_name,' -',b.employee_id) as first_name, b.profile_image, b.work_week_id,
-                       a.attendance_date, a.status, a.daily_status_in, a.daily_status_out, a.daily_status_intime,
+                       a.attendance_date,a.attendance_date as date, a.status, a.daily_status_in, a.daily_status_out, a.daily_status_intime,
                        a.daily_status_outtime, a.check_in_time, a.check_out_time, a.duration, a.attendance_id,
                        a.in_latitude, a.in_longitude, a.out_latitude, a.out_longitude,a.branch_id_in,
     bi.name AS branch_in_name,
@@ -979,6 +981,7 @@ LEFT JOIN branches AS bo
                 return {
                     srnu: offset + attendanceResults.indexOf(attendance) + 1,
                     attendance_date: attendance.attendance_date || SearchDate,
+                    date: attendance.attendance_date || SearchDate,
                     check_in_time: attendance.check_in_time || null,
                     check_out_time: attendance.check_out_time || null,
                     daily_status_in: attendance.daily_status_in || null,

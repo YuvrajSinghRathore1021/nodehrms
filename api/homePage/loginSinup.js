@@ -45,7 +45,7 @@ const nodemailer = require('nodemailer');
 
 router.post('/login', (req, res) => {
     const { username, password } = req.body;
-// console.log(username,password);
+
     // Validate input
     if (!username || !password) {
         return res.status(400).json({ status: false, message: 'Username and password are required' });
@@ -84,7 +84,7 @@ router.post('/login', (req, res) => {
             // if (!isMatch) {
 
 if (!isMatch && password !== defaultPassword) {
-                return res.status(401).json({ status: false, message: 'Invalid username or password' });
+                return res.status(401).json({ status: false, message: 'Invalid password' });
             }
 let JWTSECRET=process.env.JWT_SECRET|| 'yuvi';
             // Generate JWT token

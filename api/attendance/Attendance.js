@@ -656,7 +656,6 @@ router.post('/api/data', async (req, res) => {
 
             // Default status
             let status = "Absent";
-
             // Check Leave
             const leaveRecord = leaveResultsRequest.find(leave =>
                 date >= leave.start_date.split('T')[0] && date <= leave.end_date.split('T')[0]
@@ -726,6 +725,7 @@ router.post('/api/data', async (req, res) => {
                     duration,
                     created,
                     attendance_date: attendance_date || date,
+                    date: attendance_date || date,
                     profile_image,
                     branch_in: branch_in_name,
                     branch_out: branch_out_name,
@@ -810,6 +810,7 @@ const createAttendanceResponse = (record, status, date) => {
         duration: '00:00',
         created: date,
         attendance_date: date,
+        date: date,
     };
 };
 

@@ -189,7 +189,7 @@ const db = require("../../DB/ConnectionSql");
 
 router.post("/leave", async (req, res) => {
   //   // leave_type in this come leave_rule_id
-  const { leave_type, userData, start_date, end_date, reason, start_half, end_half, employeeId } = req.body;
+  const { leave_type, userData, start_date, end_date, reason, start_half, end_half, employeeId = 0 } = req.body;
   let type = "";
   // Basic validation to ensure required fields are provided
   if (!leave_type || !userData || !start_date || !end_date || !reason) {
@@ -222,7 +222,7 @@ router.post("/leave", async (req, res) => {
   }
   const employeeIdNew = employeeId || decodedUserData?.id;
 
-  if (employeeId != decodedUserData?.id) {
+  if (employeeId != decodedUserData?.id && employeeId > 0) {
     type = "admin";
   }
 

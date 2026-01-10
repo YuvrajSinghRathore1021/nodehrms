@@ -46,6 +46,8 @@ router.get('/api/AttendanceApprovalLog', async (req, res) => {
         AR.request_date, 
         AR.in_time, 
         AR.out_time, 
+        AR.in_time as check_in_time, 
+        AR.out_time as check_out_time, 
         AR.status, 
         AR.reason, 
         AR.reason_admin, 
@@ -298,8 +300,10 @@ router.post('/api/ChackViewDetails', (req, res) => {
       AR.rm_remark,
       AR.admin_remark,
       AR.request_date,
-      AR.in_time,
-      AR.out_time,
+      AR.in_time ,
+      AR.out_time ,
+      AR.in_time as check_in_time,
+      AR.out_time as check_out_time,
       AR.status,
       AR.reason,
       AR.created,
@@ -371,7 +375,7 @@ router.post('/api/ChackViewDetailsNew', async (req, res) => {
     try {
         /* ===================== employee ===================== */
         const [employee] = await db.promise().query(`
-            SELECT CONCAT(first_name," ",last_name, " - ", employee_id) AS name,profile_image FROM employees WHERE id=? LIMIT 1
+            SELECT id as employee_id, CONCAT(first_name," ",last_name, " - ", employee_id) AS name,profile_image FROM employees WHERE id=? LIMIT 1
         `, [employee_id]);
 
         /* ===================== ATTENDANCE ===================== */
@@ -387,16 +391,21 @@ LEFT JOIN employees AS e  ON a.apply_by = e.id WHERE a.employee_id = ? AND a.com
         const [request] = await db.promise().query(`
     SELECT 
         ar.id AS request_id,
+        ar.employee_id,
+        ar.id AS ApprovalRequests_id,
         ar.attendance_id,
         ar.request_type,
         ar.request_date,
         ar.in_time,
         ar.out_time,
+            ar.in_time as check_in_time,
+      ar.out_time as check_out_time,
         ar.status AS request_status,
         ar.reason AS employee_reason,
         ar.reason_rm,
         ar.reason_admin,
         ar.created,
+        ar.short_leave, ar.short_leave_type, ar.short_leave_reason,
 
         -- RM Info
         ar.rm_id,
@@ -594,7 +603,8 @@ LEFT JOIN employees AS e  ON a.apply_by = e.id WHERE a.employee_id = ? AND a.com
             attendance: attendance[0] || null,
             leave: leave[0] || null,
             request: request[0] || null,
-            holiday: holiday[0] || null
+            holiday: holiday[0] || null,
+            sl_eligible: true
         });
 
     } catch (error) {
@@ -609,7 +619,7 @@ LEFT JOIN employees AS e  ON a.apply_by = e.id WHERE a.employee_id = ? AND a.com
 
 
 router.post('/api/ApprovalSubmit', async (req, res) => {
-    const { userData, ApprovalRequests_id, Type, ApprovalStatus, employee_id, in_time, out_time, reason, request_date, request_type } = req.body;
+    const { userData, ApprovalRequests_id, Type, ApprovalStatus, employee_id, in_time, out_time, reason, request_date, request_type,short_leave=0,short_leave_type=0,short_leave_reason="" } = req.body;
     let decodedUserData = null;
     // Decode and validate userData
     if (userData) {
@@ -643,15 +653,15 @@ router.post('/api/ApprovalSubmit', async (req, res) => {
     if (Type == 'Rm' || Type == 'rm') {
         query = `
         UPDATE attendance_requests 
-        SET rm_status = ?, rm_remark = ?,request_type=? 
+        SET rm_status = ?, rm_remark = ?,request_type=?, short_leave=?, short_leave_type=?, short_leave_reason=? 
         WHERE id = ? AND company_id = ?`;
-        queryArray = [ApprovalStatus, reason, request_type, ApprovalRequests_id, company_id];
+        queryArray = [ApprovalStatus, reason, request_type, short_leave, short_leave_type, short_leave_reason, ApprovalRequests_id, company_id];
     } else {
         query = `
         UPDATE attendance_requests 
-        SET admin_status = ?, admin_remark = ?, admin_id = ? ,request_type=?
+        SET admin_status = ?, admin_remark = ?, admin_id = ? ,request_type=?, short_leave=?, short_leave_type=?, short_leave_reason=?
         WHERE id = ? AND company_id = ?`;
-        queryArray = [ApprovalStatus, reason, decodedUserData.id, request_type, ApprovalRequests_id, company_id];
+        queryArray = [ApprovalStatus, reason, decodedUserData.id, request_type, short_leave, short_leave_type, short_leave_reason, ApprovalRequests_id, company_id];
     }
 
     try {
@@ -686,7 +696,7 @@ router.post('/api/ApprovalSubmit', async (req, res) => {
         }
 
         const attendanceRequestType = await queryDb(
-            'SELECT request_type,in_time,out_time,request_date,attendance_id FROM attendance_requests WHERE id = ? AND company_id = ?',
+            'SELECT request_type,in_time,out_time,request_date,attendance_id,short_leave,short_leave_type,short_leave_reason FROM attendance_requests WHERE id = ? AND company_id = ?',
             [ApprovalRequests_id, company_id]
         );
         let message = '';
@@ -714,24 +724,27 @@ router.post('/api/ApprovalSubmit', async (req, res) => {
 
                 insertQuery = `
                 UPDATE attendance SET request_id=?,daily_status_in=?, daily_status_intime=?, daily_status_out=?, daily_status_outtime=?, 
-                     status=?, check_in_time=?, check_out_time=?, approval_status=? Where  employee_id=? AND company_id=? And attendance_id=?`;
+                     status=?, check_in_time=?, check_out_time=?, approval_status=?, short_leave=?, short_leave_type=?, short_leave_reason=?
+                      Where  employee_id=? AND company_id=? And attendance_id=?`;
 
                 insertParams = [ApprovalRequests_id,
                     dailyStatusIN, timeCountIN, dailyStatusOUT, timeCountOUT,
                     attendanceRequestType[0].request_type, in_time || attendanceRequestType[0].in_time, out_time || attendanceRequestType[0].out_time, 1
-                    , employee_id, company_id, attendanceRequestType[0].attendance_id];
+                    , short_leave, short_leave_type, short_leave_reason,
+                     employee_id, company_id, attendanceRequestType[0].attendance_id];
 
                 actionType = 'update';
 
             } else {
                 insertQuery = `
                 INSERT INTO attendance (request_id,daily_status_in, daily_status_intime, daily_status_out, daily_status_outtime, 
-                    employee_id, company_id, attendance_date, status, check_in_time, check_out_time, approval_status
-                ) VALUES (?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+                    employee_id, company_id, attendance_date, status, check_in_time, check_out_time, approval_status, short_leave, short_leave_type, short_leave_reason
+                ) VALUES (?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
                 insertParams = [ApprovalRequests_id,
                     dailyStatusIN, timeCountIN, dailyStatusOUT, timeCountOUT,
                     employee_id, company_id, attendanceRequestType[0].request_date, attendanceRequestType[0].request_type, in_time || attendanceRequestType[0].in_time, out_time || attendanceRequestType[0].out_time, 1
+                    , short_leave, short_leave_type, short_leave_reason
                 ];
                 actionType = 'insert';
             }
