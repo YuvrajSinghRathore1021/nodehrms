@@ -153,7 +153,7 @@ router.post('/api/Add', async (req, res) => {
 
 
 router.post('/api/Employeesdirectory', async (req, res) => {
-    const { userData, id, platformType, type, limit = 10, page = 1, searchData = "", company_id, departmentId = 0, subDepartmentid = 0, employeeStatus = 1 } = req.body;
+    const { userData, id, platformType, type, limit = 10, page = 1, searchData = "", company_id, departmentId = 0, subDepartmentid = 0, employeeStatus = 1,empType="" } = req.body;
     let search = searchData;
 
     let decodedUserData = null;
@@ -197,6 +197,11 @@ router.post('/api/Employeesdirectory', async (req, res) => {
         searchClause += ` AND a.employee_status=1 and a.status=1 and a.delete_status=0 `;
     } else {
         searchClause += ` AND (a.employee_status=0 or a.status=0 or a.delete_status=1) `;
+    }
+
+    if(empType=="newemployees"){
+        // add_stamp
+          searchClause += ` AND a.add_stamp >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)`;
     }
 
 

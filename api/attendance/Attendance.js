@@ -1351,12 +1351,15 @@ router.get('/api/attendance', async (req, res) => {
                     const prevLeave = leaveResultsRequest.find(l => prevStr >= l.start_date.split("T")[0] && prevStr <= l.end_date.split("T")[0]);
                     const nextLeave = leaveResultsRequest.find(l => nextStr >= l.start_date.split("T")[0] && nextStr <= l.end_date.split("T")[0]);
 
-                    if (isAbsentLike(prevAtt, prevLeave) && isAbsentLike(nextAtt, nextLeave)) {
+                    if (isHoliday || isWeeklyOff) {
+                        status = isHoliday ? 'H' : 'WO';
+                        label = isHoliday ? `Holiday - ${isHoliday}` : 'Weekly Off';
+                    } else if (isAbsentLike(prevAtt, prevLeave) && isAbsentLike(nextAtt, nextLeave)) {
                         status = 'SP';
                         label = 'Sandwich Penalty';
                     } else {
-                        status = isHoliday ? 'H' : 'WO';
-                        label = isHoliday ? `Holiday - ${isHoliday}` : 'Weekly Off';
+                        status = "err";
+                        label = "pls call-7976929440";
                     }
                 }
                 let newStatus = lwpcheck(date, status, '2026-01-04');
