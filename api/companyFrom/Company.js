@@ -226,17 +226,18 @@ router.get('/api/data', (req, res) => {
     const limit = parseInt(req.query.limit, 10) || 10;
     const page = parseInt(req.query.page, 10) || 1;
     const offset = (page - 1) * limit;
+    let companyId = req?.user?.company_id;
+    console.log(companyId)
     if (!decodedUserData || !decodedUserData.id) {
         return res.status(400).json({ status: false, error: 'Employee ID is required' });
     }
     let query = 'SELECT a.id, a.company_name, a.owner_name,a.member, a.logo, a.industry, a.headquarters, a.website, a.phone_number, a.email, a.address_id FROM companies a WHERE ';
     const queryParams = [];
-    if (decodedUserData.company_id == 6) {
+    if (companyId == 6) {
         query += ' 1=1 ';
-
     } else {
         query += ' a.id = ? ';
-        queryParams.push(decodedUserData.company_id);
+        queryParams.push(companyId);
     }
     if (type != 'directory') {
         query += '  ORDER BY a.company_name ASC LIMIT ? OFFSET ? ';

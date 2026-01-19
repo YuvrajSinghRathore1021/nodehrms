@@ -292,6 +292,8 @@ router.post("/holidaydelete", (req, res) => {
 router.get("/holidayfetch", (req, res) => {
   const limit = parseInt(req.query.limit, 10) || 10;
   const page = parseInt(req.query.page, 10) || 1;
+  // const platform_type = req.query?.platform_type;
+
   const offset = (page - 1) * limit;
 
   const { userData } = req.query;
@@ -311,9 +313,7 @@ router.get("/holidayfetch", (req, res) => {
       .status(400)
       .json({ status: false, error: "Company ID is missing or invalid" });
   }
-  const holidayQuery = `
-        SELECT * FROM holiday WHERE company_id=? ORDER BY id DESC LIMIT ? OFFSET ?
-    `;
+  const holidayQuery = `SELECT * FROM holiday WHERE company_id=? ORDER BY date DESC LIMIT ? OFFSET ?`;
 
   db.query(
     holidayQuery,
@@ -356,16 +356,16 @@ router.get("/holidayfetch", (req, res) => {
 
 
 router.get("/HolidayCalender", (req, res) => {
-  const { userData, data } = req.query;
+  const { userData, date } = req.query;
   let currentMonth = null;
   let currentYear = null;
 
-  if (data) {
-    currentMonth = data["currentMonth"]
-      ? Number(data["currentMonth"]) + 1
-      : null;
-    currentYear = data["currentYear"] ? data["currentYear"] : null;
-  }
+if (date) {
+  const parsedDate = new Date(date);
+
+  currentMonth = parsedDate.getMonth() + 1; 
+  currentYear = parsedDate.getFullYear();
+}
 
   let decodedUserData = null;
   if (userData) {

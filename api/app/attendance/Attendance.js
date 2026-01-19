@@ -109,8 +109,9 @@ router.post('/api/data', async (req, res) => {
         if (!decodedUserData || !decodedUserData.id) {
             return res.status(400).json({ status: false, message: 'Employee ID is required', error: 'Employee ID is required' });
         }
-
-        const EmployeeId = UserId || decodedUserData.id;
+        let companyId = req?.user?.company_id;
+        let employeeId = req?.user?.id || 0;
+        const EmployeeId = UserId || employeeId;
 
         let currentDateToday = new Date();
         // Set default startDate to 30 days before today
@@ -155,7 +156,7 @@ router.post('/api/data', async (req, res) => {
             `SELECT * FROM work_week WHERE id = (
                 SELECT work_week_id FROM employees WHERE  employee_status=1 and status=1 and delete_status=0 and id = ? AND company_id = ?
             )`,
-            [EmployeeId, decodedUserData.company_id]
+            [EmployeeId, companyId]
         );
 
         const workWeek = workWeekData.length > 0 ? workWeekData[0] : null;
@@ -177,20 +178,20 @@ router.post('/api/data', async (req, res) => {
                 isWeeklyOff = true; // Weekly Off
             }
 
-            let record = await getAttendanceData(decodedUserData.company_id, EmployeeId, date);
+            let record = await getAttendanceData(companyId, EmployeeId, date);
 
             if (record.length > 0) {
                 const attendanceRecord = record[0];
                 if (!attendanceRecord.attendance_date) {
-                    const holiday = await checkHoliday(decodedUserData.company_id, date);
+                    const holiday = await checkHoliday(companyId, date);
                     const status = holiday.length > 0 ? `Holiday(${holiday[0].holiday})` : isWeeklyOff ? 'WO' : 'Absent';
                     allData.push(createAttendanceResponse(attendanceRecord, status, date));
                 } else {
                     allData.push(attendanceRecord);
                 }
             } else {
-                const employeeInfo = await getEmployeeInfo(decodedUserData.company_id, EmployeeId);
-                const holiday = await checkHoliday(decodedUserData.company_id, date);
+                const employeeInfo = await getEmployeeInfo(companyId, EmployeeId);
+                const holiday = await checkHoliday(companyId, date);
                 const status = holiday.length > 0
                     ? `Holiday(${holiday[0].holiday})`
                     : isWeeklyOff
@@ -317,7 +318,7 @@ function queryDb(query, params) {
 // new 
 router.post('/api/AttendanceReqSubmit', async (req, res) => {
 
-    const { userData, request_date, request_type, in_time, out_time, reason ,short_leave=0,short_leave_type=0,short_leave_reason=''} = req.body;
+    const { userData, request_date, request_type, in_time, out_time, reason, short_leave = 0, short_leave_type = 0, short_leave_reason = '' } = req.body;
     let attendance_id = Number(req.body.attendance_id) || 0;
 
     if (!userData) {
@@ -362,7 +363,7 @@ router.post('/api/AttendanceReqSubmit', async (req, res) => {
         // Step 2: Insert the attendance request
         const [insertResults] = await db.promise().query(
             'INSERT INTO attendance_requests (attendance_id,rm_id, employee_id, company_id, request_type, request_date, in_time, out_time, reason,short_leave,short_leave_type,short_leave_reason) VALUES (?,?, ?, ?, ?, ?, ?, ?, ?,?,?,?)',
-            [attendance_id, RmIdValue, employee_id, decodedUserData.company_id, request_type, request_date, in_time, out_time, reason,short_leave,short_leave_type,short_leave_reason]
+            [attendance_id, RmIdValue, employee_id, decodedUserData.company_id, request_type, request_date, in_time, out_time, reason, short_leave, short_leave_type, short_leave_reason]
         );
         res.json({ status: true, message: 'INSERT successful', data: insertResults });
     } catch (err) {
@@ -410,6 +411,7 @@ router.post('/api/AttendancePending', async (req, res) => {
     if (!isDateBeforeToday(endDate)) {
         return res.status(400).json({ status: false, message: 'End date cannot be greater than today.' });
     }
+    let companyId = decodedUserData.company_id;
     if (decodedUserData.id == EmployeeId) {
 
         try {
@@ -518,7 +520,8 @@ router.post('/api/AttendancePending', async (req, res) => {
                     const PendingFor = await PendingForFunction(ApprovalRequests_id);
                     // ✅ Only push pending data if NOT holiday, NOT weekly off, NOT approved leave
 
-                    if (status !== 'WO' && status !== 'H' && !isLeave && attendance_statusCheck !== 1 && request_id == 0) {
+                    // if (status !== 'WO' && status !== 'H' && !isLeave && attendance_statusCheck !== 1 && request_id == 0) { ////proper 
+                    if ((companyId !== 10 && status !== 'WO' && status !== 'H' && !isLeave && attendance_statusCheck !== 1 && request_id == 0) || (companyId == 10 && !isLeave && attendance_statusCheck !== 1 && request_id == 0)) {
                         monthlyAttendanceLogs.push({
                             name: employee.first_name,
                             userId: employee.employee_id,

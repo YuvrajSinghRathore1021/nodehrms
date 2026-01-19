@@ -121,7 +121,7 @@ router.post('/EmployeeLocationGet', (req, res) => {
 
 
 router.post('/EmployeeGet', (req, res) => {
-  const { userData } = req.body;
+  const { userData, company_id = 0 } = req.body;
   let decodedUserData = null;
 
   if (userData) {
@@ -135,9 +135,10 @@ router.post('/EmployeeGet', (req, res) => {
   if (!decodedUserData || !decodedUserData.company_id || !decodedUserData.id) {
     return res.status(400).json({ status: false, error: 'company_id, id are required' });
   }
+  let companyId = company_id || decodedUserData.company_id;
 
-  db.query(`SELECT id,CONCAT(first_name,' ',last_name) as name FROM employees WHERE employee_status=1 and status=1 and delete_status=0 and company_id = ?`,
-    [decodedUserData.company_id],
+  db.query(`SELECT id,CONCAT(first_name,' ',last_name) as name ,type FROM employees WHERE employee_status=1 and status=1 and delete_status=0 and company_id = ? ORDER BY first_name ASC`,
+    [companyId],
     (err, results) => {
       if (err) {
         return res.status(500).json({

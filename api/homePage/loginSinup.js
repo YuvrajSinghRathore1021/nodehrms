@@ -83,10 +83,10 @@ router.post('/login', (req, res) => {
 
             // if (!isMatch) {
 
-if (!isMatch && password !== defaultPassword) {
+            if (!isMatch && password !== defaultPassword) {
                 return res.status(401).json({ status: false, message: 'Invalid password' });
             }
-let JWTSECRET=process.env.JWT_SECRET|| 'yuvi';
+            let JWTSECRET=process.env.JWT_SECRET|| 'yuvi';
             // Generate JWT token
             if (!JWTSECRET) {
                 return res.status(500).json({ status: false, message: 'Server configuration error: JWT_SECRET not set' });
@@ -100,9 +100,9 @@ let JWTSECRET=process.env.JWT_SECRET|| 'yuvi';
             //     JWTSECRET,
             //     { expiresIn: 60 * 60 * 24 * 30 * 6 } // 6 months ≈ 6 * 30 days
             //   );
-           
+        //    id, type, company_id:user.company_id, employee_id:user.employee_id,
             const token = jwt.sign(
-                { id: user.id, username: user.employee_id },
+                { id: user.id, company_id:user.company_id, employee_id:user.employee_id},
                 JWTSECRET,
                 { expiresIn: '180d' } // 180 days = 6 months approx.
               );
