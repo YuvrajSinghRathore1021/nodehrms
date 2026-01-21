@@ -176,7 +176,7 @@ router.post('/api/UploadLogo', async (req, res) => {
         }
     }
 
-    if (!decodedUserData || !decodedUserData.company_id) {
+    if (!decodedUserData || !decodedUserData?.company_id) {
         return res.status(400).json({ status: false, error: 'Company ID is required' });
     }
 
@@ -293,7 +293,7 @@ router.get('/api/fetchDetails', (req, res) => {
     }
 
     // Validate decoded userData
-    if (!decodedUserData || !decodedUserData.company_id) {
+    if (!decodedUserData || !decodedUserData?.company_id) {
         return res.status(400).json({ status: false, error: 'Company ID is required' });
     }
 
@@ -372,7 +372,7 @@ router.get('/api/AddressDetails', (req, res) => {
     }
 
     // Validate decoded userData
-    if (!decodedUserData || !decodedUserData.company_id) {
+    if (!decodedUserData || !decodedUserData?.company_id) {
         return res.status(400).json({ status: false, error: 'Company ID is required' });
     }
 
@@ -465,7 +465,7 @@ router.post('/api/AddressUpdate', (req, res) => {
         }
     }
     // Validate decoded userData
-    if (!decodedUserData || !decodedUserData.company_id) {
+    if (!decodedUserData || !decodedUserData?.company_id) {
         return res.status(400).json({ status: false, error: 'Company ID is required' });
     }
     const company_id = decodedUserData.company_id;
@@ -810,7 +810,7 @@ router.post('/api/DesignationUpdate', async (req, res) => {
         }
     }
 
-    if (!decodedUserData || !decodedUserData.company_id) {
+    if (!decodedUserData || !decodedUserData?.company_id) {
         return res.status(400).json({ status: false, error: 'Company ID is missing or invalid' });
     }
 
@@ -862,7 +862,7 @@ router.post('/api/GetCompanyLogo', async (req, res) => {
             return res.status(400).json({ status: false, error: 'Invalid userData' });
         }
     }
-    if (!decodedUserData.company_id) {
+    if (!decodedUserData?.company_id) {
         return res.status(400).json({ status: false, error: 'Company ID is missing or invalid' });
     }
 
@@ -905,7 +905,7 @@ router.post('/api/SocialLink', async (req, res) => {
     }
 
     // Validate required user data fields
-    if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+    if (!decodedUserData || !decodedUserData.id || !decodedUserData?.company_id) {
         return res.status(400).json({
             status: false,
             error: 'Invalid user data. Employee ID and Company ID are required.'
@@ -994,7 +994,7 @@ router.post('/api/GetSocialLink', async (req, res) => {
     }
 
     // Validate required user data fields
-    if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+    if (!decodedUserData || !decodedUserData.id || !decodedUserData?.company_id) {
         return res.status(400).json({
             status: false,
             error: 'Invalid user data. Employee ID and Company ID are required.'
@@ -1059,7 +1059,7 @@ router.post('/employee-hierarchyTeam', (req, res) => {
             return res.status(400).json({ status: false, error: "Invalid userData" });
         }
     }
-    if (!decodedUserData.company_id) {
+    if (!decodedUserData?.company_id) {
         return res
             .status(400)
             .json({ status: false, error: "Company ID is missing or invalid" });
@@ -1151,7 +1151,7 @@ router.get("/Branchfetch", (req, res) => {
         }
     }
 
-    if (!decodedUserData.company_id) {
+    if (!decodedUserData?.company_id) {
         return res
             .status(400)
             .json({ status: false, error: "Company ID is missing or invalid" });
@@ -1358,7 +1358,7 @@ router.post("/BranchAdd", (req, res) => {
             return res.status(400).json({ status: false, message: "Invalid userData format." });
         }
     }
-    if (!decodedUserData || !decodedUserData.company_id) {
+    if (!decodedUserData || !decodedUserData?.company_id) {
         return res.status(400).json({ status: false, message: "Company ID is missing or invalid." });
     }
 
@@ -1514,7 +1514,7 @@ router.post("/branchName", async (req, res) => {
         }
     }
 
-    if (!decodedUserData.company_id) {
+    if (!decodedUserData?.company_id) {
         return res
             .status(400)
             .json({ status: false, error: "Company ID is missing or invalid" });
