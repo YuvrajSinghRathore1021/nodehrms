@@ -5,7 +5,6 @@ const path = require("path");
 async function saveUploadedFiles(req) {
     try {
         const folder = req.body.folder || "default";
-        console.log("Saving files to folder:", folder);
 
         const uploadPath = path.join(__dirname, "..", "uploads/new/", folder);
         if (!fs.existsSync(uploadPath)) {

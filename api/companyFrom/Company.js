@@ -227,7 +227,7 @@ router.get('/api/data', (req, res) => {
     const page = parseInt(req.query.page, 10) || 1;
     const offset = (page - 1) * limit;
     let companyId = req?.user?.company_id;
-    console.log(companyId)
+
     if (!decodedUserData || !decodedUserData.id) {
         return res.status(400).json({ status: false, error: 'Employee ID is required' });
     }

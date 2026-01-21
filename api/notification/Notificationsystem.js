@@ -317,8 +317,7 @@ router.post('/testprofile', async (req, res) => {
     }
 
     let userId = 10;
-    console.log('Emitting profileResponse to userId:', userId);
-
+  
     req.io.to(userId.toString()).emit("profileResponse", result);
 
     // res.json(result);

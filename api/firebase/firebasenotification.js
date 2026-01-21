@@ -1,7 +1,8 @@
+////////////firebasenotification.js
 const express = require("express");
 const router = express.Router();
 const admin = require("./firebase");
-// POST /send-notification
+
 
 // const CHANNEL_GROUPS = [
 //     { id: 'default', name: 'Default Group' },
@@ -15,9 +16,9 @@ const admin = require("./firebase");
 
 
 router.post("/send-notification", async (req, res) => {
-    try {
-        const { fcmToken, title, body, image, type } = req.body;
 
+    try {
+        const { fcmToken, title, body, image, type, screen = "", chatId = 0 } = req.body;
         const message = {
             notification: {
                 title: title || "Default Title",
@@ -26,25 +27,24 @@ router.post("/send-notification", async (req, res) => {
             },
             token: fcmToken,
             data: {
-                type: type || "default", 
+                type: type || "default",
+                screen: screen,
+                chatId: chatId
             },
             android: {
                 notification: {
-                    sound: "default" // plays default sound on Android
+                    sound: "default"
                 }
             },
             apns: {
                 payload: {
                     aps: {
-                        sound: "default" // plays default sound on iOS
+                        sound: "default"
                     }
                 }
             }
         };
-
         const response = await admin.messaging().send(message);
-        console.log("Notification sent successfully:", response);
-
         res.json({ success: true, messageId: response });
     } catch (error) {
         console.error("Error sending notification:", error);
@@ -53,65 +53,6 @@ router.post("/send-notification", async (req, res) => {
 });
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-// router.post("/send-notification", async (req, res) => {
-//     try {
-//         const { fcmToken, title, body, image, data, androidOptions, apnsOptions, webpushOptions } = req.body;
-
-//         const message = {
-//             notification: {
-//                 title: title || "Default Title",
-//                 body: body || "Default message",
-//                 image: image || undefined,
-//             },
-//             token: fcmToken,
-//             // Optional additional options
-//             data: data || {}, // key-value pairs for custom data
-//             android: androidOptions || {}, // e.g., { ttl: 3600 * 1000, priority: "high" }
-//             apns: apnsOptions || {},       // e.g., { headers: { "apns-priority": "10" }, payload: { aps: { sound: "default" } } }
-//             webpush: webpushOptions || {}, // e.g., { headers: { TTL: "3600" }, notification: { icon: "/icon.png" } }
-//         };
-
-//         const response = await admin.messaging().send(message);
-//         console.log("Notification sent successfully:", response);
-
-//         res.json({ success: true, messageId: response });
-//     } catch (error) {
-//         console.error("Error sending notification:", error);
-//         res.status(500).json({ success: false, error: error.message });
-//     }
-// });
-
-// {
-//   "fcmToken": "<device-token>",
-//   "title": "Hello",
-//   "body": "This is a test notification",
-//   "image": "https://example.com/image.png",
-//   "data": {
-//     "key1": "value1",
-//     "key2": "value2"
-//   },
-//   "androidOptions": {
-//     "priority": "high",
-//     "ttl": 3600000
-//   },
-//   "apnsOptions": {
-//     "headers": { "apns-priority": "10" },
-//     "payload": { "aps": { "sound": "default" } }
-//   }
-// }
 
 module.exports = router;
 

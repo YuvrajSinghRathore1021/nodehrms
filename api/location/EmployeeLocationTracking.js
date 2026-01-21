@@ -69,7 +69,7 @@ router.post('/EmployeeLocationGet', (req, res) => {
       return res.status(200).json({ status: true, data: [] }); // No allowed targets
     }
     const placeholders = targetIds.join(',');
-    console.log(placeholders)
+  
     let locationSql = `
           SELECT e.id,e.profile_image, e.id as employee_id,
               CONCAT(e.first_name, ' ', e.last_name) AS name,

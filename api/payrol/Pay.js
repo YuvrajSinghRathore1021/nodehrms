@@ -632,8 +632,7 @@ router.post('/api/EmployeeSalaryDetails', async (req, res) => {
 
 
         db.query(query, values, (err, results) => {
-            console.log(results)
-
+          
             if (err) {
                 console.error('Database error:', err);
                 return res.status(500).json({ status: false, message: 'Database error', error: err });

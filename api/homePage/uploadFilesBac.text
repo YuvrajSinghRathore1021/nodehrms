@@ -293,7 +293,7 @@ router.post('/upload', (req, res) => {
             req.uploadedFiles.files.logo
         ];
 
-        console.log(values);
+     
     });
 });
 

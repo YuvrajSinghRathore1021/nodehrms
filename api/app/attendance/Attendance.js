@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../../../DB/ConnectionSql');
-
+const { sendNotification } = require('../../../api/firebase/notificationComman');
 const decodeUserData = (userData) => {
     try {
         const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
@@ -365,6 +365,13 @@ router.post('/api/AttendanceReqSubmit', async (req, res) => {
             'INSERT INTO attendance_requests (attendance_id,rm_id, employee_id, company_id, request_type, request_date, in_time, out_time, reason,short_leave,short_leave_type,short_leave_reason) VALUES (?,?, ?, ?, ?, ?, ?, ?, ?,?,?,?)',
             [attendance_id, RmIdValue, employee_id, decodedUserData.company_id, request_type, request_date, in_time, out_time, reason, short_leave, short_leave_type, short_leave_reason]
         );
+        await sendNotification({
+            employeeIds: [10],
+            title: "attendance_requests",
+            body: "attendance_requests",
+            type: "recent_notifications",
+        });
+
         res.json({ status: true, message: 'INSERT successful', data: insertResults });
     } catch (err) {
         res.status(500).json({ status: false, message: 'Database error', error: err.message });
