@@ -1,0 +1,163 @@
+
+
+
+  ==================== Attendance ====================
+POST /Attendance/AttendanceGet
+POST /Attendance/api/data
+POST /Attendance/api/BreakDetails
+POST /Attendance/api/AttendanceTypeDetails
+
+
+==================== User API (Auth) ====================
+POST /userapi/login
+POST /userapi/api/send-otp
+POST /userapi/api/verify-otp
+POST /userapi/api/reset-password
+
+
+==================== Attendance Mark ====================
+POST /Attendancemark/Attendancemark
+
+
+==================== Attendance App ====================
+POST /AttendanceApp/api/AttendanceReqSubmit
+POST /AttendanceApp/api/AttendancePending
+POST /AttendanceApp/api/AttendanceDelete
+POST /AttendanceApp/api/AttendanceApprovalLog
+POST /AttendanceApp/api/Attendancedirectory
+POST /AttendanceApp/api/attendanceRequestCount
+POST /AttendanceApp/api/EmployeesUnderRm
+
+
+==================== Attendance Approval Log ====================
+POST /AttendanceApprovalLog/api/ApprovalSubmit
+POST /AttendanceApprovalLog/api/ChackViewDetailsNew
+
+
+==================== Logs Handle ====================
+POST /logshandel/FetchLeaveCount
+POST /logshandel/api/deleteLeave
+
+
+==================== Leave App ====================
+POST /LeaveApp/fetchleave
+POST /LeaveApp/api/Review
+POST /LeaveApp/api/Approved
+POST /LeaveApp/api/Rejected
+
+
+==================== Leave API ====================
+POST /leaveapi/leave
+POST /leaveapi/LeaveRequest
+POST /leaveapi/api/ApprovalSubmit
+
+
+==================== Expenses ====================
+POST /Expenses/expensesAdd
+POST /Expenses/expensesEdit
+POST /Expenses/api/getExpenses
+POST /Expenses/RequestApprove
+
+
+==================== Dashboard ====================
+POST /dashboard/fcmUpdate
+
+
+==================== Holiday ====================
+POST /HolidayApiApp/holidayfetch
+POST /holidayapi/holiday
+POST /holidayapi/HolidayUpdate
+POST /holidayapi/holidaydelete
+
+
+==================== Profile ====================
+POST /Profile/api/fetchDetails
+POST /Profile/api/Update
+
+
+==================== Header ====================
+POST /Header/api/GetEmployeesProfile
+POST /Header/api/UploadLogo
+POST /Header/api/Deleteapi
+POST /Header/EmployeesProfile
+
+
+==================== Company ====================
+POST /Company/employee-hierarchyTeam
+POST /Company/branchName
+POST /Company/changeBranch
+POST /Company/api/DepartmentDetails
+POST /Company/api/AddDepartment
+POST /Company/api/AddSubDepartment
+POST /Company/api/EditDepartment
+POST /Company/api/DesignationDetails
+POST /Company/api/Designation
+
+
+==================== Directory ====================
+POST /Directory/api/employeeTeamDetails
+POST /Directory/api/Add
+POST /Directory/api/Update
+POST /Directory/api/Employeesdirectory
+POST /Directory/api/departments
+POST /Directory/api/sub-departments
+
+
+==================== Work Week ====================
+POST /WorkWeekApp/api/fetchType
+POST /WorkWeekApp/api/fetchDetailsWorkWeek
+POST /WorkWeekApp/api/data
+
+
+==================== Setting ====================
+POST /Setting/api/AddType
+POST /Setting/api/work_weekEdit
+POST /Setting/api/Update
+
+
+==================== Upload File ====================
+POST /uplodefile/documentPost
+POST /uplodefile/documentGet
+POST /upload/all
+
+
+==================== Employee Details ====================
+POST /Employeesdetails/api/SalarySlipStructure
+POST /Employeesdetails/api/IdCard
+
+
+==================== Pay ====================
+POST /pay/api/EmployeeSalaryDetails
+
+
+==================== Face ====================
+POST /Face/faceGet
+POST /Face/registerFace
+POST /Face/deleteFace
+
+
+==================== Penalty ====================
+POST /penaltie/penaltie/penaltiesData
+
+
+==================== Authentication ====================
+POST /authentication/faceDetails
+POST /authentication/permissionDetails
+POST /authentication/permissionUpdate
+
+
+==================== Notification ====================
+POST /NotificationApi/SendLocation
+POST /NotificationApi/NotificationGet
+POST /NotificationApi/read
+POST /NotificationApi/send
+POST /NotificationApi/announcementGet
+POST /NotificationApi/sendmessage
+
+
+==================== Employee Location ====================
+POST /EmployeeLocation/EmployeeLocationGet
+
+
+==================== Attendance Approval ====================
+POST /AttendanceApproval/api/companyEmployeeName

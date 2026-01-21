@@ -347,8 +347,8 @@ router.post('/SendLocation', async (req, res) => {
             return res.status(400).json({ status: false, error: 'company_id and id required' });
         }
 
-        const lat = parseFloat(latitude);
-        const lng = parseFloat(longitude);
+        const lat = parseFloat(latitude) || 0;
+        const lng = parseFloat(longitude) || 0;
         if (isNaN(lat) || isNaN(lng)) {
             return res.status(400).json({ status: false, error: 'Invalid latitude/longitude' });
         }
@@ -356,14 +356,14 @@ router.post('/SendLocation', async (req, res) => {
         // 🕒 Current timestamp
         const timestamp = new Date().toISOString();
 
-        const locationData = { employee_id, company_id, latitude: lat, longitude: lng, timestamp };
+        const locationData = { employee_id, company_id, latitude: lat || 0, longitude: lng || 0, timestamp };
 
         // ✅ Save latest location (no DB — only cache)
         try {
             if (redisClient.isReady) {
                 await redisClient.hSet(`employee:${employee_id}`, {
-                    latitude: lat,
-                    longitude: lng,
+                    latitude: lat || 0,
+                    longitude: lng || 0,
                     timestamp,
                     company_id
                 });

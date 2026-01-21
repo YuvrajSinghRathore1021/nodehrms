@@ -973,8 +973,8 @@ io.on("connection", (socket) => {
             try {
                 if (redisClient.isReady) {
                     await redisClient.hSet(`employee:${socket.userId}`, {
-                        latitude: lat,
-                        longitude: lng,
+                        latitude: lat ||0,
+                        longitude: lng || 0,
                         timestamp,
                         company_id
                     });

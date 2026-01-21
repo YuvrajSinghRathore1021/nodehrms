@@ -260,7 +260,7 @@
 //     //         longitude,
 //     //         timestamp,
 //     //     };
-        
+
 //     //     try {
 //     //         // ✅ Use pubClient instead of redis
 //     //         await pubClient.hSet(
@@ -333,8 +333,8 @@
 //     // ✅ EMIT ONCE
 //     io.to(company_id.toString()).emit("receive-Location", locationData);
 //   });
-   
-   
+
+
 //     socket.on("disconnect", () => {
 //         console.log("❌ Socket disconnected:", socket.id);
 //     });
@@ -649,7 +649,7 @@
 
 //             if (!latitude || !longitude || !socket.userId || !socket.company_id) return;
 //             let company_id = socket.company_id;
-            
+
 //             const timestamp = new Date().toISOString();
 //             const locationData = {
 //                 employee_id: socket.userId,
@@ -900,7 +900,7 @@ app.use('/Profile', authenticateToken, Profile);
 app.use('/WorkWeekApp', authenticateToken, WorkWeek);
 app.use('/PayDetailsApp', authenticateToken, PayDetails);
 app.use('/Employeesdetails', authenticateToken, Employeesdetails);
- app.use('/authentication', authenticateToken, Authentication);
+app.use('/authentication', authenticateToken, Authentication);
 app.use('/facerecognition', authenticateToken, facerecognition);
 
 // face
@@ -992,8 +992,8 @@ io.on("connection", (socket) => {
             try {
                 if (redisClient.isReady) {
                     await redisClient.hSet(`employee:${socket.userId}`, {
-                        latitude: lat,
-                        longitude: lng,
+                        latitude: lat || 0,
+                        longitude: lng || 0,
                         timestamp,
                         company_id
                     });
