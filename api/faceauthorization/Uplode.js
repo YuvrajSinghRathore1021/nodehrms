@@ -50,6 +50,7 @@ const fileExists = (Emp_id, company_id) => {
 };
 
 // Upload route (single file only)  
+// app cheak A
 router.post('/registerFace', async (req, res) => {
     const { userData, face } = req.body;
     let decodedUserData = null;
@@ -93,7 +94,7 @@ router.post('/registerFace', async (req, res) => {
 });
 
 
-
+// app cheak A
 router.post('/faceGet', async (req, res) => {
     const { userData } = req.body;
     let decodedUserData = null;
@@ -133,7 +134,7 @@ router.post('/faceGet', async (req, res) => {
 });
 
 
-
+// app cheak A
 router.post('/deleteFace', async (req, res) => {
     const { userData, id } = req.body;
     let decodedUserData = null;

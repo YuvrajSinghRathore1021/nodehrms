@@ -146,6 +146,7 @@ router.post('/faceDelete', async (req, res) => {
 ///refaceUplode
 
 ///get face details 
+// app cheak A
 router.post('/faceDetails', async (req, res) => {
     const { userData } = req.body;
 
@@ -193,7 +194,7 @@ INNER JOIN employees e on e.id=fa.employee_id WHERE fa.company_id = ? and fa.fac
 /////// permission
 
 // update permission
-
+// app cheak A
 router.post('/permissionUpdate', async (req, res) => {
     const { userData, employee_id, block_app = 0, block_delete_button = 0, location_access = 0, interval_ms = 0, face_detection = 0, live_face_detection = 0, branch_switch = 0, reload = 0, allow_relogin = 0, block_punch_in_out = 0, block_break_in_out = 0, hide_attendance = 0, hide_leaves = 0, hide_team = 0, hide_register_face = 0, hide_payroll = 0, hide_holiday_calendar = 0, hide_id_card = 0, hide_expenses = 0, hide_employees = 0, hide_chat = 0, hide_permissions = 0, block_get_approve_button = 0, block_approve_button = 0, block_create_leave_button = 0, block_approve_leave = 0, block_reject_leave = 0, block_delete_leave = 0, block_create_holiday = 0, block_create_expense = 0, block_edit_employee = 0, block_edit_profile_button = 0, block_personal_info_edit = 0, block_work_week_edit = 0, block_document_upload = 0, hide_profile_tab = 0, block_work_details_edit = 0, block_department_edit = 0, block_subdepartment_edit = 0, hide_track_employees = 0 } = req.body;
 
@@ -292,7 +293,7 @@ router.post('/permissionUpdate', async (req, res) => {
 
 });
 
-
+// app cheak A
 router.post('/permissionDetails', async (req, res) => {
     const { userData, employee_id, } = req.body;
 

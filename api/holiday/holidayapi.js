@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const db = require("../../DB/ConnectionSql");
 
-
+// app cheak A
 router.post("/holiday", (req, res) => {
   const { date, holiday, userData, holiday_type, half_day_type, status } = req.body;
 
@@ -123,7 +123,7 @@ router.post("/holiday", (req, res) => {
 });
 
 // Holiday Update
-
+// app cheak A
 router.post("/HolidayUpdate", (req, res) => {
   const { id, holiday, date, userData, holiday_type, half_day_type, status } = req.body;
 
@@ -241,6 +241,7 @@ router.post("/HolidayUpdate", (req, res) => {
 });
 
 // HoliDay Delete
+// app cheak A
 router.post("/holidaydelete", (req, res) => {
   const { id, userData } = req.body;
   if (!id) {

@@ -181,6 +181,7 @@ const db = require('../../DB/ConnectionSql');
 //         });
 // });
 
+// app cheak A
 router.post('/AttendanceGet', (req, res) => {
     const { userData } = req.body;
     let decodedUserData;
@@ -585,7 +586,7 @@ const isDateRangeValid = (startDate, endDate) => {
     return diffTime <= 31 * 24 * 60 * 60 * 1000; // 31 days in milliseconds
 };
 
-
+// app cheak A
 router.post('/api/data', async (req, res) => {
     try {
         const { userData, data } = req.body;
@@ -1433,7 +1434,7 @@ const lwpcheck = (attDate, status, lockDate) => {
     return status;
 };
 
-
+// app cheak A
 router.post('/api/BreakDetails', async (req, res) => {
     const { userData, attendance_id } = req.body;
     let decodedUserData = null;
@@ -1471,7 +1472,7 @@ router.post('/api/BreakDetails', async (req, res) => {
 });
 
 
-
+// app cheak A
 router.post('/api/AttendanceTypeDetails', async (req, res) => {
     const { userData, Date, type = 'persent' } = req.body;
     let SearchDate = null;

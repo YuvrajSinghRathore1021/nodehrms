@@ -118,7 +118,8 @@ const insertFile = (Emp_id, company_id, name, fileName, res) => {
     });
 };
 
-// Upload route (single file only)  
+// Upload route (single file only) 
+// app cheak A 
 router.post('/documentPost', async (req, res) => {
     // const { Emp_id, company_id, documentName } = req.body;
     const { userData, documentName, document } = req.body;
@@ -149,7 +150,7 @@ router.post('/documentPost', async (req, res) => {
     }
 });
 
-
+// app cheak A
 router.post('/documentGet', async (req, res) => {
     const { userData, document_name } = req.body;
     // let document_name=['Aadhar Card','Pan Card','Passport','Driving License'];

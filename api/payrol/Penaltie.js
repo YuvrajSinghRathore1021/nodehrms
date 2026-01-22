@@ -58,7 +58,7 @@ router.post('/penaltie/submit', async (req, res) => {
         });
     }
 });
-
+// app cheak A
 router.post('/penaltie/penaltiesData', async (req, res) => {
     try {
         const { userData, employee_id, month, year, type } = req.body;

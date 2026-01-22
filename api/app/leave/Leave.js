@@ -4,6 +4,7 @@ const db = require("../../../DB/ConnectionSql");
 
 ///////// leaveapi.js///////////////
 
+// app cheak A
 router.post("/fetchleave", (req, res) => {
 
     const { userData } = req.body;
@@ -285,7 +286,7 @@ router.post("/api/leaveApprovalLog", async (req, res) => {
 
 
 // admin api 
-
+// app cheak A
 router.post("/api/Review", async (req, res) => {
     try {
         let { EmployeeId, userData, Search, StartDate, EndDate, LeaveType, departmentId = 0, subDepartmentid = 0, employeeStatus = 1 } = req.body;
@@ -535,7 +536,7 @@ function calculateLeaveDays(startDate, endDate, startHalf, endHalf) {
     return totalDays;
 }
 // Approved //
-
+// app cheak A
 router.post("/api/Approved", async (req, res) => {
 
     try {
@@ -776,7 +777,7 @@ router.post("/api/Approved", async (req, res) => {
 
 
 // Rejected //
-
+// app cheak A
 router.post("/api/Rejected", async (req, res) => {
 
     try {

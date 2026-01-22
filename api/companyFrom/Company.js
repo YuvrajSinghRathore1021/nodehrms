@@ -505,7 +505,7 @@ router.post('/api/AddressUpdate', (req, res) => {
 });
 
 // Department page api start----
-
+// app cheak A
 router.post('/api/DepartmentDetails', (req, res) => {
     const { userData, type, UserId } = req.body;
     let decodedUserData = null;
@@ -555,6 +555,7 @@ router.post('/api/DepartmentDetails', (req, res) => {
 });
 
 // Endpoint to add a new department
+// app cheak A
 router.post('/api/AddDepartment', (req, res) => {
     const { name, userData, type } = req.body;
     let decodedUserData = null;
@@ -589,6 +590,7 @@ router.post('/api/AddDepartment', (req, res) => {
 });
 
 // Endpoint to add a new department
+// app cheak A
 router.post('/api/EditDepartment', (req, res) => {
     const { name, userData, type, Id, parent_id = 0 } = req.body;
     let decodedUserData = null;
@@ -622,6 +624,7 @@ router.post('/api/EditDepartment', (req, res) => {
     );
 });
 // Endpoint to add a new sub-department
+// app cheak A
 router.post('/api/AddSubDepartment', (req, res) => {
     const { name, userData, parent_id, type } = req.body;
     let decodedUserData = null;
@@ -701,7 +704,7 @@ router.post('/api/departmentDelete', (req, res) => {
 
 // Department page api start----
 
-
+// app cheak A
 router.post('/api/DesignationDetails', (req, res) => {
 
     const { userData, type, UserId } = req.body;
@@ -745,6 +748,7 @@ router.post('/api/DesignationDetails', (req, res) => {
         }
     );
 });
+// app cheak A
 router.post('/api/Designation', (req, res) => {
 
     const { userData } = req.body;
@@ -1042,7 +1046,7 @@ router.post('/api/GetSocialLink', async (req, res) => {
 
 
 
-
+// app cheak A
 router.post('/employee-hierarchyTeam', (req, res) => {
     const { userData } = req.body;
     let CheckId = req.body.CheckId || null;
@@ -1499,7 +1503,7 @@ router.post('/assign-manager-bulk', async (req, res) => {
 });
 
 
-
+// app cheak A
 router.post("/branchName", async (req, res) => {
 
     const { userData } = req.body;
@@ -1557,6 +1561,7 @@ router.post("/branchName", async (req, res) => {
 
 
 // changeBranch  
+// app cheak A
 router.post('/changeBranch', async (req, res) => {
     const { userData, branchId } = req.body;
 

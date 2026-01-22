@@ -6,7 +6,7 @@ const { ConsoleMessage } = require('puppeteer');
 const db = require('../../DB/ConnectionSql');
 const Redis = require('redis');
 const { getEmployeeProfile } = require('../../helpers/getEmployeeProfile');
-
+// app cheak A
 router.post('/send', (req, res) => {
     const { userData, receiver_id, page_url, img_url, title, message, notification_type } = req.body;
 
@@ -74,7 +74,7 @@ router.post('/send', (req, res) => {
         res.status(200).send({ success: true, notification });
     });
 });
-
+// app cheak A
 router.post('/sendmessage', (req, res) => {
     const { userData, receiver_id, page_url, img_url, title, message, notification_type } = req.body;
 
@@ -132,7 +132,7 @@ router.post('/sendmessage', (req, res) => {
         res.status(200).send({ success: true, notification });
     });
 });
-
+// app cheak A
 router.post('/NotificationGet', (req, res) => {
     const { userData, notification_type = '' } = req.body;
     let decodedUserData = null;
@@ -156,6 +156,7 @@ router.post('/NotificationGet', (req, res) => {
         return res.status(200).json({ status: true, data: results, message: 'Notification fetched successfully' });
     });
 });
+// app cheak A
 router.post("/announcementGet", (req, res) => {
     const { userData, notification_type = "message" } = req.body;
 
@@ -211,7 +212,7 @@ router.post("/announcementGet", (req, res) => {
 });
 
 
-
+// app cheak A
 router.post('/read', (req, res) => {
     const { id } = req.body;
     db.query("UPDATE notifications SET is_read = 1 WHERE id = ?", [id], (err) => {
@@ -324,7 +325,7 @@ router.post('/testprofile', async (req, res) => {
 
 })
 
-
+// app cheak A
 router.post('/SendLocation', async (req, res) => {
     try {
         const { userData, latitude, longitude } = req.body;

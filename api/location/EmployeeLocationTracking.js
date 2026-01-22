@@ -38,6 +38,7 @@ const db = require('../../DB/ConnectionSql');
 //     });
 // });
 
+// app cheak A
 router.post('/EmployeeLocationGet', (req, res) => {
   const { userData, searchData = "", departmentId = 0, subDepartmentid = 0 } = req.body;
   let decodedUserData = null;

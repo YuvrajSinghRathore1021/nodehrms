@@ -41,7 +41,7 @@ const upload = multer({
 
 // Route to handle company submissions
 
-
+// app cheak A
 router.post('/api/Add', async (req, res) => {
 
     const { employee_id, userData, ctc, first_name, last_name, email, date_of_joining, phone_number, dob, gender, reporting_manager, platformType,
@@ -151,7 +151,7 @@ router.post('/api/Add', async (req, res) => {
 
 
 
-
+// app cheak A
 router.post('/api/Employeesdirectory', async (req, res) => {
     const { userData, id, platformType, type, limit = 10, page = 1, searchData = "", company_id, departmentId = 0, subDepartmentid = 0, employeeStatus = 1,empType="" } = req.body;
     let search = searchData;
@@ -386,7 +386,7 @@ WHERE e.id = ?`;
 
 
 
-
+// app cheak A
 router.post('/api/Update', (req, res) => {
     const { type, id, first_name, last_name, reporting_manager, blood_group, dob, marital_status, gender, official_email_id, email_id, contact_number, alternate_phone, current_address, permanent_address, activeSection,
         date_of_Joining, work_location, employee_type, employee_id, status,
@@ -436,7 +436,7 @@ router.post('/api/Update', (req, res) => {
         res.json({ status: true, message: 'Update successful', data: results });
     });
 });
-
+// app cheak A
 router.post('/api/departments', (req, res) => {
     const { userData } = req.body;
     let decodedUserData = null;
@@ -459,7 +459,7 @@ router.post('/api/departments', (req, res) => {
         res.json({ status: true, data: departments });
     });
 });
-
+// app cheak A
 router.post('/api/sub-departments', (req, res) => {
     const { userData, id } = req.body;
     let decodedUserData = null;
@@ -492,6 +492,7 @@ router.post('/api/sub-departments', (req, res) => {
 
 
 // employeeTeamDetails
+// app cheak A
 router.post('/api/employeeTeamDetails', (req, res) => {
     const { userData, UserId } = req.body;
     let decodedUserData = null;

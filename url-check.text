@@ -36,7 +36,7 @@ POST /AttendanceApprovalLog/api/ChackViewDetailsNew
 
 ==================== Logs Handle ====================
 POST /logshandel/FetchLeaveCount
-POST /logshandel/api/deleteLeave
+POST /logshandel/api/deleteLeave  -> Not Found
 
 
 ==================== Leave App ====================
@@ -118,7 +118,7 @@ POST /Setting/api/Update
 ==================== Upload File ====================
 POST /uplodefile/documentPost
 POST /uplodefile/documentGet
-POST /upload/all
+POST /upload/all  -> not found
 
 
 ==================== Employee Details ====================

@@ -558,7 +558,7 @@ const componentNmme = async (id) => {
 
 
 
-
+// app cheak A
 router.post('/api/EmployeeSalaryDetails', async (req, res) => {
     const { userData, month, year, salaryStatus } = req.body;
 

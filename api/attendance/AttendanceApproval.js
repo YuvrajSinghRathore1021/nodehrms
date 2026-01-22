@@ -154,7 +154,7 @@ const decodeUserData = (userData) => {
         return null;
     }
 };
-
+// app cheak A
 router.get('/api/companyEmployeeName', async (req, res) => {
     const { userData, searchData = '', type = "" } = req.query;
     let decodedUserData = null;

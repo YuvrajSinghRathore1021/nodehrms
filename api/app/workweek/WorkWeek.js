@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const db = require("../../../DB/ConnectionSql");
 const { AdminCheck } = require('../../../model/functlity/AdminCheck');
-
+// app cheak A
 router.post('/api/fetchType', async (req, res) => {
     const { userData, type } = req.body;
     let decodedUserData = null;
@@ -44,7 +44,7 @@ router.post('/api/fetchType', async (req, res) => {
 
     });
 });
-
+// app cheak A
 router.post('/api/fetchDetailsWorkWeek', async (req, res) => {
     const { userData } = req.body;
 
@@ -100,7 +100,7 @@ router.post('/api/fetchDetailsWorkWeek', async (req, res) => {
         });
     }
 });
-
+// app cheak A
 router.post('/api/data', async (req, res) => {
     const { userData, Search } = req.body;
     let decodedUserData = null;

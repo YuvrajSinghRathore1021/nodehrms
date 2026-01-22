@@ -179,7 +179,7 @@ router.get('/api/fetchType', async (req, res) => {
     });
 });
 
-
+// app cheak A
 router.post('/api/AddType', async (req, res) => {
     const { name, userData } = req.body;
     let decodedUserData = null;
@@ -218,7 +218,7 @@ router.post('/api/AddType', async (req, res) => {
     );
 });
 
-
+// app cheak A
 router.post('/api/work_weekEdit', async (req, res) => {
     const { userData, rule_name, description, id } = req.body;
     let Week = null;
@@ -503,7 +503,7 @@ router.post('/api/GetCompanyRule', async (req, res) => {
     );
 
 });
-
+// app cheak A
 router.post('/api/Update', async (req, res) => {
     const { id, rule_id, userData } = req.body;
     let decodedUserData = null;

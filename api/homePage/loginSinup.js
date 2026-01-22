@@ -42,7 +42,7 @@ const nodemailer = require('nodemailer');
 //     });
 // });
 
-
+// app cheak A
 router.post('/login', (req, res) => {
     const { username, password } = req.body;
 
@@ -157,7 +157,7 @@ const transporter = nodemailer.createTransport({
     }
 });
 // API to send OTP
-
+// app cheak A
 router.post("/api/send-otp", (req, res) => {
     const { email } = req.body;
 
@@ -401,6 +401,7 @@ router.post("/api/send-otp", (req, res) => {
 
 
 // API to verify OTP
+// app cheak A
 router.post("/api/reset-password", (req, res) => {
     const { email, newPassword,otp, confirmPassword } = req.body;
 
@@ -457,6 +458,7 @@ router.post("/api/reset-password", (req, res) => {
 });
 
 // API to reset password
+// app cheak A
 router.post("/api/verify-otp", (req, res) => {
     const { email, otp } = req.body;
     // Check if email and OTP are provided
