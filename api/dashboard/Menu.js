@@ -26,7 +26,7 @@ const upload = multer({
         cb(null, true); // accept all files
     }
 });
-
+// web cheak A
 router.post('/api/add', async (req, res) => {
     const { title, url, parent_id, is_admin_view, sort_order, is_active, userData, icon } = req.body;
 
@@ -234,7 +234,7 @@ router.post('/api/menu/unrestrict', async (req, res) => {
         res.json({ status: true, message: 'Menu restriction removed for employee' });
     });
 });
-
+// web cheak A
 router.post('/api/update', async (req, res) => {
     const { id, title, url, is_admin_view, parent_id, sort_order, is_active, userData ,icon} = req.body;
 
@@ -272,7 +272,7 @@ router.post('/api/update', async (req, res) => {
 
 
 
-
+// web cheak A
 router.post('/api/menu/delete', async (req, res) => {
     const { id, userData } = req.body;
     let decodedUserData = null;
@@ -510,7 +510,7 @@ const saveBase64Image = (base64String) => {
     fs.writeFileSync(filePath, Buffer.from(data, 'base64'));
     return `/uploads/icons/${fileName}`;
 };
-
+// web cheak A
 router.post('/api/addBulkBase64', async (req, res) => {
     const { menu_items } = req.body;
 
@@ -569,7 +569,7 @@ router.post('/api/addBulkBase64', async (req, res) => {
 
 
 
-
+// web cheak A
 router.post('/api/getMenuUrl', async (req, res) => {
     const { userData } = req.body;
     let decodedUserData = null;

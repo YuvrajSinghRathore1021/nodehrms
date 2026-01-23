@@ -5,7 +5,7 @@ const router = express.Router();
 const db = require('../../DB/ConnectionSql');
 const { AdminCheck } = require('../../model/functlity/AdminCheck');
 
-
+// web cheak A
 router.post('/api/fetchDetails', async (req, res) => {
     const { Id, userData } = req.body;
     let decodedUserData = null;
@@ -64,6 +64,7 @@ router.post('/api/fetchDetails', async (req, res) => {
 
 
 // done 
+// web cheak A
 router.get('/api/fetchType', async (req, res) => {
     const { userData, type, searchData } = req.query;
     let decodedUserData = null;
@@ -120,6 +121,7 @@ router.get('/api/fetchType', async (req, res) => {
     });
 });
 // done 
+// web cheak A
 router.post('/api/AddType', async (req, res) => {
     const { name, userData } = req.body;
     let decodedUserData = null;
@@ -198,7 +200,7 @@ router.post('/api/Deleteapi', (req, res) => {
 });
 
 
-
+// web cheak A
 router.post('/api/Submithandle', async (req, res) => {
     const { Id, userData, Formvalue, structureData } = req.body;
     // Decode and validate userData
@@ -341,7 +343,7 @@ function executeQuery(query, values) {
 
 
 // asine rules page API 
-
+// web cheak A
 router.get('/api/data', async (req, res) => {
     const { userData, data, departmentId = 0, subDepartmentid = 0, employeeStatus = 1 } = req.query;
     let Search = null;
@@ -442,7 +444,7 @@ router.get('/api/data', async (req, res) => {
         });
     });
 })
-
+// web cheak A
 router.post('/api/GetCompanyRule', async (req, res) => {
     const { userData } = req.body;
     let decodedUserData = null;
@@ -489,7 +491,7 @@ router.post('/api/GetCompanyRule', async (req, res) => {
         }
     );
 });
-
+// web cheak A
 router.post('/api/Update', async (req, res) => {
     const { id, structure_id, userData } = req.body;
     let decodedUserData = null;
@@ -537,7 +539,7 @@ router.post('/api/Update', async (req, res) => {
 
 
 
-
+// web cheak A
 router.get('/api/PayDetails', async (req, res) => {
     const { userData, data, page = 1, limit = 10, departmentId = 0, subDepartmentid, employeeStatus = 1 } = req.query;
     const month = data.month;
@@ -852,7 +854,8 @@ router.post('/api/AddType', async (req, res) => {
 
 
 
-// Deleteapi    
+// Deleteapi  
+// web cheak A 
 router.post('/api/deleteSalaryComponent', (req, res) => {
     const { componentId, userData } = req.body;
     let decodedUserData = null;

@@ -90,6 +90,7 @@ const isDateRangeValid = (startDate, endDate) => {
 
 
 // Helper functions
+// web cheak A
 router.post('/api/data', async (req, res) => {
     try {
         let { userData, startDate, endDate, UserId } = req.body;
@@ -265,7 +266,7 @@ const createAttendanceResponse = (record, status, date) => {
 
 
 
-// app cehak A
+// app cehak A / web cheak A
 router.post('/api/AttendanceDelete', async (req, res) => {
 
     const { requestId, userData } = req.body;
@@ -316,7 +317,7 @@ function queryDb(query, params) {
 }
 
 // new 
-// app cheak A
+// app cheak A / web cheak A
 router.post('/api/AttendanceReqSubmit', async (req, res) => {
 
     const { userData, request_date, request_type, in_time, out_time, reason, short_leave = 0, short_leave_type = 0, short_leave_reason = '' } = req.body;
@@ -381,7 +382,7 @@ router.post('/api/AttendanceReqSubmit', async (req, res) => {
 
 
 // appro ......
-// app cheak A
+// app cheak A / web cheak A
 router.post('/api/AttendancePending', async (req, res) => {
 
     let { userData, startDate, endDate, searchData, EmployeeId } = req.body;
@@ -683,7 +684,7 @@ router.post('/api/AttendancePending', async (req, res) => {
 });
 
 
-// app cheak A
+// app cheak A / web cheak A
 router.post('/api/AttendanceApprovalLog', async (req, res) => {
     try {
         let { EmployeeId, userData } = req.body;
@@ -777,7 +778,7 @@ router.post('/api/AttendanceApprovalLog', async (req, res) => {
     }
 });
 
-// app cheak A
+// app cheak A / web cheak A
 router.post('/api/Attendancedirectory', async (req, res) => {
 
     const { userData, date, filter = 'all', search = '', departmentId = 0, subDepartmentid = 0, companyId = 0 } = req.body;
@@ -1148,7 +1149,7 @@ router.post('/api/EmployeesUnderRm', async (req, res) => {
     });
 });
 
-// app cheak A
+// app cheak A / web cheak A
 router.post('/api/attendanceRequestCount', async (req, res) => {
     let { userData, startDate = "", endDate = "", page = 1, limit = 10, search = "" } = req.body;
 

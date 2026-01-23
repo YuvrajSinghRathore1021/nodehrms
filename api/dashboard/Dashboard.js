@@ -3,7 +3,7 @@ const router = express.Router();
 const db = require('../../DB/ConnectionSql');
 const { AdminCheck } = require('../../model/functlity/AdminCheck');
 
-
+// web cheak A
 router.post('/api/Birthday', async (req, res) => {
     const { userData, startDate, endDate } = req.body;
     let decodedUserData = null;
@@ -84,7 +84,7 @@ router.post('/api/Birthday', async (req, res) => {
     }
 });
 
-
+// web cheak A
 router.post('/api/workAnniversaries', async (req, res) => {
     const { userData, startDate, endDate } = req.body;
 
@@ -165,7 +165,7 @@ router.post('/api/workAnniversaries', async (req, res) => {
     }
 });
 
-
+// web cheak A
 router.post('/api/newJoiners', async (req, res) => {
     const { userData, startDate, endDate } = req.body;
 
@@ -238,7 +238,7 @@ router.post('/api/newJoiners', async (req, res) => {
     }
 });
 
-
+// web cheak A
 router.post('/api/attendanceSummary', async (req, res) => {
     const { userData, date } = req.body;
     let decodedUserData = null;
@@ -337,7 +337,7 @@ router.post('/api/attendanceSummary', async (req, res) => {
         res.status(500).json({ status: false, error: 'Server error' });
     }
 });
-
+// web cheak A
 router.post('/api/employeeStatusSummary', async (req, res) => {
     const { userData } = req.body;
     let decodedUserData = null;
@@ -380,7 +380,7 @@ router.post('/api/employeeStatusSummary', async (req, res) => {
         res.status(500).json({ status: false, error: 'Server error' });
     }
 });
-
+// web cheak A
 router.post('/api/topArrivals', async (req, res) => {
     const { userData, limit, data } = req.body;
     // data = { month: 6, year: 2025 }
@@ -480,7 +480,7 @@ router.post('/api/topArrivals', async (req, res) => {
         res.status(500).json({ status: false, error: 'Server error' });
     }
 });
-
+// web cheak A
 router.post('/api/teamsStrength', async (req, res) => {
     const { userData } = req.body;
     let decodedUserData = null;
@@ -529,6 +529,7 @@ router.post('/api/teamsStrength', async (req, res) => {
 })
 
 const moment = require('moment');
+// web cheak A
 router.post('/api/TotalEmployees', async (req, res) => {
     const { userData, filter } = req.body;
     let decodedUserData = null;
@@ -617,7 +618,7 @@ router.post('/api/TotalEmployees', async (req, res) => {
         res.status(500).json({ status: false, error: 'Server error' });
     }
 });
-
+// web cheak A
 router.post('/api/NewEmployees', async (req, res) => {
     const { userData, filter } = req.body;
     let decodedUserData = null;
@@ -808,7 +809,7 @@ router.post('/api/NewEmployees', async (req, res) => {
 
 // fcmUpdate 
 
-
+// web cheak A
 router.post('/api/LeaveStats', async (req, res) => {
     const { userData, filter } = req.body;
     let decodedUserData = null;

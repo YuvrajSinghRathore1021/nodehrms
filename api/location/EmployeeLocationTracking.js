@@ -38,7 +38,7 @@ const db = require('../../DB/ConnectionSql');
 //     });
 // });
 
-// app cheak A
+// app cheak A / web cheak A
 router.post('/EmployeeLocationGet', (req, res) => {
   const { userData, searchData = "", departmentId = 0, subDepartmentid = 0 } = req.body;
   let decodedUserData = null;
@@ -120,7 +120,7 @@ router.post('/EmployeeLocationGet', (req, res) => {
   });
 });
 
-
+// web cheak A
 router.post('/EmployeeGet', (req, res) => {
   const { userData, company_id = 0 } = req.body;
   let decodedUserData = null;
@@ -156,7 +156,7 @@ router.post('/EmployeeGet', (req, res) => {
 
     });
 });
-
+// web cheak A
 router.post('/SubmitLocationPermissions', (req, res) => {
   const { userData, can_view, viewer_id, target_id } = req.body;
   let parsed = JSON.parse(target_id);
@@ -203,7 +203,7 @@ router.post('/SubmitLocationPermissions', (req, res) => {
     }
   });
 });
-
+// web cheak A
 router.get('/api/FetchLocationPermissions', async (req, res) => {
   const { userData } = req.query;
   let decodedUserData = null;
@@ -287,6 +287,7 @@ router.get('/api/FetchLocationPermissions', async (req, res) => {
 
 
 // get Location 
+// web cheak A
 router.post('/Get', async (req, res) => {
   const { userData, type = 'in', startDate, endDate, employeeId } = req.body;
   let decodedUserData = null;

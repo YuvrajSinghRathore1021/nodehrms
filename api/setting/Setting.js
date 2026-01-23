@@ -70,7 +70,7 @@ router.get('/api/fetchDetails', async (req, res) => {
         });
     }
 });
-
+// web cheak A
 router.post('/api/fetchUserWorkWeekDetails', async (req, res) => {
     const { userData, CheckId } = req.body;
     let decodedUserData = null;
@@ -131,7 +131,7 @@ router.post('/api/fetchUserWorkWeekDetails', async (req, res) => {
 
 
 
-
+// web cheak A
 router.get('/api/fetchType', async (req, res) => {
     const { userData, type } = req.query;
     let decodedUserData = null;
@@ -179,7 +179,7 @@ router.get('/api/fetchType', async (req, res) => {
     });
 });
 
-// app cheak A
+// app cheak A / web cheak A
 router.post('/api/AddType', async (req, res) => {
     const { name, userData } = req.body;
     let decodedUserData = null;
@@ -218,7 +218,7 @@ router.post('/api/AddType', async (req, res) => {
     );
 });
 
-// app cheak A
+// app cheak A / web cheak A
 router.post('/api/work_weekEdit', async (req, res) => {
     const { userData, rule_name, description, id } = req.body;
     let Week = null;
@@ -294,7 +294,7 @@ router.post('/api/work_weekEdit', async (req, res) => {
         return res.status(200).json({ status: true, message: 'Data updated successfully', result });
     });
 });
-
+// web cheak A
 router.post('/api/Deleteapi', async (req, res) => {
     return res.json({ status: true, message: 'Coming soon' });
     const { id, userData } = req.body;
@@ -343,7 +343,7 @@ router.post('/api/Deleteapi', async (req, res) => {
 });
 
 // assign rules
-
+// web cheak A
 router.get('/api/data', async (req, res) => {
     const { userData, search = "", departmentId = 0, subDepartmentid = 0, employeeStatus = 1 } = req.query;
     let Search = search;
@@ -503,7 +503,7 @@ router.post('/api/GetCompanyRule', async (req, res) => {
     );
 
 });
-// app cheak A
+// app cheak A / web cheak A
 router.post('/api/Update', async (req, res) => {
     const { id, rule_id, userData } = req.body;
     let decodedUserData = null;

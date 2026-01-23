@@ -6,7 +6,7 @@ const db = require('../../DB/ConnectionSql');
 const { AdminCheck } = require('../../model/functlity/AdminCheck');
 
 
-
+// web cheak A
 router.post('/salary/submit', async (req, res) => {
     try {
         // Parse and validate input
@@ -144,6 +144,7 @@ const queryDb = (query, params) => {
 };
 
 ////
+// web cheak A
 router.post('/api/GenerateSalary', async (req, res) => {
     try {
         const { employeeId, presentCount, HF, leaveCount, holidayCount, WO, month, year, PenaltyData, userData } = req.body;
@@ -347,7 +348,7 @@ router.post('/api/GenerateSalary', async (req, res) => {
     }
 });
 
-
+// web cheak A
 router.get('/api/PayEmployeeSalaryDetails', async (req, res) => {
     const { userData, data, departmentId = 0, subDepartmentid = 0, employeeStatus = 1, salaryStatus, limit = 10, page } = req.query;
 
@@ -687,7 +688,7 @@ router.post('/api/EmployeeSalaryDetails', async (req, res) => {
     }
 });
 
-
+// web cheak A
 router.post("/api/Upadate", (req, res) => {
     const { id, userData, paymentStatus = 1 } = req.body;
     let decodedUserData = null;
@@ -732,7 +733,7 @@ router.post("/api/Upadate", (req, res) => {
     );
 });
 
-
+// web cheak A
 router.post('/calculate-penalties', async (req, res) => {
     const { userData, month, year, UserEmployeeId } = req.body;
 
@@ -922,6 +923,7 @@ const addGracePeriod = (rowData) => {
 // ===============================
 // ✅ Main Sandwich Penalty API
 // ===============================
+// web cheak A
 router.post("/calculate-Sandwichpenalties", async (req, res) => {
     try {
         const { userData, month, year, UserEmployeeId } = req.body;

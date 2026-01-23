@@ -6,7 +6,7 @@ const { AdminCheck } = require("../../model/functlity/AdminCheck");
 
 ////// Fetch Department Employee //////////
 
-
+// web cheak A
 router.get("/fetch-department-employee", async (req, res) => {
   try {
     const { userData, search = "", page = 1, limit = 10, departmentId = 0, subDepartmentid = 0, employeeStatus = 1 } = req.query;
@@ -122,7 +122,7 @@ router.get("/fetch-department-employee", async (req, res) => {
 /////////////////////////////////////////////
 ////////////  Rules Update  /////////////////
 ////////////////////////////////////////////
-
+// web cheak A 
 router.post("/RulesUpdate", (req, res) => {
   const {
     id,
@@ -260,7 +260,7 @@ router.post("/RulesUpdate", (req, res) => {
 /////////////////////////////////////////////
 /////////// Assign Rules Fetch /////////////
 ////////////////////////////////////////////
-
+// web cheak A
 router.get("/Assign_Rules", (req, res) => {
   const { UserId, userData } = req.query;
 
@@ -316,7 +316,7 @@ router.get("/Assign_Rules", (req, res) => {
     }
   });
 });
-
+// web cheak A
 router.post("/update-leave-type", (req, res) => {
   const { id, leave_rule_id, userData, assign_date } = req.body;
   let decodedUserData = "";
@@ -549,7 +549,7 @@ function getSessionDates(referenceDate, resetMonth = 1) {
 //////////////////////////////////////////////
 ////////////  Rules Fetch  //////////////////
 ////////////////////////////////////////////
-
+// web cheak A
 router.get("/rulesfetch", (req, res) => {
   const userData = req.query.userData;
   let rule_id = req.query.rule_id;
@@ -634,7 +634,7 @@ router.get("/leavesTypes", (req, res) => {
 ////////////////////////////////////////////
 ///////////  Rules Insert Api  ////////////
 //////////////////////////////////////////
-
+// web cheak A
 router.post("/rules", (req, res) => {
   const { leave_type, userData } = req.body;
   let decodedUserData = null;
@@ -659,7 +659,7 @@ router.post("/rules", (req, res) => {
     });
   });
 });
-
+// web cheak A
 router.get("/api/fetchType", async (req, res) => {
   const { userData, type, searchData = '' } = req.query;
   let decodedUserData = null;
@@ -718,6 +718,7 @@ router.get("/api/fetchType", async (req, res) => {
 });
 
 // Deleteapi
+// web cheak A
 router.post("/api/Deleteapi", (req, res) => {
   const { id, userData } = req.body;
   let decodedUserData = null;
@@ -913,7 +914,7 @@ router.post("/api/Deleteapi", (req, res) => {
 // leave_rule_id :  22
 // type :  "Increase"
 
-
+// web cheak A
 router.post("/leaveBalanceUpdate", (req, res) => {
   const { employee_id, leave_rule_id, deductionValue, type, userData } = req.body;
   let decodedUserData = null;
@@ -1159,7 +1160,7 @@ router.post("/leaveBalanceUpdate", (req, res) => {
 
 
 
-
+// web cheak A
 router.get("/Balance", async (req, res) => {
   try {
     const { page = 1, limit = 10, userData, departmentId = 0, subDepartmentid = 0, employeeStatus = 1, search = '' } = req.query;
@@ -1357,7 +1358,7 @@ function calculateLeaveDays(startDate, endDate, startHalf, endHalf) {
 
 // rulesapi  
 // deleteAssignedLeave
-
+// web cheak A
 router.post("/deleteAssignedLeave", async (req, res) => {
   const { userData, employee_id = 0, type, leave_rule_id } = req.body;
 

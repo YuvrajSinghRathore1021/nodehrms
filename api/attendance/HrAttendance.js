@@ -146,7 +146,7 @@ const db = require('../../DB/ConnectionSql');
 //     }
 // });
 
-
+// web cheak A
 router.post('/attendanceEdit', async (req, res) => {
     const {
         attendanceId,
@@ -282,7 +282,7 @@ router.post('/attendanceEdit', async (req, res) => {
 });
 
 
-
+// web cheak A
 router.post('/attendanceRequestEdit', async (req, res) => {
     const { userData, attendanceId, request_type, in_time, out_time, reason, rm_id, rm_status, admin_id, admin_status, request_id } = req.body;
 
@@ -457,7 +457,7 @@ function trackTime(officeStartTime, arrivalTimeOrCloseTime) {
         return formattedTime;
     }
 };
-
+// web cheak A
 router.post('/attendanceDetails', async (req, res) => {
     const { userData, attendanceId, attendanceDate, employeeId } = req.body;
     let decodedUserData = null;
@@ -678,7 +678,7 @@ WHERE (att.attendance_id = ? or (att.attendance_date=? and att.employee_id=?)) A
 
 
 /////AttendanceRequestDetails
-
+// web cheak A
 router.post('/AttendanceRequestDetails', async (req, res) => {
     const { userData, employeeId, attendanceDate } = req.body;
 
