@@ -243,16 +243,19 @@ router.post('/permissionUpdate', async (req, res) => {
             newQuery = `INSERT INTO app_settings (block_delete_button,employee_id, company_id, block_app, location_access, interval_ms, face_detection, live_face_detection, branch_switch, reload, allow_relogin, block_punch_in_out, block_break_in_out, hide_attendance, hide_leaves, hide_team, hide_register_face, hide_payroll, hide_holiday_calendar, hide_id_card, hide_expenses, hide_employees, hide_chat, hide_permissions, block_get_approve_button, block_approve_button, block_create_leave_button, block_approve_leave, block_reject_leave, block_delete_leave, block_create_holiday, block_create_expense, block_edit_employee, block_edit_profile_button, block_personal_info_edit, block_work_week_edit, block_document_upload, hide_profile_tab, block_work_details_edit, block_department_edit, block_subdepartment_edit, hide_track_employees) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
             arrayPrems = [block_delete_button, employee_id, company_id, block_app, location_access, interval_ms, face_detection, live_face_detection, branch_switch, reload, allow_relogin, block_punch_in_out, block_break_in_out, hide_attendance, hide_leaves, hide_team, hide_register_face, hide_payroll, hide_holiday_calendar, hide_id_card, hide_expenses, hide_employees, hide_chat, hide_permissions, block_get_approve_button, block_approve_button, block_create_leave_button, block_approve_leave, block_reject_leave, block_delete_leave, block_create_holiday, block_create_expense, block_edit_employee, block_edit_profile_button, block_personal_info_edit, block_work_week_edit, block_document_upload, hide_profile_tab, block_work_details_edit, block_department_edit, block_subdepartment_edit, hide_track_employees]
         }
-
-
         const [updatedata] = await db.promise().query(newQuery, arrayPrems)
 
-
-        const resultEmp = await getEmployeeProfile(req.body, employee_id, reload);
         let userId = employee_id;
-        // check on live ---not work
-        // req.io.to(userId.toString()).emit("profileResponse", resultEmp);
-        
+        let userData = req.body?.userData
+        let = req.body?.userData
+        let newData = {
+            userData,
+            CheckId: userId,
+            reload
+        }
+        const resultEmp = await getEmployeeProfile(newData);
+        req.io.to(userId.toString()).emit("profileResponse", resultEmp);
+
 
         if (type == "update") {
             if (updatedata.affectedRows > 0) {
@@ -284,10 +287,10 @@ router.post('/permissionUpdate', async (req, res) => {
 
     } catch (err) {
 
-    return res.status(500).json({
-        status: false,
-        message: err.message
-    });
+        return res.status(500).json({
+            status: false,
+            message: err.message
+        });
     }
 
 

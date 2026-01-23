@@ -44,6 +44,7 @@ router.post("/send-notification", async (req, res) => {
                 }
             }
         };
+        
         const response = await admin.messaging().send(message);
         res.json({ success: true, messageId: response });
     } catch (error) {
@@ -51,6 +52,44 @@ router.post("/send-notification", async (req, res) => {
         res.status(500).json({ success: false, error: error.message });
     }
 });
+
+
+// router.post("/send-notification", async (req, res) => {
+
+//     try {
+//         const { fcmToken, title, body, image, type, screen = "", chatId = 0 } = req.body;
+//         const message = {
+//             notification: {
+//                 title: title || "Default Title",
+//                 body: body || "Default message",
+//                 image: image || undefined,
+//             },
+//             token: fcmToken,
+//             data: {
+//                 type: type || "default",
+//                 screen: screen,
+//                 chatId: chatId
+//             },
+//             android: {
+//                 notification: {
+//                     sound: "default"
+//                 }
+//             },
+//             apns: {
+//                 payload: {
+//                     aps: {
+//                         sound: "default"
+//                     }
+//                 }
+//             }
+//         };
+//         const response = await admin.messaging().send(message);
+//         res.json({ success: true, messageId: response });
+//     } catch (error) {
+//         console.error("Error sending notification:", error);
+//         res.status(500).json({ success: false, error: error.message });
+//     }
+// });
 
 
 

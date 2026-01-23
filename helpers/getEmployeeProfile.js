@@ -3,6 +3,8 @@ const { AdminCheck } = require('../model/functlity/AdminCheck');
 
 exports.getEmployeeProfile = async ({ userData, CheckId, reload = false }) => {
     try {
+       
+        
         let decodedUserData = null;
 
         if (!userData) throw new Error("userData is missing");
@@ -11,11 +13,12 @@ exports.getEmployeeProfile = async ({ userData, CheckId, reload = false }) => {
             const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
             decodedUserData = JSON.parse(decodedString);
         } catch {
-            throw new Error("Invalid userData format");
+            throw new Error("Invalid userData format new");
         }
         if (!decodedUserData?.company_id)
             throw new Error("Company ID is missing or invalid");
 
+        console.log("decodedUserData.id=", decodedUserData.id)
         const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
         const employeeId = CheckId || decodedUserData.id;
 
@@ -40,7 +43,7 @@ exports.getEmployeeProfile = async ({ userData, CheckId, reload = false }) => {
         e.re_login
       FROM employees e
       LEFT JOIN branches b ON e.branch_id = b.id AND b.company_id = e.company_id
-      WHERE e.employee_status = 1 AND e.status = 1 AND e.delete_status = 0 AND e.id = ?`, [employeeId] );
+      WHERE e.employee_status = 1 AND e.status = 1 AND e.delete_status = 0 AND e.id = ?`, [employeeId]);
 
         if (employees.length === 0) throw new Error("Employee not found");
 
@@ -75,7 +78,7 @@ exports.getEmployeeProfile = async ({ userData, CheckId, reload = false }) => {
             interval_ms: 0,
             face_detection: 0,
             live_face_detection: 0,
-            branch_switch: 1,
+            branch_switch: 0,
             reload: 0,
             allow_relogin: 0,
             block_punch_in_out: 0,
@@ -89,7 +92,7 @@ exports.getEmployeeProfile = async ({ userData, CheckId, reload = false }) => {
             hide_id_card: 0,
             hide_expenses: 0,
             hide_employees: 0,
-            hide_chat: 0,
+            hide_chat: 1,
             hide_permissions: 0,
             block_get_approve_button: 0,
             block_approve_button: 0,
@@ -108,9 +111,9 @@ exports.getEmployeeProfile = async ({ userData, CheckId, reload = false }) => {
             block_work_details_edit: 0,
             block_department_edit: 0,
             block_subdepartment_edit: 0,
-            hide_track_employees: 0
-        };       
-        
+            hide_track_employees: 1
+        };
+
         let embeddings = faceAuth.length > 0 ? faceAuth[0].embeddings : null;
 
         if (rules.length > 0) {
@@ -160,7 +163,7 @@ exports.getEmployeeProfile = async ({ userData, CheckId, reload = false }) => {
                 interval_ms: permissionData?.interval_ms || 0,
                 face_detection: permissionData?.face_detection || 0,
                 live_face_detection: permissionData?.live_face_detection || 0,
-                branch_switch:  permissionData?.branch_switch == 0 ? 0 : true,
+                branch_switch: permissionData?.branch_switch == 0 ? 0 : true,
                 allow_relogin: permissionData?.allow_relogin || 0,
                 block_punch_in_out: permissionData?.block_punch_in_out || 0,
                 block_break_in_out: permissionData?.block_break_in_out || 0,

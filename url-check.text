@@ -2,7 +2,7 @@
 
 
   ==================== Attendance ====================
-POST /Attendance/AttendanceGet
+POST /Attendance/AttendanceGet ->app check
 POST /Attendance/api/data
 POST /Attendance/api/BreakDetails
 POST /Attendance/api/AttendanceTypeDetails
