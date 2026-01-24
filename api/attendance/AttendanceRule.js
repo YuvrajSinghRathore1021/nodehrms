@@ -6,7 +6,7 @@ const db = require('../../DB/ConnectionSql');
 const { AdminCheck } = require('../../model/functlity/AdminCheck');
 
 // Rules
-
+// web cheak A
 router.post('/api/attendancerulesEdit', async (req, res) => {
     const { userData,
         rule_name,
@@ -147,7 +147,7 @@ router.post('/api/attendancerules', async (req, res) => {
 });
 
 
-
+// web cheak A
 router.get('/api/fetchDetails', async (req, res) => {
 
     const { userData, search = "" } = req.query;
@@ -246,7 +246,7 @@ router.get('/api/fetchDetails', async (req, res) => {
 
 
 });
-
+// web cheak A
 router.get('/api/fetchType', async (req, res) => {
     const { userData, type } = req.query;
     let decodedUserData = null;
@@ -294,7 +294,7 @@ router.get('/api/fetchType', async (req, res) => {
         });
     });
 });
-
+// web cheak A
 router.post('/api/AddType', async (req, res) => {
     const { name, userData } = req.body;
     let decodedUserData = null;
@@ -372,6 +372,7 @@ router.post('/api/Deleteapi', (req, res) => {
 
 
 // asine rules
+// web cheak A
 router.get('/api/data', async (req, res) => {
     const { userData, data, departmentId = 0, subDepartmentid = 0, employeeStatus = 1 } = req.query;
 
@@ -482,7 +483,7 @@ router.get('/api/data', async (req, res) => {
 
 
 // GetCompanyRule
-
+// web cheak A
 router.post('/api/GetCompanyRule', async (req, res) => {
     const { userData } = req.body;
     let decodedUserData = null;
@@ -533,7 +534,7 @@ router.post('/api/GetCompanyRule', async (req, res) => {
 
 
 });
-
+// web cheak A
 router.post('/api/Update', async (req, res) => {
     const { id, rule_id, userData } = req.body;
     let decodedUserData = null;

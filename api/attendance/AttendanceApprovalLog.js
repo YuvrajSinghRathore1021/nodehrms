@@ -200,7 +200,7 @@ const decodeUserData = (userData) => {
 //     });
 
 // });
-
+// web cheak A
 router.post('/api/ChackViewDetails', (req, res) => {
     const { userData, Logid, attendanceId = 0 } = req.body;
     const attendanceIdNum = Number(attendanceId);
@@ -618,7 +618,7 @@ LEFT JOIN employees AS e  ON a.apply_by = e.id WHERE a.employee_id = ? AND a.com
     }
 });
 
-// app cheak A
+// app cheak A / web cheak A
 router.post('/api/ApprovalSubmit', async (req, res) => {
     const { userData, ApprovalRequests_id, Type, ApprovalStatus, employee_id, in_time, out_time, reason, request_date, request_type,short_leave=0,short_leave_type=0,short_leave_reason="" } = req.body;
     let decodedUserData = null;

@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../../DB/ConnectionSql');
 
-
+// web cheak A
 router.post('/api/Update', (req, res) => {
     const { EmployeesData, TypeValue, userData } = req.body;
 
@@ -34,6 +34,7 @@ router.post('/api/Update', (req, res) => {
         res.json({ status: true, message: 'Update successful', data: results });
     });
 });
+// web cheak A
 router.post('/api/EmployeeRemove', (req, res) => {
     const { id, userData } = req.body;
 
@@ -64,7 +65,7 @@ router.post('/api/EmployeeRemove', (req, res) => {
 
 
 // Employees:
-
+// web cheak A
 router.get('/api/EmployeesDetiles', async (req, res) => {
     const { userData } = req.query;
     let decodedUserData = null;
@@ -103,7 +104,7 @@ router.get('/api/EmployeesDetiles', async (req, res) => {
     });
 });
 
-
+// web cheak A
 router.get('/api/fetchType', async (req, res) => {
     const { userData } = req.query;
     let decodedUserData = null;

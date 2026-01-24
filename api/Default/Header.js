@@ -7,7 +7,7 @@ const { AdminCheck } = require('.././../model/functlity/AdminCheck');
 router.use(cors());
 const { getEmployeeProfile } = require('../../helpers/getEmployeeProfile');
 
-// app cheak A
+// app cheak A / web cheak A
 router.post('/api/UploadLogo', async (req, res) => {
     const { userData, CheckId, logo } = req.body;
     let decodedUserData = null;
@@ -53,7 +53,7 @@ router.post('/api/UploadLogo', async (req, res) => {
 
 });
 
-// app cheak A
+// app cheak A / Web Cheak A
 router.post('/api/GetEmployeesProfile', async (req, res) => {
     const result = await getEmployeeProfile(req.body);
     res.status(result.status ? 200 : 400).json(result);

@@ -5,7 +5,7 @@ const db = require('../../DB/ConnectionSql');
 ///// Attendancepolicy.js
 
 
-
+// web cheak A
 router.get('/rule/get', async (req, res) => {
     const { userData } = req.query;
     let decodedUserData = null;
@@ -38,7 +38,7 @@ router.get('/rule/get', async (req, res) => {
     }
 
 });
-
+// web cheak A
 router.post('/rule/details', async (req, res) => {
     const { userData, id } = req.body;
     let decodedUserData = null;
@@ -75,6 +75,7 @@ router.post('/rule/details', async (req, res) => {
 
 
 // CREATE
+// web cheak A
 router.post('/create', async (req, res) => {
     const { name, userData } = req.body;
     let decodedUserData = null;
@@ -109,7 +110,7 @@ router.post('/create', async (req, res) => {
 
 
 
-
+// web cheak A
 router.post('/rule/update', async (req, res) => {
     const { userData, id, employee_ids, policy_name, short_leave_limit_in, short_leave_duration_in, short_leave_limit_out, short_leave_duration_out, short_leave_in_working_hours, short_leave_out_working_hours, total_leave_status, short_leave_total } = req.body;
     let decodedUserData = null;
@@ -147,7 +148,7 @@ router.post('/rule/update', async (req, res) => {
     }
 });
 
-
+// web cheak A
 router.post('/rule/delete', async (req, res) => {
     const { userData, id } = req.body;
     let decodedUserData = null;

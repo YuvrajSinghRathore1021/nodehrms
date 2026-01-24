@@ -7,6 +7,7 @@ const saveUploadedFile = require("../../helpers/uploadFile");
 const uploadBulk = require("../../helpers/uploadBulk");
 const saveUploadedFiles = require("../../helpers/saveUploadedFiles");
 
+// web cheak A
 router.post("/all", uploadFields, async (req, res) => {
     try {
 

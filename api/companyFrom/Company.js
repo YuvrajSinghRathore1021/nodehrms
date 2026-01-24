@@ -41,7 +41,7 @@ const upload = multer({
 
 // Route to handle company submissions
 
-
+// web cheak A
 router.post('/api/Add', async (req, res) => {
     const { company_name, owner_name, industry, headquarters, website, phone_number, email, address, member } = req.body;
     const logo = '/uploads/logo/logodummy.png';
@@ -162,7 +162,7 @@ router.post('/api/Edit', async (req, res) => {
         );
     });
 });
-
+// web cheak A
 router.post('/api/UploadLogo', async (req, res) => {
     const { userData, logo } = req.body;
     let decodedUserData = null;
@@ -211,7 +211,7 @@ router.post('/api/UploadLogo', async (req, res) => {
 
 
 
-
+// web cheak A
 router.get('/api/data', (req, res) => {
     const { userData, type } = req.query;
     let decodedUserData = null;
@@ -277,7 +277,7 @@ router.get('/api/data', (req, res) => {
 
 
 // new for company 
-
+// web check A
 router.get('/api/fetchDetails', (req, res) => {
     const { userData, type } = req.query;
     let decodedUserData = null;
@@ -325,7 +325,7 @@ router.get('/api/fetchDetails', (req, res) => {
         });
     });
 });
-
+// web cheak A
 router.post('/api/Update', upload.none(), (req, res) => {
     const { type, id, activeSection, company_name, brand_name, domain_name, industry, website, phone_number, email, parent_id, address_title, address_line1, address_line2, city, state, country, pincode } = req.body;
 
@@ -357,7 +357,7 @@ router.post('/api/Update', upload.none(), (req, res) => {
         res.json({ status: true, message: 'Update successful', data: results });
     });
 });
-
+// web cheak A
 router.get('/api/AddressDetails', (req, res) => {
     const { userData } = req.query;
     let decodedUserData = null;
@@ -453,6 +453,7 @@ const checkIfAddressExists = (companyId, type) => {
 };
 
 // API to insert or update address
+// web cheak A
 router.post('/api/AddressUpdate', (req, res) => {
     const { id, activeSection, type, address_line1, address_line2, city, state, country, userData, pincode } = req.body;
     let decodedUserData = null;
@@ -659,7 +660,7 @@ router.post('/api/AddSubDepartment', (req, res) => {
     );
 });
 
-
+// web cheak A
 router.post('/api/departmentDelete', (req, res) => {
     const { userData, id } = req.body;
     let decodedUserData = null;
@@ -793,7 +794,7 @@ GROUP BY designation`, [company_id],
         }
     );
 });
-
+// web cheak A
 router.post('/api/DesignationUpdate', async (req, res) => {
     const { userData, Designation, oldDesignation, employeesId } = req.body;
 
@@ -853,6 +854,7 @@ router.post('/api/DesignationUpdate', async (req, res) => {
     });
 });
 // get logo 
+// web cheak A
 router.post('/api/GetCompanyLogo', async (req, res) => {
 
     const { userData } = req.body;
@@ -1046,7 +1048,7 @@ router.post('/api/GetSocialLink', async (req, res) => {
 
 
 
-// app cheak A
+// app cheak A / web cheak A
 router.post('/employee-hierarchyTeam', (req, res) => {
     const { userData } = req.body;
     let CheckId = req.body.CheckId || null;
@@ -1137,7 +1139,7 @@ router.post('/employee-hierarchyTeam', (req, res) => {
 
 
 // Branch code 
-
+// web cheak A
 router.get("/Branchfetch", (req, res) => {
     const limit = parseInt(req.query.limit, 10) || 10;
     const page = parseInt(req.query.page, 10) || 1;
@@ -1241,7 +1243,7 @@ router.get("/Branchfetch", (req, res) => {
     );
 });
 
-
+// web cheak A
 router.post("/BranchUpdate", async (req, res) => {
     const { id, userData, name, latitude, longitude, location_required, location_break, radius, ip, ip_status, is_admin, location_status, branch_employee } = req.body;
 
@@ -1349,7 +1351,7 @@ router.post("/BranchUpdate", async (req, res) => {
 });
 
 
-
+// web cheak A
 router.post("/BranchAdd", (req, res) => {
     const { name, latitude, longitude, radius, location_required, location_break, userData, ip, ip_status, location_status, is_admin } = req.body;
 
@@ -1437,7 +1439,7 @@ router.post('/assign-manager', async (req, res) => {
         }
     );
 });
-
+// web cheak A
 router.post('/assign-manager-bulk', async (req, res) => {
     const { employeeId, userData, managerId } = req.body;
 
@@ -1503,7 +1505,7 @@ router.post('/assign-manager-bulk', async (req, res) => {
 });
 
 
-// app cheak A
+// app cheak A / web cheak A
 router.post("/branchName", async (req, res) => {
 
     const { userData } = req.body;

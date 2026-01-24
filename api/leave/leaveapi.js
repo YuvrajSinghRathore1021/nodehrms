@@ -186,7 +186,7 @@ const db = require("../../DB/ConnectionSql");
 //   }
 // });
 
-// app cheak A
+// app cheak A / web cheak A
 router.post("/leave", async (req, res) => {
   //   // leave_type in this come leave_rule_id
   const { leave_type, userData, start_date, end_date, reason, start_half, end_half, employeeId = 0 } = req.body;
@@ -514,7 +514,7 @@ function calculateLeaveDays(startDate, endDate, startHalf, endHalf) {
 
 
 ///////////  Soft Delete ////////////////
-
+// web cheak A
 router.post("/delete", (req, res) => {
   const { leave_id } = req.body;
   if (!leave_id) {
@@ -546,7 +546,7 @@ router.post("/delete", (req, res) => {
 });
 
 ///////  Fetch Leave Request Data //////////
-// app cheak A
+// app cheak A / web cheak A
 router.post("/LeaveRequest", async (req, res) => {
   const { leave_id } = req.body;
   if (!leave_id) {
@@ -962,7 +962,7 @@ router.post("/api/ChackViewDetails", (req, res) => {
     });
   });
 });
-// app cheak A
+// app cheak A / web cheak A
 router.post("/api/ApprovalSubmit", async (req, res) => {
   const {
     userData,

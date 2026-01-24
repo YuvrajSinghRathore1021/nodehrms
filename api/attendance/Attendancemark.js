@@ -26,7 +26,7 @@ function addMinutes(timeStr, minutes) {
     return date.toTimeString().slice(0, 5); // HH:mm
 }
 
-// app cheak A
+// app cheak A / web cheak A
 router.post('/Attendancemark', async (req, res) => {
     const { type, userData, latitude, longitude, attendanceType = "", employeeId = "0", attendanceTime = "", attendanceDate = "", reason = "", liveFaceRecognition = 0 } = req.body;
 

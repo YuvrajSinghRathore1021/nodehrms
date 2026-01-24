@@ -5,7 +5,7 @@ const db = require('../../DB/ConnectionSql');
 const { AdminCheck } = require('../../model/functlity/AdminCheck');
 router.use(cors());
 
-// app cheak A
+// app cheak A / web cheak A
 router.post('/api/getExpenses', async (req, res) => {
 
     const { userData, limit = 10, page = 1, search = '' } = req.body;
@@ -147,7 +147,7 @@ function actionFound(action) {
 
 
 
-// app cheak A
+// app cheak A / web cheak A
 router.post('/expensesAdd', async (req, res) => {
     const { userData, expense_type, amount, reason, expense_date, document } = req.body;
 
@@ -229,7 +229,7 @@ router.post('/expensesAdd', async (req, res) => {
 });
 
 
-// app cheak A
+// app cheak A / web cheak A
 router.post('/RequestApprove', async (req, res) => {
     const { userData, expense_type, amount, reason, employee_id, action_type, id, status } = req.body;
     let decodedUserData = null;
@@ -331,7 +331,7 @@ router.post('/amountCount', async (req, res) => {
 
 
 // expenses edit 
-// app cheak A
+// app cheak A / web cheak A
 router.post('/expensesEdit', async (req, res) => {
 
     const { userData, id, expense_type, amount, reason, expense_date, document } = req.body;

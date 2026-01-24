@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../../DB/ConnectionSql');
 
-
+// web cheak A
 router.post('/api/BankDetails', async (req, res) => {
     try {
         const { userData } = req.body;
@@ -44,7 +44,7 @@ router.post('/api/BankDetails', async (req, res) => {
         res.status(500).json({ status: false, error: 'Server error', message: err.message });
     }
 });
-
+// web cheak A 
 router.post("/api/UpdateBankDetails", (req, res) => {
     const { id, bank, branch, city, ifsc, account_number, date_of_Joining, account_holder_name, upi, last_day, userData } = req.body;
 
@@ -90,7 +90,7 @@ router.post("/api/UpdateBankDetails", (req, res) => {
     );
 });
 
-
+// web cheak A
 router.post("/api/UpdateSalary", async (req, res) => {
     const { id, increment_percent, newSalary, reason, userData } = req.body;
 
@@ -164,7 +164,7 @@ router.post("/api/UpdateSalary", async (req, res) => {
 });
 
 
-
+// web cheak A
 router.post("/api/salaryLog", async (req, res) => {
     const { id, userData } = req.body;
 

@@ -4,6 +4,7 @@ const db = require('../../DB/ConnectionSql');
 const { AdminCheck } = require('../../model/functlity/AdminCheck');
 
 // Attendance Settings API
+// web cheak A
 router.post('/api/Attendance_settings', async (req, res) => {
     const { userData, multi_Attendance_approve, Type } = req.body;
     if (!userData) {
@@ -76,6 +77,7 @@ router.post('/api/Attendance_settings', async (req, res) => {
 });
 
 // Get Value
+// web cheak A
 router.post('/api/GetAttendanceValue', async (req, res) => {
     const { userData, Type } = req.body;
     if (!userData) {

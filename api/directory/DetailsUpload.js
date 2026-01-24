@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../../DB/ConnectionSql');
 const { AdminCheck } = require('../../model/functlity/AdminCheck');
-
+// web cheak A
 router.post('/FamilyDoc/submit', async (req, res) => {
     try {
         const { data, type, CheckId } = req.body;
@@ -107,7 +107,7 @@ router.get("/FamilyDoc", (req, res) => {
     });
 });
 
-
+// web cheak A 
 router.post('/api/Update', (req, res) => {
     const { type, id, name, relation, dob, contact, userData } = req.body;
 
@@ -140,7 +140,7 @@ router.post('/api/Update', (req, res) => {
     });
 
 });
-
+// web cheak 
 router.post('/api/Delete', (req, res) => {
     const { id, userData } = req.body;
 

@@ -104,7 +104,7 @@ WHERE e.id = ? AND e.company_id = ?`;
 
 
 
-
+// web cheak A
 router.get('/api/documentGet', async (req, res) => {
     const { userData, data } = req.query;
     let EmployeeId = null;
@@ -181,7 +181,7 @@ router.get('/api/documentGet', async (req, res) => {
         });
     });
 })
-
+// web cheak A
 router.post('/api/documentUpdate', async (req, res) => {
     try {
         const { userData, id, status } = req.body;

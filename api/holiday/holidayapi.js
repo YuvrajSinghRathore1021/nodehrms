@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const db = require("../../DB/ConnectionSql");
 
-// app cheak A
+// app cheak A / web cheak A
 router.post("/holiday", (req, res) => {
   const { date, holiday, userData, holiday_type, half_day_type, status } = req.body;
 
@@ -123,7 +123,7 @@ router.post("/holiday", (req, res) => {
 });
 
 // Holiday Update
-// app cheak A
+// app cheak A / web cheak A
 router.post("/HolidayUpdate", (req, res) => {
   const { id, holiday, date, userData, holiday_type, half_day_type, status } = req.body;
 
@@ -241,7 +241,7 @@ router.post("/HolidayUpdate", (req, res) => {
 });
 
 // HoliDay Delete
-// app cheak A
+// app cheak A / web cheak A
 router.post("/holidaydelete", (req, res) => {
   const { id, userData } = req.body;
   if (!id) {
@@ -289,7 +289,7 @@ router.post("/holidaydelete", (req, res) => {
     }
   );
 });
-
+// web cheak A
 router.get("/holidayfetch", (req, res) => {
   const limit = parseInt(req.query.limit, 10) || 10;
   const page = parseInt(req.query.page, 10) || 1;
@@ -355,7 +355,7 @@ router.get("/holidayfetch", (req, res) => {
   );
 });
 
-
+// web cheak A 
 router.get("/HolidayCalender", (req, res) => {
   const { userData, date } = req.query;
   let currentMonth = null;

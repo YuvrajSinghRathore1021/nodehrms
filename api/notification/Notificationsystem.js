@@ -6,7 +6,7 @@ const { ConsoleMessage } = require('puppeteer');
 const db = require('../../DB/ConnectionSql');
 const Redis = require('redis');
 const { getEmployeeProfile } = require('../../helpers/getEmployeeProfile');
-// app cheak A
+// app cheak A / web cheak A
 router.post('/send', (req, res) => {
     const { userData, receiver_id, page_url, img_url, title, message, notification_type } = req.body;
 
@@ -74,7 +74,7 @@ router.post('/send', (req, res) => {
         res.status(200).send({ success: true, notification });
     });
 });
-// app cheak A
+// app cheak A / web cheak A
 router.post('/sendmessage', (req, res) => {
     const { userData, receiver_id, page_url, img_url, title, message, notification_type } = req.body;
 
@@ -132,7 +132,7 @@ router.post('/sendmessage', (req, res) => {
         res.status(200).send({ success: true, notification });
     });
 });
-// app cheak A
+// app cheak A / web cheak A
 router.post('/NotificationGet', (req, res) => {
     const { userData, notification_type = '' } = req.body;
     let decodedUserData = null;
@@ -156,7 +156,7 @@ router.post('/NotificationGet', (req, res) => {
         return res.status(200).json({ status: true, data: results, message: 'Notification fetched successfully' });
     });
 });
-// app cheak A
+// app cheak A / web cheak A
 router.post("/announcementGet", (req, res) => {
     const { userData, notification_type = "message" } = req.body;
 
