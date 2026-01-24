@@ -7,9 +7,9 @@ const jwt = require("jsonwebtoken");
 const path = require("path");
 
 const app = express();
-// localhost
+// // localhost
 // const server = http.createServer(app);
-// live 
+//// live 
 const fs = require('fs');
 const https = require('https');
 
@@ -335,15 +335,15 @@ io.on("connection", (socket) => {
 });
 
 // ///================== SERVER START  Local==================
-server.listen(2100, "0.0.0.0", () => {
-    console.log("🚀 Server running on http://localhost:2100");
-});
+// server.listen(2100, "0.0.0.0", () => {
+//     console.log("🚀 Server running on http://localhost:2100");
+// });
 
 // ///================== SERVER START  Live==================
-// const PORT = process.env.PORT || 2100;
-// server.listen(PORT, '0.0.0.0', () => {
-//     console.log(`✅ HTTPS Server running at https://0.0.0.0:${PORT}`);
-// });
+const PORT = process.env.PORT || 2100;
+server.listen(PORT, '::', () => {
+    console.log(`✅ HTTPS Server running at https://0.0.0.0:${PORT}`);
+});
 
 
 

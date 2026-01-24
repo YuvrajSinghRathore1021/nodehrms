@@ -78,7 +78,7 @@ exports.getEmployeeProfile = async ({ userData, CheckId, reload = false }) => {
             interval_ms: 0,
             face_detection: 0,
             live_face_detection: 0,
-            branch_switch: 0,
+            branch_switch: 1,
             reload: 0,
             allow_relogin: 0,
             block_punch_in_out: 0,
