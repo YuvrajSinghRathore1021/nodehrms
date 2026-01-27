@@ -529,8 +529,8 @@ router.post('/api/AttendancePending', async (req, res) => {
                     const PendingFor = await PendingForFunction(ApprovalRequests_id);
                     // ✅ Only push pending data if NOT holiday, NOT weekly off, NOT approved leave
 
-                    // if (status !== 'WO' && status !== 'H' && !isLeave && attendance_statusCheck !== 1 && request_id == 0) { ////proper 
-                    if ((companyId !== 10 && status !== 'WO' && status !== 'H' && !isLeave && attendance_statusCheck !== 1 && request_id == 0) || (companyId == 10 && !isLeave && attendance_statusCheck !== 1 && request_id == 0)) {
+                    if (status !== 'WO' && status !== 'H' && !isLeave && attendance_statusCheck !== 1 && request_id == 0) { ////proper 
+                        // if ((companyId !== 10 && status !== 'WO' && status !== 'H' && !isLeave && attendance_statusCheck !== 1 && request_id == 0) || (companyId == 10 && !isLeave && attendance_statusCheck !== 1 && request_id == 0)) {
                         monthlyAttendanceLogs.push({
                             name: employee.first_name,
                             userId: employee.employee_id,

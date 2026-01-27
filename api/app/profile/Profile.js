@@ -3,6 +3,7 @@ const router = express.Router();
 const cors = require('cors');
 const db = require('../../../DB/ConnectionSql');
 router.use(cors());
+
 // app cheak A / web cheak A
 router.post('/api/fetchDetails', (req, res) => {
     const { userData, type, UserId } = req.body;
