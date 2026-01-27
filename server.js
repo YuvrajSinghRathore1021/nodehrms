@@ -97,7 +97,6 @@ const authenticateToken = (req, res, next) => {
 };
 
 // ================== ROUTES ==================
-const api1 = require('./api/homePage/HomeApi');
 const uplodefile = require('./api/homePage/Uplodefile');
 const loginSinup = require('./api/homePage/loginSinup');
 const Attendance = require('./api/attendance/Attendance');
@@ -154,7 +153,6 @@ const notificationRoutes = require("./api/firebase/firebasenotification");
 
 //////url
 app.use("/api/notification", notificationRoutes);
-app.use('/api1', authenticateToken, api1);
 app.use('/Company', authenticateToken, CompanyAdd);
 app.use('/Admin', authenticateToken, AdminPage);
 app.use('/Attendance', authenticateToken, Attendance);
