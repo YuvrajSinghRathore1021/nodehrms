@@ -83,69 +83,6 @@ router.post('/api/attendancerulesEdit', async (req, res) => {
     });
 });
 
-router.post('/api/attendancerules', async (req, res) => {
-    const { userData,
-        rule_name,
-        rule_description,
-        in_time,
-        out_time,
-        max_working_hours,
-        in_grace_period_minutes,
-        out_grace_period_minutes,
-        half_day,
-        total_break_duration,
-        overtime_rate,
-        max_overtime_hours,
-        leave_approval_required, rule_id
-    } = req.body;
-
-    let decodedUserData = null;
-
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            // decodedUserData=userData;
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    }
-
-    const company_id = decodedUserData.company_id;
-    // Server-side validation
-    if (!company_id || !rule_name || !in_time || !out_time || max_working_hours <= 0 || overtime_rate <= 0 || max_overtime_hours < 0) {
-        return res.status(400).json({ status: false, message: 'Invalid input data' });
-    }
-    const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
-    if (isAdmin === false) {
-        return res.status(200).json({
-            status: false,
-            error: 'You do not have access to this functionality', message: 'You do not have access to this functionality'
-        });
-    }
-
-
-    const query = `INSERT INTO attendance_rules (
-  company_id, rule_name, rule_description, in_time, out_time, max_working_hours, 
-  in_grace_period_minutes, out_grace_period_minutes, half_day, total_break_duration, 
- overtime_rate, max_overtime_hours, leave_approval_required
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-
-    const values = [
-        company_id, rule_name, rule_description, in_time, out_time, max_working_hours,
-        in_grace_period_minutes, out_grace_period_minutes, half_day, total_break_duration,
-        overtime_rate, max_overtime_hours, leave_approval_required
-    ];
-
-    db.query(query, values, (err, result) => {
-        if (err) {
-            console.error('Error inserting data: ' + err.stack);
-            return res.status(500).json({ status: false, message: 'Database error' });
-        }
-        res.status(200).json({ status: true, message: 'Data inserted successfully', result });
-    });
-});
-
 
 // web cheak A
 router.get('/api/fetchDetails', async (req, res) => {
@@ -294,6 +231,7 @@ router.get('/api/fetchType', async (req, res) => {
         });
     });
 });
+
 // web cheak A
 router.post('/api/AddType', async (req, res) => {
     const { name, userData } = req.body;
@@ -333,7 +271,7 @@ router.post('/api/AddType', async (req, res) => {
     );
 });
 
-// Deleteapi
+// Deleteapi web check y
 router.post('/api/Deleteapi', (req, res) => {
     const { id, userData } = req.body;
     let decodedUserData = null;
@@ -577,19 +515,6 @@ router.post('/api/Update', async (req, res) => {
         }
         res.json({ status: true, message: 'Update successful', data: results });
     });
-});
-
-// get ip 
-
-// router.post('/api/DeleteapiIp', (req, res) => {
-//     const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-//     res.json({ ip });
-// });
-
-router.post('/api/DeleteapiIp', (req, res) => {
-    const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-    const cleanIp = ip.split(',')[0];
-    res.json({ ip: cleanIp });
 });
 
 // Export the router

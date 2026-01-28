@@ -1,45 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 const cors = require('cors');
 const db = require('../../DB/ConnectionSql');
 router.use(cors());
 
-const uploadsDir = path.join(__dirname, 'uploads');
 
-// Create uploads directory if it doesn't exist
-if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir);
-}
-
-// Configure multer storage
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, uploadsDir);
-    },
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + path.extname(file.originalname));
-    }
-});
-
-// File type filtering
-const upload = multer({
-    storage: storage,
-    fileFilter: (req, file, cb) => {
-        const filetypes = /jpeg|jpg|png|gif/;
-        const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-        const mimetype = filetypes.test(file.mimetype);
-
-        if (mimetype && extname) {
-            return cb(null, true);
-        }
-        cb(new Error(`Error: File upload only supports the following file types - ${filetypes}`));
-    }
-});
-
-// Route to handle company submissions
 
 // app cheak A / web cheak A
 router.post('/api/Add', async (req, res) => {
@@ -153,7 +118,7 @@ router.post('/api/Add', async (req, res) => {
 
 // app cheak A / web cheak A
 router.post('/api/Employeesdirectory', async (req, res) => {
-    const { userData, id, platformType, type, limit = 10, page = 1, searchData = "", company_id, departmentId = 0, subDepartmentid = 0, employeeStatus = 1,empType="" } = req.body;
+    const { userData, id, platformType, type, limit = 10, page = 1, searchData = "", company_id, departmentId = 0, subDepartmentid = 0, employeeStatus = 1, empType = "" } = req.body;
     let search = searchData;
 
     let decodedUserData = null;
@@ -189,7 +154,7 @@ router.post('/api/Employeesdirectory', async (req, res) => {
     if (departmentId && departmentId != 0) {
         searchClause += ` AND a.department = ?`;
         queryParams.push(departmentId);
-    }  if (subDepartmentid && subDepartmentid != 0) {
+    } if (subDepartmentid && subDepartmentid != 0) {
         searchClause += ` AND a.sub_department = ?`;
         queryParams.push(subDepartmentid);
     }
@@ -199,9 +164,9 @@ router.post('/api/Employeesdirectory', async (req, res) => {
         searchClause += ` AND (a.employee_status=0 or a.status=0 or a.delete_status=1) `;
     }
 
-    if(empType=="newemployees"){
+    if (empType == "newemployees") {
         // add_stamp
-          searchClause += ` AND a.add_stamp >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)`;
+        searchClause += ` AND a.add_stamp >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)`;
     }
 
 
@@ -271,13 +236,13 @@ router.post('/api/Employeesdirectory', async (req, res) => {
         if (search && search.trim() !== '') {
             const searchValue = `%${search}%`;
             countParams.push(searchValue, searchValue, searchValue, searchValue, searchValue);
-        } 
+        }
         if (departmentId && departmentId != 0) {
             countParams.push(departmentId);
-        }  if (subDepartmentid && subDepartmentid != 0) {
+        } if (subDepartmentid && subDepartmentid != 0) {
             countParams.push(subDepartmentid);
         }
-        
+
 
 
         const [countResults] = await db.promise().query(countQuery, countParams);
@@ -547,6 +512,8 @@ WHERE e.id = ?`;
 
     });
 });
+
+/// //comman api
 router.post("/ToggleStatus", (req, res) => {
     const { whereValue, table, updateColumn, status, whereColumn, userData } = req.body;
     let decodedUserData = null;

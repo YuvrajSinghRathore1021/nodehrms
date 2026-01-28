@@ -99,70 +99,72 @@ router.post('/api/Add', async (req, res) => {
     });
 });
 
+//remove 
+// router.post('/api/Edit', async (req, res) => {
+//     const {
+//         company_name,
+//         owner_name,
+//         industry,
+//         headquarters,
+//         website,
+//         phone_number,
+//         email,
+//         address,
+//         editId,
+//         member, logo
+//     } = req.body;
 
-router.post('/api/Edit', async (req, res) => {
-    const {
-        company_name,
-        owner_name,
-        industry,
-        headquarters,
-        website,
-        phone_number,
-        email,
-        address,
-        editId,
-        member, logo
-    } = req.body;
+//     // Check for required fields
+//     if (!company_name || !owner_name || !industry || !phone_number || !email || !address || !editId) {
+//         return res.status(400).json({ status: false, message: 'All fields are required.' });
+//     }
 
-    // Check for required fields
-    if (!company_name || !owner_name || !industry || !phone_number || !email || !address || !editId) {
-        return res.status(400).json({ status: false, message: 'All fields are required.' });
-    }
+//     // Get the new logo filename if it exists
+//     const newLogo = logo ? logo : null;
 
-    // Get the new logo filename if it exists
-    const newLogo = logo ? logo : null;
+//     // Fetch the current logo from the database
+//     db.query('SELECT logo FROM companies WHERE id = ?', [editId], (err, results) => {
+//         if (err) {
+//             console.error(err);
+//             return res.status(500).json({
+//                 status: false,
+//                 message: 'Failed to fetch current logo.',
+//                 error: err.message
+//             });
+//         }
 
-    // Fetch the current logo from the database
-    db.query('SELECT logo FROM companies WHERE id = ?', [editId], (err, results) => {
-        if (err) {
-            console.error(err);
-            return res.status(500).json({
-                status: false,
-                message: 'Failed to fetch current logo.',
-                error: err.message
-            });
-        }
+//         // Check if the company exists
+//         if (results.length === 0) {
+//             return res.status(404).json({ status: false, message: 'Company not found.' });
+//         }
 
-        // Check if the company exists
-        if (results.length === 0) {
-            return res.status(404).json({ status: false, message: 'Company not found.' });
-        }
-
-        // Use the existing logo if no new logo is uploaded
-        const currentLogo = results[0].logo;
-        const logoToUse = newLogo || currentLogo;
-        // Update company details
-        db.query(
-            'UPDATE companies SET company_name = ?,member = ?, owner_name = ?, industry = ?, headquarters = ?, website = ?, phone_number = ?, email = ?, address = ?, logo = ? WHERE id = ?',
-            [company_name, member, owner_name, industry, headquarters, website, phone_number, email, address, logoToUse, editId],
-            (err) => {
-                if (err) {
-                    console.error(err);
-                    return res.status(500).json({
-                        status: false,
-                        message: 'Failed to edit company.',
-                        error: err.message
-                    });
-                }
-                return res.status(200).json({
-                    status: true,
-                    message: 'Company edited successfully.'
-                });
-            }
-        );
-    });
-});
+//         // Use the existing logo if no new logo is uploaded
+//         const currentLogo = results[0].logo;
+//         const logoToUse = newLogo || currentLogo;
+//         // Update company details
+//         db.query(
+//             'UPDATE companies SET company_name = ?,member = ?, owner_name = ?, industry = ?, headquarters = ?, website = ?, phone_number = ?, email = ?, address = ?, logo = ? WHERE id = ?',
+//             [company_name, member, owner_name, industry, headquarters, website, phone_number, email, address, logoToUse, editId],
+//             (err) => {
+//                 if (err) {
+//                     console.error(err);
+//                     return res.status(500).json({
+//                         status: false,
+//                         message: 'Failed to edit company.',
+//                         error: err.message
+//                     });
+//                 }
+//                 return res.status(200).json({
+//                     status: true,
+//                     message: 'Company edited successfully.'
+//                 });
+//             }
+//         );
+//     });
+// });
 // web cheak A
+
+/// check web y
 router.post('/api/UploadLogo', async (req, res) => {
     const { userData, logo } = req.body;
     let decodedUserData = null;
@@ -895,158 +897,6 @@ router.post('/api/GetCompanyLogo', async (req, res) => {
 });
 
 
-router.post('/api/SocialLink', async (req, res) => {
-
-    const { userData, instagram, facebook, linkedin, type } = req.body;
-    let decodedUserData = null;
-
-    // Decode and parse userData
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    }
-
-    // Validate required user data fields
-    if (!decodedUserData || !decodedUserData.id || !decodedUserData?.company_id) {
-        return res.status(400).json({
-            status: false,
-            error: 'Invalid user data. Employee ID and Company ID are required.'
-        });
-    }
-
-    // Prepare the query and data array
-    let query = "SELECT instagram, facebook, linkedin FROM social_profile WHERE company_id = ?";
-    let dataArray = [decodedUserData.company_id];
-
-    if (type === 'Company_Profile') {
-        query += " AND type = ?";
-        dataArray.push(type);
-    } else {
-        query += " AND employee_id = ?";
-        dataArray.push(decodedUserData.id);
-    }
-
-    // Execute the database query
-    db.query(query, dataArray, (err, results) => {
-        if (err) {
-            return res.status(500).json({
-                status: false,
-                message: 'Database error.',
-                error: err
-            });
-        }
-
-        if (results.length === 0) {
-            // Insert new social profile
-            db.query(
-                `INSERT INTO social_profile (company_id, employee_id, instagram, facebook, linkedin, type) 
-                 VALUES (?, ?, ?, ?, ?, ?)`,
-                [decodedUserData.company_id, decodedUserData.id, instagram, facebook, linkedin, type],
-                (err) => {
-                    if (err) {
-                        return res.status(500).json({
-                            status: false,
-                            message: 'Failed to add Social Profile.',
-                            error: err
-                        });
-                    }
-                    return res.status(200).json({
-                        status: true,
-                        message: 'Social Profile added successfully.'
-                    });
-                }
-            );
-        } else {
-            // Update existing social profile
-            db.query(
-                `UPDATE social_profile 
-                 SET instagram = ?, facebook = ?, linkedin = ?, type = ? 
-                 WHERE company_id = ? AND employee_id = ?`,
-                [instagram, facebook, linkedin, type, decodedUserData.company_id, decodedUserData.id],
-                (err) => {
-                    if (err) {
-                        return res.status(500).json({
-                            status: false,
-                            message: 'Failed to update Social Profile.',
-                            error: err
-                        });
-                    }
-                    return res.status(200).json({
-                        status: true,
-                        message: 'Social Profile updated successfully.'
-                    });
-                }
-            );
-        }
-    });
-});
-
-router.post('/api/GetSocialLink', async (req, res) => {
-    const { userData, type } = req.body;
-    let decodedUserData = null;
-
-    // Decode and parse userData
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    }
-
-    // Validate required user data fields
-    if (!decodedUserData || !decodedUserData.id || !decodedUserData?.company_id) {
-        return res.status(400).json({
-            status: false,
-            error: 'Invalid user data. Employee ID and Company ID are required.'
-        });
-    }
-
-    // Prepare the query and data array
-    let query = "SELECT instagram, facebook, linkedin FROM social_profile WHERE company_id = ?";
-    let dataArray = [decodedUserData.company_id];
-
-    if (type === 'Company_Profile') {
-        query += " AND type = ?";
-        dataArray.push(type);
-    } else {
-        query += " AND employee_id = ?";
-        dataArray.push(decodedUserData.id);
-    }
-
-    // Execute the database query
-    db.query(query, dataArray, (err, results) => {
-        if (err) {
-            return res.status(500).json({
-                status: false,
-                message: 'Database error.',
-                error: err
-            });
-        }
-        if (results.length === 0) {
-            return res.status(200).json({
-                status: false,
-                data: [],
-                message: 'No data Found.'
-            });
-        } else {
-            return res.status(200).json({
-                status: true,
-                data: results,
-                message: 'Social Profile Get.'
-            });
-        }
-    });
-});
-
-
-
-
 
 // app cheak A / web cheak A
 router.post('/employee-hierarchyTeam', (req, res) => {
@@ -1395,50 +1245,7 @@ router.post("/BranchAdd", (req, res) => {
 });
 
 
-router.post('/assign-manager', async (req, res) => {
-    const {
-        employeeId,
-        userData,
-        managerId
-    } = req.body;
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    }
-    if (!decodedUserData || !decodedUserData.id) {
-        return res.status(400).json({ status: false, error: 'Employee ID is required' });
-    }
-    // Check for required fields
-    if (!employeeId || !managerId) {
-        return res.status(400).json({ status: false, message: 'All fields are required.' });
-    }
 
-
-    // Fetch the current logo from the database
-    db.query(
-        'UPDATE employees SET reporting_manager = ? WHERE id = ? and company_id=?',
-        [managerId, employeeId, decodedUserData.company_id],
-        (err) => {
-            if (err) {
-                console.error(err);
-                return res.status(500).json({
-                    status: false,
-                    message: 'Failed to edit company.',
-                    error: err.message
-                });
-            }
-            return res.status(200).json({
-                status: true,
-                message: 'Manager Update successfully.'
-            });
-        }
-    );
-});
 // web cheak A
 router.post('/assign-manager-bulk', async (req, res) => {
     const { employeeId, userData, managerId } = req.body;

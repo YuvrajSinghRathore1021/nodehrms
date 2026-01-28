@@ -163,43 +163,6 @@ router.post('/api/AddType', async (req, res) => {
 
 
 
-// Deleteapi
-router.post('/api/Deleteapi', (req, res) => {
-    const { id, userData } = req.body;
-    let decodedUserData = null;
-
-    // Decode userData
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    }
-
-    const company_id = decodedUserData.company_id;
-
-    if (!id || !company_id) {
-        return res.status(400).json({ status: false, message: 'ID is required.' });
-    }
-
-    db.query(
-        'DELETE FROM attendance_rules WHERE rule_id = ? AND company_id=?',
-        [id, company_id],
-        (err, results) => {
-            if (err) {
-                return res.status(500).json({ status: false, message: 'Error updating leave.', error: err.message });
-            }
-            if (results.affectedRows === 0) {
-                return res.status(200).json({ status: false, message: 'Type not found or no changes made.' });
-            }
-            return res.status(200).json({ status: true, message: 'Data deleted successfully' });
-        }
-    );
-});
-
-
 // web cheak A
 router.post('/api/Submithandle', async (req, res) => {
     const { Id, userData, Formvalue, structureData } = req.body;
@@ -812,7 +775,7 @@ function formatDate(date) {
     return `${year}-${month}-${day}`;
 }
 
-// api 
+// api web cheak y
 router.post('/api/AddType', async (req, res) => {
     const { name, userData } = req.body;
     let decodedUserData = null;

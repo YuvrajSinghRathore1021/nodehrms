@@ -118,4 +118,5 @@ router.post('/api/GetAttendanceValue', async (req, res) => {
         return res.status(500).json({ status: false, error: 'Internal server error' });
     }
 });
+
 module.exports = router;

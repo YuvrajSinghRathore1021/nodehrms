@@ -44,6 +44,7 @@ router.post('/api/fetchType', async (req, res) => {
 
     });
 });
+
 // app cheak A
 router.post('/api/fetchDetailsWorkWeek', async (req, res) => {
     const { userData } = req.body;

@@ -5,7 +5,7 @@ const router = express.Router();
 const db = require('../../DB/ConnectionSql');
 const { AdminCheck } = require('../../model/functlity/AdminCheck');
 const { assign } = require('nodemailer/lib/shared');
-
+// web check y
 router.get('/api/fetchDetails', async (req, res) => {
     const { userData, UserId } = req.query;
     let decodedUserData = null;
@@ -123,12 +123,6 @@ router.post('/api/fetchUserWorkWeekDetails', async (req, res) => {
         });
     });
 });
-
-
-
-
-
-
 
 
 // web cheak A
@@ -294,6 +288,7 @@ router.post('/api/work_weekEdit', async (req, res) => {
         return res.status(200).json({ status: true, message: 'Data updated successfully', result });
     });
 });
+
 // web cheak A
 router.post('/api/Deleteapi', async (req, res) => {
     return res.json({ status: true, message: 'Coming soon' });
@@ -455,54 +450,7 @@ router.get('/api/data', async (req, res) => {
     });
 })
 
-router.post('/api/GetCompanyRule', async (req, res) => {
-    const { userData } = req.body;
-    let decodedUserData = null;
 
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    }
-    // console.log(decodedUserData);
-    if (!decodedUserData.company_id) {
-        return res.status(400).json({ status: false, error: 'Company ID is missing or invalid' });
-    }
-
-    const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
-
-    if (isAdmin === false) {
-        return res.status(200).json({
-            status: false,
-            error: 'You do not have access to this functionality', message: 'You do not have access to this functionality'
-        });
-    }
-
-    db.query(
-        'SELECT id AS rule_id,rule_name FROM work_week WHERE company_id = ?',
-        [decodedUserData.company_id],
-        (err, results) => {
-            if (err) {
-                return res.status(500).json({
-                    status: false,
-                    message: 'Database error occurred while fetching department details',
-                    error: err.message || err
-                });
-            }
-            if (results.length === 0) {
-                return res.status(200).json({ status: false, message: 'No Attendance Rules found for this company' });
-            }
-            res.json({
-                status: true,
-                data: results
-            });
-        }
-    );
-
-});
 // app cheak A / web cheak A
 router.post('/api/Update', async (req, res) => {
     const { id, rule_id, userData } = req.body;
