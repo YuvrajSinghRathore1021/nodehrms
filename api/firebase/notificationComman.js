@@ -17,7 +17,7 @@ const sendNotification = async ({
     type = "default",
     screen = "",
     chatId = 0,
-    employeeIds = []
+    employeeIds = []///[1,2,3]
 }) => {
     if (!employeeIds || employeeIds.length === 0) {
         throw new Error("employeeIds required");

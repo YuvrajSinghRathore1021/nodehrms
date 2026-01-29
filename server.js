@@ -29,7 +29,7 @@ const { createAdapter } = require("@socket.io/redis-adapter");
 // ================== DB & HELPERS ==================
 const db = require("./DB/ConnectionSql");
 const { getEmployeeProfile } = require("./helpers/getEmployeeProfile");
-require("./autorun/cron");
+// require("./autorun/cron");
 
 // ================== MIDDLEWARE ==================
 app.use(cors());
@@ -245,9 +245,7 @@ io.on("connection", (socket) => {
     socket.on("sendLocation", async (data) => {
         const userId = data.employee_id || socket.userId;
         const company_id = socket.company_id;
-
         if (!userId || !company_id) return;
-
         const locationData = {
             employee_id: userId,
             company_id,

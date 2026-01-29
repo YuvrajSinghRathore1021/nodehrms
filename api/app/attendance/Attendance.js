@@ -29,7 +29,6 @@ const PendingForFunction = async (ReqId) => {
     if (ReqId == '') {
         return 'Get Approve';
     }
-
     try {
         const [PendingFor] = await db.promise().query(
             `SELECT id, rm_status, rm_id, rm_remark, admin_id, admin_status FROM attendance_requests WHERE id = ?`,
@@ -1268,6 +1267,103 @@ router.post('/api/attendanceRequestCount', async (req, res) => {
         res.status(500).json({ status: false, message: "Something went wrong", error: err.message });
     }
 });
+
+// ///web cheak y
+
+
+router.post('/api/attendanceRequestRm', async (req, res) => {
+    const { userData, startDate = "", endDate = "" ,page = 1, limit = 10, search = "" } = req.body;
+
+    const decoded = decodeUserData(userData);
+    if (!decoded?.id || !decoded?.company_id) {
+        return res.status(400).json({ status: false, message: "Invalid user" });
+    }
+
+    try {
+        // 🔹 STEP 1: Get all employees under this RM
+        // const empQuery = `
+        //     SELECT 
+        //         id,
+        //         CONCAT(first_name,' ',last_name) AS name
+        //     FROM employees
+        //     WHERE  company_id = ?
+        //         AND employee_status = 1
+        //         AND status = 1
+        //         AND delete_status = 0
+        // `;
+        const empQuery = `
+    SELECT 
+        Emp.id,
+        CONCAT(Emp.first_name,' ',Emp.last_name) AS name
+    FROM employees Emp
+    WHERE 
+        Emp.company_id = ?
+        AND Emp.employee_status = 1
+        AND Emp.status = 1
+        AND Emp.delete_status = 0
+        AND EXISTS (
+            SELECT 1
+            FROM attendance_requests AR
+            WHERE 
+                AR.employee_id = Emp.id
+                AND AR.company_id = Emp.company_id
+                AND AR.rm_status = 0
+        )
+`;
+
+        console.log("Employees under:", empQuery);
+
+        const [employees] = await db.promise().query(empQuery, [decoded.company_id]);
+
+        const finalData = [];
+
+        // 🔹 STEP 2: Fetch requests employee-wise
+        for (const emp of employees) {
+            let reqWhere = `
+                AR.employee_id = ?
+                AND AR.company_id = ?
+                AND AR.rm_status = 0
+            `;
+            let params = [emp.id, decoded.company_id];
+
+            if (startDate && endDate) {
+                reqWhere += ` AND AR.request_date BETWEEN ? AND ?`;
+                params.push(startDate, endDate);
+            }
+
+            const reqQuery = `
+                SELECT  AR.id, AR.request_date,  CONCAT(E.first_name,' ',E.last_name) AS name
+                FROM attendance_requests AR
+                JOIN employees E ON E.id = AR.employee_id
+                WHERE ${reqWhere}
+                ORDER BY AR.request_date DESC
+            `;
+console.log("reqQuery :", reqQuery);
+            const [requests] = await db.promise().query(reqQuery, params);
+
+            finalData.push({
+                id: emp.id,
+                name: emp.name,
+                requests: requests.length,
+                requests_data: requests
+            });
+        }
+
+        return res.json({
+            status: true,
+            data: finalData
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({
+            status: false,
+            message: "Server error",
+            error: err.message
+        });
+    }
+});
+
 
 
 
