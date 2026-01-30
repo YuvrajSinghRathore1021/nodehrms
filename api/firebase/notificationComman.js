@@ -1,31 +1,88 @@
-// await sendNotification({
-//     employeeIds: [1, 2, 3],
-//     title: "New Message",
-//     body: "You have a new notification",
-//     type: "chat_message",
-//     screen: "ChatScreen",
-//     chatId: 99
-// });
+
 
 const admin = require("./firebase");
-const db = require('../../DB/ConnectionSql');
+const db = require("../../DB/ConnectionSql");
+
+/**
+ * Send FCM notification to employees
+ */
+
 
 const sendNotification = async ({
-    title = "Default Title",
-    body = "Default message",
-    image,
+    employeeIds = [],
+    title = "Notification",
+    date = "",
+    notificationType,
     type = "default",
+    image = "",
     screen = "",
-    chatId = 0,
-    employeeIds = []///[1,2,3]
+    chatId = 0, body = "",
 }) => {
-    if (!employeeIds || employeeIds.length === 0) {
+
+    // -----------------------------
+    // ✅ Normalize employeeIds
+    // -----------------------------
+    if (typeof employeeIds === "string") {
+        employeeIds = employeeIds.split(",").map(id => Number(id));
+    }
+
+    if (typeof employeeIds === "number") {
+        employeeIds = [employeeIds];
+    }
+
+    if (!Array.isArray(employeeIds) || employeeIds.length === 0) {
         throw new Error("employeeIds required");
     }
 
-    // 🔹 Get all FCM tokens
+    // -----------------------------
+    // ✅ Notification bodyNew by type
+    // -----------------------------
+    let bodyNew = body ? body : "You have a new notification";
+    if (body == "") {
+        switch (notificationType) {
+            case "attendance_requests":
+                bodyNew = `New attendance request${date ? ` for ${date}` : ""}`;
+                break;
+
+            case "leave_requests":
+                bodyNew = `New leave request${date ? ` from ${date}` : ""}`;
+                break;
+
+            case "attendance_approval":
+                bodyNew = `Your attendance has been approved${date ? ` for ${date}` : ""}`;
+                break;
+
+            case "leave_approval":
+                bodyNew = `Your leave has been approved`;
+                break;
+
+            case "task_assigned":
+                bodyNew = `A new task has been assigned to you`;
+                break;
+
+            case "task_updated":
+                bodyNew = `Your task has been updated`;
+                break;
+
+            case "general_notification":
+                bodyNew = title;
+                break;
+
+            default:
+                bodyNew = title;
+        }
+    }
+
+    // -----------------------------
+    // ✅ Fetch FCM tokens
+    // -----------------------------
     const [employees] = await db.promise().query(
-        `SELECT fcm_token  FROM employees  WHERE id IN (?)    AND fcm_token IS NOT NULL    AND fcm_token != ''`, [employeeIds]
+        `SELECT fcm_token 
+         FROM employees 
+         WHERE id IN (?) 
+         AND fcm_token IS NOT NULL 
+         AND fcm_token != ''`,
+        [employeeIds]
     );
 
     if (!employees.length) {
@@ -37,16 +94,19 @@ const sendNotification = async ({
 
     const tokens = employees.map(e => e.fcm_token);
 
+    // -----------------------------
+    // ✅ FCM Payload
+    // -----------------------------
     const message = {
-        tokens, // 👈 MULTIPLE TOKENS
+        tokens,
         notification: {
             title,
-            body,
+            body: bodyNew,
             ...(image && { image })
         },
         data: {
-            type,
-            screen,
+            type: String(type),
+            screen: String(screen),
             chatId: String(chatId)
         },
         android: {
@@ -63,6 +123,9 @@ const sendNotification = async ({
         }
     };
 
+    // -----------------------------
+    // ✅ Send Notification
+    // -----------------------------
     const response = await admin.messaging().sendEachForMulticast(message);
 
     return {
@@ -73,5 +136,3 @@ const sendNotification = async ({
 };
 
 module.exports = { sendNotification };
-
-

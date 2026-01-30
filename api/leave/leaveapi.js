@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../../DB/ConnectionSql");
-
+const { sendNotification } = require('../../api/firebase/notificationComman');
 
 // app cheak A / web cheak A
 router.post("/leave", async (req, res) => {
@@ -181,6 +181,15 @@ router.post("/leave", async (req, res) => {
         "INSERT INTO leaves (company_id,employee_id,leave_type, leave_rule_id, start_date, end_date, status, reason,rm_id,start_half,end_half) VALUES (?,?,?,?, ?, ?, ?, ?, ?,?,?)",
         [decodedUserData.company_id, employeeIdNew, leave_typeGet[0].leave_type, leave_type, start_date, end_date, 1, reason, RmIdValue, start_half, end_half]
       );
+      if (RmIdValue) {
+        await sendNotification({
+          employeeIds: RmIdValue ? [RmIdValue] : [],
+          title: "New Leave Request",
+          date: start_date,
+          notificationType: "leave_requests",
+          type: "recent_notifications",
+        });
+      }
     }
 
 

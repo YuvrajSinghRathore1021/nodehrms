@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../../../DB/ConnectionSql');
-// const { sendNotification } = require('../../../api/firebase/notificationComman');
+const { sendNotification } = require('../../../api/firebase/notificationComman');
 const decodeUserData = (userData) => {
     try {
         const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
@@ -366,12 +366,15 @@ router.post('/api/AttendanceReqSubmit', async (req, res) => {
             'INSERT INTO attendance_requests (attendance_id,rm_id, employee_id, company_id, request_type, request_date, in_time, out_time, reason,short_leave,short_leave_type,short_leave_reason) VALUES (?,?, ?, ?, ?, ?, ?, ?, ?,?,?,?)',
             [attendance_id, RmIdValue, employee_id, decodedUserData.company_id, request_type, request_date, in_time, out_time, reason, short_leave, short_leave_type, short_leave_reason]
         );
-        // await sendNotification({
-        //     employeeIds: [10],
-        //     title: "attendance_requests",
-        //     body: "attendance_requests",
-        //     type: "recent_notifications",
-        // });
+        if (RmIdValue) {
+            await sendNotification({
+                employeeIds: RmIdValue ? [RmIdValue] : [],
+                title: "New Attendance Request",
+                date: request_date,
+                notificationType: "attendance_requests",
+                type: "recent_notifications",
+            });
+        }
 
         res.json({ status: true, message: 'INSERT successful', data: insertResults });
     } catch (err) {
@@ -1271,87 +1274,157 @@ router.post('/api/attendanceRequestCount', async (req, res) => {
 // ///web cheak y
 
 
-router.post('/api/attendanceRequestRm', async (req, res) => {
-    const { userData, startDate = "", endDate = "" ,page = 1, limit = 10, search = "" } = req.body;
+// working 
+// router.post('/api/attendanceRequestRm', async (req, res) => {
+//     const { userData } = req.body;
+//     const decoded = decodeUserData(userData);
 
+//     if (!decoded?.company_id) {
+//         return res.status(400).json({ status: false, message: "Invalid user" });
+//     }
+
+//     try {
+//         const query = `
+//             SELECT 
+//                 RM.id AS rm_id,
+//                 CONCAT(RM.first_name,' ',RM.last_name) AS rm_name,
+//                 U.id AS user_id,
+//                 CONCAT(U.first_name,' ',U.last_name) AS user_name,
+//                 COUNT(AR.id) AS user_requests
+//             FROM attendance_requests AR
+//             JOIN employees U  ON U.id  = AR.employee_id
+//             JOIN employees RM ON RM.id = AR.rm_id
+//             WHERE 
+//                 AR.rm_id > 0
+//                 AND AR.rm_status = 0
+//                 AND AR.company_id = ?
+//             GROUP BY AR.rm_id, AR.employee_id
+//             ORDER BY rm_name
+//         `;
+
+//         const [rows] = await db.promise().query(query, [decoded.company_id]);
+
+//         // 🔁 Format data RM-wise
+//         const result = {};
+//         for (const r of rows) {
+//             if (!result[r.rm_id]) {
+//                 result[r.rm_id] = {
+//                     id: r.rm_id,
+//                     name: r.rm_name,
+//                     requests: 0,
+//                     requests_data: []
+//                 };
+//             }
+
+//             result[r.rm_id].requests += r.user_requests;
+//             result[r.rm_id].requests_data.push({
+//                 id: r.user_id,
+//                 name: r.user_name,
+//                 requests: r.user_requests,
+//                 status: "Pending"
+//             });
+//         }
+
+//         return res.json({
+//             status: true,
+//             data: Object.values(result)
+//         });
+
+//     } catch (err) {
+//         console.error(err);
+//         res.status(500).json({
+//             status: false,
+//             message: "Server error",
+//             error: err.message
+//         });
+//     }
+// });
+
+router.post('/api/attendanceRequestRm', async (req, res) => {
+    const { userData } = req.body;
     const decoded = decodeUserData(userData);
-    if (!decoded?.id || !decoded?.company_id) {
+
+    if (!decoded?.company_id) {
         return res.status(400).json({ status: false, message: "Invalid user" });
     }
 
     try {
-        // 🔹 STEP 1: Get all employees under this RM
-        // const empQuery = `
-        //     SELECT 
-        //         id,
-        //         CONCAT(first_name,' ',last_name) AS name
-        //     FROM employees
-        //     WHERE  company_id = ?
-        //         AND employee_status = 1
-        //         AND status = 1
-        //         AND delete_status = 0
-        // `;
-        const empQuery = `
-    SELECT 
-        Emp.id,
-        CONCAT(Emp.first_name,' ',Emp.last_name) AS name
-    FROM employees Emp
-    WHERE 
-        Emp.company_id = ?
-        AND Emp.employee_status = 1
-        AND Emp.status = 1
-        AND Emp.delete_status = 0
-        AND EXISTS (
-            SELECT 1
+        // 🔹 STEP 1: RM + USER WISE COUNT
+        const mainQuery = `
+            SELECT 
+                RM.id AS rm_id,
+                CONCAT(RM.first_name,' ',RM.last_name) AS rm_name,
+
+                U.id AS user_id,
+                CONCAT(U.first_name,' ',U.last_name) AS user_name,
+
+                COUNT(AR.id) AS user_requests
             FROM attendance_requests AR
+            JOIN employees U  ON U.id  = AR.employee_id
+            JOIN employees RM ON RM.id = AR.rm_id
             WHERE 
-                AR.employee_id = Emp.id
-                AND AR.company_id = Emp.company_id
+                AR.rm_id > 0
                 AND AR.rm_status = 0
-        )
-`;
-
-        console.log("Employees under:", empQuery);
-
-        const [employees] = await db.promise().query(empQuery, [decoded.company_id]);
-
-        const finalData = [];
-
-        // 🔹 STEP 2: Fetch requests employee-wise
-        for (const emp of employees) {
-            let reqWhere = `
-                AR.employee_id = ?
                 AND AR.company_id = ?
-                AND AR.rm_status = 0
-            `;
-            let params = [emp.id, decoded.company_id];
+            GROUP BY AR.rm_id, AR.employee_id
+            ORDER BY rm_name
+        `;
 
-            if (startDate && endDate) {
-                reqWhere += ` AND AR.request_date BETWEEN ? AND ?`;
-                params.push(startDate, endDate);
+        const [rows] = await db.promise().query(mainQuery, [decoded.company_id]);
+
+        const result = {};
+
+        // 🔹 STEP 2: LOOP & GET REQUEST DETAILS PER USER
+        for (const r of rows) {
+            // RM node
+            if (!result[r.rm_id]) {
+                result[r.rm_id] = {
+                    id: r.rm_id,
+                    name: r.rm_name,
+                    requests: 0,
+                    requests_data: []
+                };
             }
 
-            const reqQuery = `
-                SELECT  AR.id, AR.request_date,  CONCAT(E.first_name,' ',E.last_name) AS name
-                FROM attendance_requests AR
-                JOIN employees E ON E.id = AR.employee_id
-                WHERE ${reqWhere}
-                ORDER BY AR.request_date DESC
+            // 🔹 get actual pending requests for this user
+            const detailQuery = `
+                SELECT 
+                    id,
+                    request_date,
+                    request_type,
+                    in_time,
+                    out_time,
+                    reason,
+                    created
+                FROM attendance_requests
+                WHERE 
+                    employee_id = ?
+                    AND rm_id = ?
+                    AND rm_status = 0
+                    AND company_id = ?
+                ORDER BY request_date DESC
             `;
-console.log("reqQuery :", reqQuery);
-            const [requests] = await db.promise().query(reqQuery, params);
 
-            finalData.push({
-                id: emp.id,
-                name: emp.name,
-                requests: requests.length,
-                requests_data: requests
+            const [details] = await db.promise().query(detailQuery, [
+                r.user_id,
+                r.rm_id,
+                decoded.company_id
+            ]);
+
+            result[r.rm_id].requests += r.user_requests;
+
+            result[r.rm_id].requests_data.push({
+                id: r.user_id,
+                name: r.user_name,
+                requests: r.user_requests,
+                status: "Pending",
+                request_details: details
             });
         }
 
         return res.json({
             status: true,
-            data: finalData
+            data: Object.values(result)
         });
 
     } catch (err) {

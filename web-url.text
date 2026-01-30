@@ -21,6 +21,9 @@ POST
 /AttendanceApproval/api/companyEmployeeName
 
 /AttendanceApprovalLog/api/ApprovalSubmit
+/AttendanceApproval/api/ApprovalSubmit
+/AttendanceApproval/api/ApprovalCheck
+/AttendanceApproval/api/ChackViewDetails
 
 
 
@@ -113,6 +116,8 @@ POST
 /NotificationApi/send ❌ Not Test
 
 /Notification/api/notifications/mark-read ❌ Not Found
+/NotificationApi/read
+/NotificationApi/SendLocation
 
 GET
 
@@ -148,6 +153,7 @@ POST
 
 /Company/BranchUpdate
 
+
 GET
 
 /Company/api/data
@@ -181,6 +187,7 @@ POST
 /Profile/api/Update
 
 /Header/api/UploadLogo
+/Header/api/GetEmployeesProfile
 
 GET
 
@@ -199,6 +206,7 @@ POST
 /leaveapi/delete
 
 /leaveapi/api/ApprovalSubmit
+/leaveapi/fetchleave
 
 GET
 
@@ -218,6 +226,10 @@ POST
 /pay/salary/submit
 
 /pay/api/Upadate
+
+
+
+
 
 /penaltie/penaltie/submit
 
@@ -284,31 +296,29 @@ POST
 GET
 
 /dashboard/api/Birthday
-
 /dashboard/api/workAnniversaries
-
 /dashboard/api/newJoiners
-
 /dashboard/api/attendanceSummary
-
 /dashboard/api/employeeStatusSummary
-
 /dashboard/api/topArrivals
-
 /dashboard/api/teamsStrength
-
 /dashboard/api/TotalEmployees
-
 /dashboard/api/NewEmployees
-
 /dashboard/api/LeaveStats
 
-
-
+==================== excelexports ====================
 /excelexports/excelDownload
 
+==================== Reports ====================
+/Reports/GetReport
+/Reports/SalaryGraph
+/Reports/DepartmentSalaryGraph
+
+==================== sendMail ====================
+/sendMail/api/send
 
 
 
 
-pm2 start server.js --name nodehrms
+
+
