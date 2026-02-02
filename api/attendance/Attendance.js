@@ -350,13 +350,29 @@ const createAttendanceResponse = (record, status, date) => {
     };
 };
 
+// const isAbsentLike = (attendance, leaveRecord) => {
+//     if (attendance) {
+//         const st = attendance.status.toLowerCase();
+//         return st === 'absent' || st === 'lwp';
+//     }
+//     if (leaveRecord) return true;
+//     return true;
+// };
 const isAbsentLike = (attendance, leaveRecord) => {
+
+    // Attendance present
     if (attendance) {
         const st = attendance.status.toLowerCase();
         return st === 'absent' || st === 'lwp';
     }
-    if (leaveRecord) return true;
-    return true;
+
+    // Leave exists → only LWP should count
+    if (leaveRecord) {
+        return leaveRecord.leave_type === 'LWP';
+    }
+
+    // No attendance & no leave ≠ Absent
+    return false;
 };
 
 
@@ -376,7 +392,7 @@ router.get('/api/attendance', async (req, res) => {
             return res.status(200).json({ status: false, message: 'Invalid userData', error: 'Invalid userData' });
         }
     }
-    
+
     if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
         return res.status(400).json({ status: false, message: 'Employee ID is required', error: 'Employee ID is required' });
     }
@@ -589,26 +605,23 @@ router.get('/api/attendance', async (req, res) => {
                     const nextStr = next.toISOString().split("T")[0];
 
                     const prevAtt = attendanceResults.find(a => new Date(a.attendance_date).toISOString().split("T")[0] === prevStr);
+
                     const nextAtt = attendanceResults.find(a => new Date(a.attendance_date).toISOString().split("T")[0] === nextStr);
-                    // console.log(prevAtt, prevStr)
+
+                    // console.log('check  =', dayNo, " = ", prevAtt, nextAtt)
                     const prevLeave = leaveResultsRequest.find(l => prevStr >= l.start_date.split("T")[0] && prevStr <= l.end_date.split("T")[0]);
                     const nextLeave = leaveResultsRequest.find(l => nextStr >= l.start_date.split("T")[0] && nextStr <= l.end_date.split("T")[0]);
+                    const isFirstDay = dayNo === 1;
+                    const isLastDay = dayNo === daysInMonth;
 
-                    // if (isHoliday || isWeeklyOff) {
-                    //     status = isHoliday ? 'H' : 'WO';
-                    //     label = isHoliday ? `Holiday - ${isHoliday}` : 'Weekly Off';
-                    // } else if (isAbsentLike(prevAtt, prevLeave) && isAbsentLike(nextAtt, nextLeave)) {
-                    //     status = 'SP';
-                    //     label = 'Sandwich Penalty';
-                    // } else {
-                    //     status = "err";
-                    //     label = "pls call-7976929440";
-                    // }
 
-                    if (isAbsentLike(prevAtt, prevLeave) && isAbsentLike(nextAtt, nextLeave)) {
+
+                    // if (isAbsentLike(prevAtt, prevLeave) && isAbsentLike(nextAtt, nextLeave)) {
+                    if (!isFirstDay && !isLastDay && isAbsentLike(prevAtt, prevLeave) && isAbsentLike(nextAtt, nextLeave)) {
                         status = 'SP';
                         label = 'Sandwich Penalty';
                     } else if (isHoliday || isWeeklyOff) {
+                        // console.log(prevAtt, prevStr);
                         status = isHoliday ? 'H' : 'WO';
                         label = isHoliday ? `Holiday - ${isHoliday}` : 'Weekly Off';
                     } else {
