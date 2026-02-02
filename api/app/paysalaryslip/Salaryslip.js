@@ -3,6 +3,7 @@ const router = express.Router();
 const puppeteer = require("puppeteer");
 const fs = require("fs");
 const path = require("path");
+const db = require('../../../DB/ConnectionSql');
 
 const serverAddress = "http://localhost:2100";
 // Serve static files (e.g., fonts)
@@ -943,5 +944,174 @@ router.get('/api/HtmlView', async (req, res) => {
     </html>`;
     return res.status(200).send(htmlContent);
 });
+
+
+
+// new work 
+router.post('/api/data', async (req, res) => {
+    try {
+        const { userData, month, year } = req.body;
+
+        /* =======================
+           1️⃣ Decode User
+        ======================= */
+        if (!userData) {
+            return res.status(400).json({
+                status: false,
+                message: 'userData is required'
+            });
+        }
+
+        let decodedUserData = null;
+
+       if (userData) {
+        try {
+            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+            decodedUserData = JSON.parse(decodedString);
+        } catch (error) {
+            return res.status(400).json({ status: false, error: 'Invalid userData format' });
+        }
+    }
+
+        if (!decodedUserData?.id || !decodedUserData?.company_id) {
+            return res.status(400).json({
+                status: false,
+                message: 'Invalid userData'
+            });
+        }
+
+        const employeeId = decodedUserData.id;
+        const companyId = decodedUserData.company_id;
+
+        if (!month || !year) {
+            return res.status(400).json({
+                status: false,
+                message: 'Month and year are required'
+            });
+        }
+
+        /* =======================
+           2️⃣ Fetch Salary Slip Data
+        ======================= */
+        const [rows] = await db.promise().query(
+            `
+      SELECT 
+        esd.id AS salary_id,
+        esd.month,
+        esd.year,
+        esd.present_days,
+        esd.working_days,
+        esd.basic_pay_amount,
+        esd.total_monthly_salary,
+
+        e.employee_id,
+        CONCAT(e.first_name, ' ', e.last_name) AS employee_name,
+        e.official_email_id,
+        e.structure_id,
+
+        c.company_name,
+        c.logo,
+        c.address,
+
+        sc.component_name,
+        sc.amount,
+        scomp.component_type
+
+      FROM employeesalarydetails esd
+
+      JOIN employees e 
+        ON e.id = esd.employee_id
+
+      JOIN companies c 
+        ON c.id = esd.company_id
+
+      JOIN salarycomponents sc 
+        ON sc.salary_detail_id = esd.id
+
+      JOIN salary_component scomp 
+        ON scomp.component_name = sc.component_name
+        AND scomp.structure_id = e.structure_id
+
+      WHERE esd.employee_id = ?
+        AND esd.company_id = ?
+        AND esd.month = ?
+        AND esd.year = ?
+      `,
+            [employeeId, companyId, month, year]
+        );
+
+        if (!rows.length) {
+            return res.status(404).json({
+                status: false,
+                message: 'Salary slip not found'
+            });
+        }
+
+        /* =======================
+           3️⃣ Format Response
+        ======================= */
+        const earnings = [];
+        const deductions = [];
+
+        rows.forEach(row => {
+            if (row.component_type === 'earning') {
+                earnings.push({
+                    name: row.component_name,
+                    amount: Number(row.amount)
+                });
+            } else {
+                deductions.push({
+                    name: row.component_name,
+                    amount: Number(row.amount)
+                });
+            }
+        });
+
+        const firstRow = rows[0];
+
+        const response = {
+            company: {
+                name: firstRow.company_name,
+                logo: firstRow.logo,
+                address: firstRow.address
+            },
+            employee: {
+                name: firstRow.employee_name,
+                employee_id: firstRow.employee_id,
+                email: firstRow.official_email_id
+            },
+            salary: {
+                month: firstRow.month,
+                year: firstRow.year,
+                working_days: firstRow.working_days,
+                present_days: firstRow.present_days,
+                basic_pay: firstRow.basic_pay_amount,
+                net_salary: firstRow.total_monthly_salary
+            },
+            earnings,
+            deductions
+        };
+
+        /* =======================
+           4️⃣ Response
+        ======================= */
+        return res.status(200).json({
+            status: true,
+            message: 'Salary slip data fetched successfully',
+            data: response
+        });
+
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({
+            status: false,
+            message: 'Database error occurred while fetching salary slip',
+            error: err.message
+        });
+    }
+});
+
+
+
 
 module.exports = router;
