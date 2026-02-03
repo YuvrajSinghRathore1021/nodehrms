@@ -18,7 +18,6 @@ exports.getEmployeeProfile = async ({ userData, CheckId, reload = false }) => {
         if (!decodedUserData?.company_id)
             throw new Error("Company ID is missing or invalid");
 
-        console.log("decodedUserData.id=", decodedUserData.id)
         const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
         const employeeId = CheckId || decodedUserData.id;
 

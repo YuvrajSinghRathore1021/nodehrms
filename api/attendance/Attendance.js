@@ -353,12 +353,12 @@ const createAttendanceResponse = (record, status, date) => {
 const isAbsentLike = (attendance, leaveRecord) => {
     if (attendance) {
         const st = attendance.status.toLowerCase();
-        
-        if(st == 'present'){
+
+        if (st == 'present' || st == "Present") {
             return false;
-        }else if(st == 'half-day'){
+        } else if (st == 'half-day' || st == 'Half-day' || st == 'half day' || st == 'Half Day') {
             return false;
-        } else if(st == 'absent' || st == 'lwp'){
+        } else if (st == 'absent' || st == 'Absent' || st == 'lwp' || st == 'LWP') {
             return true;
         }
         // return st === 'absent' || st === 'lwp';
@@ -518,12 +518,13 @@ router.get('/api/attendance', async (req, res) => {
                 const date1 = `${dateValue.getFullYear()}-${String(dateValue.getMonth() + 1).padStart(2, '0')}-${String(dateValue.getDate()).padStart(2, '0')}`;
                 const date = new Date(date1);
 
+
+
                 if (date.getMonth() !== month - 1) break;
 
                 const dayOfWeek = date.getDay();
                 const weekNumber = Math.ceil(dayNo / 7);
                 const dayKey = `${daysOfWeek[dayOfWeek]}${weekNumber}`;
-                // console.log(dayKey);
                 const isWeeklyOff = workWeekData && workWeekData[dayKey] == 3;
                 // const isHoliday = holidays.has(date.toISOString().split('T')[0]);
 
@@ -607,30 +608,27 @@ router.get('/api/attendance', async (req, res) => {
                 // ================= HOLIDAY / WO / SANDWICH =================
                 else if (isHoliday || isWeeklyOff) {
 
-                    const prev = new Date(dateValue); prev.setDate(prev.getDate() - 1);
-                    const next = new Date(dateValue); next.setDate(next.getDate() + 1);
+                    const prev = new Date(date); prev.setDate(prev.getDate() - 1);
+                    const next = new Date(date); next.setDate(next.getDate() + 1);
+                    // const prev = new Date(dateValue); prev.setDate(prev.getDate() - 1);
+                    // const next = new Date(dateValue); next.setDate(next.getDate() + 1);
 
                     const prevStr = prev.toISOString().split("T")[0];
                     const nextStr = next.toISOString().split("T")[0];
 
                     const prevAtt = attendanceResults.find(a => new Date(a.attendance_date).toISOString().split("T")[0] === prevStr);
-
                     const nextAtt = attendanceResults.find(a => new Date(a.attendance_date).toISOString().split("T")[0] === nextStr);
-
-                    // console.log('check  =', dayNo, " = ", prevAtt, nextAtt)
+                    
                     const prevLeave = leaveResultsRequest.find(l => prevStr >= l.start_date.split("T")[0] && prevStr <= l.end_date.split("T")[0]);
                     const nextLeave = leaveResultsRequest.find(l => nextStr >= l.start_date.split("T")[0] && nextStr <= l.end_date.split("T")[0]);
                     const isFirstDay = dayNo === 1;
                     const isLastDay = dayNo === daysInMonth;
-
-
-
+                   
                     // if (isAbsentLike(prevAtt, prevLeave) && isAbsentLike(nextAtt, nextLeave)) {
                     if (!isFirstDay && !isLastDay && isAbsentLike(prevAtt, prevLeave) && isAbsentLike(nextAtt, nextLeave)) {
                         status = 'SP';
                         label = 'Sandwich Penalty';
                     } else if (isHoliday || isWeeklyOff) {
-                        // console.log(prevAtt, prevStr);
                         status = isHoliday ? 'H' : 'WO';
                         label = isHoliday ? `Holiday - ${isHoliday}` : 'Weekly Off';
                     } else {
