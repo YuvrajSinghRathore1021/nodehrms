@@ -350,30 +350,39 @@ const createAttendanceResponse = (record, status, date) => {
     };
 };
 
+const isAbsentLike = (attendance, leaveRecord) => {
+    if (attendance) {
+        const st = attendance.status.toLowerCase();
+        
+        if(st == 'present'){
+            return false;
+        }else if(st == 'half-day'){
+            return false;
+        } else if(st == 'absent' || st == 'lwp'){
+            return true;
+        }
+        // return st === 'absent' || st === 'lwp';
+
+    }
+    if (leaveRecord) return true;
+    return true;
+};
 // const isAbsentLike = (attendance, leaveRecord) => {
+
+//     // Attendance present
 //     if (attendance) {
 //         const st = attendance.status.toLowerCase();
 //         return st === 'absent' || st === 'lwp';
 //     }
-//     if (leaveRecord) return true;
-//     return true;
+
+//     // Leave exists → only LWP should count
+//     if (leaveRecord) {
+//         return leaveRecord.leave_type === 'LWP';
+//     }
+
+//     // No attendance & no leave ≠ Absent
+//     return false;
 // };
-const isAbsentLike = (attendance, leaveRecord) => {
-
-    // Attendance present
-    if (attendance) {
-        const st = attendance.status.toLowerCase();
-        return st === 'absent' || st === 'lwp';
-    }
-
-    // Leave exists → only LWP should count
-    if (leaveRecord) {
-        return leaveRecord.leave_type === 'LWP';
-    }
-
-    // No attendance & no leave ≠ Absent
-    return false;
-};
 
 
 
