@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../../../DB/ConnectionSql");
+const calculateLeaveDays = require("../../../utils/calculateLeaveDays");
 
 ///////// leaveapi.js///////////////
 
@@ -382,22 +383,8 @@ router.post("/api/Review", async (req, res) => {
 });
 
 
-function calculateLeaveDays(startDate, endDate, startHalf, endHalf) {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    let totalDays = (end - start) / (1000 * 60 * 60 * 24) + 1;
 
-    if (startHalf == "Second Half") {
-        totalDays -= 0.5; // Deduct 0.5 day for second half leave start
-    }
-    if (endHalf == "First Half") {
-        totalDays -= 0.5; // Deduct 0.5 day for first half leave end
-    }
 
-    return totalDays;
-}
-// Approved //
-// app cheak A
 router.post("/api/Approved", async (req, res) => {
 
     try {

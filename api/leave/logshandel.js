@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const db = require("../../DB/ConnectionSql");
 const { json } = require("body-parser");
+const calculateLeaveDays = require("../../utils/calculateLeaveDays");
 
 ////// working code 
 // app cheak A / web cheak A
@@ -63,8 +64,7 @@ router.post("/FetchLeaveCount", async (req, res) => {
     const pendingDaysByRule = {};
     for (const lr of leaveRequests) {
       const days = calculateLeaveDays(lr.start_date, lr.end_date, lr.start_half, lr.end_half);
-      pendingDaysByRule[lr.leave_rule_id] =
-        (pendingDaysByRule[lr.leave_rule_id] || 0) + days;
+      pendingDaysByRule[lr.leave_rule_id] = (pendingDaysByRule[lr.leave_rule_id] || 0) + days;
     }
     const today = new Date();
     const currentMonth = today.getMonth() + 1; // 1-based
@@ -202,26 +202,11 @@ const handleleave = async (employeeId, rule_id) => {
   if (rows.length > 0) {
     return rows[0].total;
   }
-
   // ❌ No conversion found
   return 0;
-
 };
 
-function calculateLeaveDays(startDate, endDate, startHalf, endHalf) {
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  let totalDays = (end - start) / (1000 * 60 * 60 * 24) + 1;
 
-  if (startHalf == "Second Half") {
-    totalDays -= 0.5; // Deduct 0.5 day for second half leave start
-  }
-  if (endHalf == "First Half") {
-    totalDays -= 0.5; // Deduct 0.5 day for first half leave end
-  }
-
-  return totalDays;
-}
 
 
 

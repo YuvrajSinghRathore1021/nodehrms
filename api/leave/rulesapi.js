@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require("../../DB/ConnectionSql");
 const { json } = require("body-parser");
 const { AdminCheck } = require("../../model/functlity/AdminCheck");
+const calculateLeaveDays = require("../../utils/calculateLeaveDays");
 
 ////// Fetch Department Employee //////////
 
@@ -1139,14 +1140,6 @@ router.get("/Balance", async (req, res) => {
   }
 });
 
-function calculateLeaveDays(startDate, endDate, startHalf, endHalf) {
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  let totalDays = (end - start) / (1000 * 60 * 60 * 24) + 1;
-  if (startHalf === "Second Half") totalDays -= 0.5;
-  if (endHalf === "First Half") totalDays -= 0.5;
-  return totalDays;
-}
 
 // rulesapi  
 // deleteAssignedLeave

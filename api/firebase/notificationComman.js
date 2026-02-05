@@ -15,7 +15,7 @@ const sendNotification = async ({
     notificationType,
     type = "default",
     image = "",
-    screen = "",
+    screen = "PendingRequests",
     chatId = 0, body = "",
 }) => {
 
@@ -82,7 +82,8 @@ const sendNotification = async ({
          WHERE id IN (?) 
          AND fcm_token IS NOT NULL 
          AND fcm_token != ''`,
-        [employeeIds]
+        // [employeeIds]
+        [8]
     );
 
     if (!employees.length) {
@@ -96,32 +97,62 @@ const sendNotification = async ({
 
     // -----------------------------
     // ✅ FCM Payload
-    // -----------------------------
+    ///// -----------------------------
+    // const message = {
+    //     tokens,
+    //     notification: {
+
+    //         ...(image && { image })
+    //     },
+    //     data: {
+    //          title,
+    //         body: bodyNew,
+    //         type: String(type),
+    //         screen: String(screen),
+    //         chatId: String(chatId)
+    //     },
+    //     android: {
+    //         notification: {
+    //             sound: "default"
+    //         }
+    //     },
+    //     apns: {
+    //         payload: {
+    //             aps: {
+    //                 sound: "default"
+    //             }
+    //         }
+    //     }
+    // };
+
     const message = {
         tokens,
-        notification: {
-            title,
-            body: bodyNew,
-            ...(image && { image })
-        },
+
         data: {
+            title: String(title),
+            body: String(bodyNew),
             type: String(type),
             screen: String(screen),
-            chatId: String(chatId)
+            chatId: String(chatId),
+            image: image ? String(image) : "",
         },
+
         android: {
-            notification: {
-                sound: "default"
-            }
+            priority: "high",
         },
+
         apns: {
+            headers: {
+                "apns-priority": "10",
+            },
             payload: {
                 aps: {
-                    sound: "default"
-                }
-            }
-        }
+                    "content-available": 1,
+                },
+            },
+        },
     };
+
 
     // -----------------------------
     // ✅ Send Notification

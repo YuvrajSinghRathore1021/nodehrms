@@ -2,6 +2,9 @@ const express = require("express");
 const router = express.Router();
 const db = require("../../DB/ConnectionSql");
 const { sendNotification } = require('../../api/firebase/notificationComman');
+const updateLeaveBalance = require("../../utils/leaveBalance");
+const calculateLeaveDays = require("../../utils/calculateLeaveDays");
+
 
 // app cheak A / web cheak A
 router.post("/leave", async (req, res) => {
@@ -175,6 +178,7 @@ router.post("/leave", async (req, res) => {
         "INSERT INTO leaves (company_id,employee_id,leave_type, leave_rule_id, start_date, end_date, status, reason,start_half,end_half,admin_status,admin_remark,admin_id) VALUES (?,?,?,?,?, ?, ?, ?, ?, ?,?,?,?)",
         [decodedUserData.company_id, employeeIdNew, leave_typeGet[0].leave_type, leave_type, start_date, end_date, 1, reason, start_half, end_half, 1, reason, decodedUserData.id]
       );
+      await updateLeaveBalance(insertResult.insertId, decodedUserData.company_id);
 
     } else {
       [insertResult] = await db.promise().query(
@@ -209,21 +213,6 @@ router.post("/leave", async (req, res) => {
 });
 
 
-// **Helper Function to Calculate Leave Days Properly**
-function calculateLeaveDays(startDate, endDate, startHalf, endHalf) {
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  let totalDays = (end - start) / (1000 * 60 * 60 * 24) + 1;
-
-  if (startHalf === "Second Half") {
-    totalDays -= 0.5; // Deduct 0.5 day for second half leave start
-  }
-  if (endHalf === "First Half") {
-    totalDays -= 0.5; // Deduct 0.5 day for first half leave end
-  }
-
-  return totalDays;
-}
 
 
 
@@ -332,43 +321,45 @@ router.post("/LeaveRequest", async (req, res) => {
 });
 
 
-// app cheak A / web cheak A
+// // app cheak A / web cheak A -working but balance not update 
+
+
 router.post("/api/ApprovalSubmit", async (req, res) => {
   const {
     userData,
     ApprovalRequests_id,
     Type,
     ApprovalStatus,
-    employee_id,
     reason
   } = req.body;
+
   let decodedUserData = null;
-  // Decode and validate userData
+
+  // Decode userData
   if (userData) {
     try {
-      const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-      decodedUserData = JSON.parse(decodedString);
-    } catch (error) {
+      decodedUserData = JSON.parse(
+        Buffer.from(userData, "base64").toString("utf-8")
+      );
+    } catch {
       return res.status(400).json({
         status: false,
-        error: "Invalid userData",
         message: "Invalid userData"
       });
     }
   }
 
-  // Validate company_id
-  if (!decodedUserData || !decodedUserData.company_id) {
+  if (!decodedUserData?.company_id) {
     return res.status(400).json({
       status: false,
-      error: "Company ID is required",
       message: "Company ID is required"
     });
   }
+
   const company_id = decodedUserData.company_id;
-  let query = "";
-  let queryArray = [];
-  // Update attendance request
+
+  let query, queryArray;
+
   if (Type == "Rm") {
     query = `
       UPDATE leaves 
@@ -390,77 +381,30 @@ router.post("/api/ApprovalSubmit", async (req, res) => {
   }
 
   try {
-    const updateResult = await queryDb(query, queryArray);
+    await queryDb(query, queryArray);
+
+    console.log("ApprovalRequests_id:=", ApprovalRequests_id)
+    console.log("Type:=", Type)
+    // ⭐ Only when Admin approves leave
     if (Type != "Rm" && ApprovalStatus == "1") {
-      // 1. Fetch leave request details
-      const leaveDetails = await queryDb(
-        `SELECT leave_id, employee_id, leave_rule_id, start_date, end_date, start_half, end_half 
-         FROM leaves WHERE leave_id = ? AND company_id = ?`,
-        [ApprovalRequests_id, company_id]
-      );
-      if (leaveDetails.length > 0) {
-
-        const leave = leaveDetails[0];
-
-        // 2. Calculate leave days
-
-        let leaveDays = calculateLeaveDays(leave.start_date, leave.end_date, leave.start_half, leave.end_half);
-
-        const currentYear = new Date(leave.start_date).getFullYear();
-        // console.log(currentYear);
-        // 3. Get employee leave balance
-        const balanceResults = await queryDb(
-          `SELECT * FROM leave_balance 
-           WHERE employee_id = ? AND leave_rules_id = ? AND company_id = ? AND ? BETWEEN session_start AND session_end`,
-          [leave.employee_id, leave.leave_rule_id, company_id, leave.start_date]
-        );
-
-        if (balanceResults.length > 0) {
-          const balance = balanceResults[0];
-
-          // let used = balance.used_leaves + leaveDays;
-          // let remaining = balance.total_leaves - used;
-
-          // console.log(balance.used_leaves, leaveDays);
-          // console.log(used, remaining);
-
-
-
-          // ////// Ensure numeric values
-          const usedLeaves = parseFloat(balance.used_leaves) || 0;
-          const totalLeaves = parseFloat(balance.total_leaves) || 0;
-          const leaveDaysNum = parseFloat(leaveDays) || 0;
-
-          let used = usedLeaves + leaveDaysNum;
-          let remaining = totalLeaves - used;
-
-          // console.log("usedLeaves:", usedLeaves, "leaveDays:", leaveDaysNum);
-          // console.log("used:", used, "remaining:", remaining);
-          // 
-          // if (remaining < 0) remaining = 0; // handle negative leaves
-
-          // 4. Update leave balance
-          await queryDb(
-            `UPDATE leave_balance 
-             SET used_leaves = ?, remaining_leaves = ?, last_updated = NOW() 
-             WHERE id = ?`,
-            [used, remaining, balance.id]
-          );
-        }
-      }
+      await updateLeaveBalance(ApprovalRequests_id, company_id);
     }
+
     return res.status(200).json({
       status: true,
       message: "Approval updated successfully"
     });
+
   } catch (err) {
     return res.status(500).json({
       status: false,
-      message: "An error occurred while processing the request",
+      message: "Error processing request",
       error: err.message
     });
   }
 });
+
+
 
 // Generic function to execute database queries
 function queryDb(query, params) {

@@ -964,14 +964,14 @@ router.post('/api/data', async (req, res) => {
 
         let decodedUserData = null;
 
-       if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData format' });
+        if (userData) {
+            try {
+                const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+                decodedUserData = JSON.parse(decodedString);
+            } catch (error) {
+                return res.status(400).json({ status: false, error: 'Invalid userData format' });
+            }
         }
-    }
 
         if (!decodedUserData?.id || !decodedUserData?.company_id) {
             return res.status(400).json({
@@ -1018,7 +1018,6 @@ router.post('/api/data', async (req, res) => {
         scomp.component_type
 
       FROM employeesalarydetails esd
-
       JOIN employees e 
         ON e.id = esd.employee_id
 
@@ -1054,7 +1053,7 @@ router.post('/api/data', async (req, res) => {
         const deductions = [];
 
         rows.forEach(row => {
-            if (row.component_type === 'earning') {
+            if (row.component_type == 'expand') {
                 earnings.push({
                     name: row.component_name,
                     amount: Number(row.amount)
