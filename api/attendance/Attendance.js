@@ -636,7 +636,7 @@ router.get('/api/attendance', async (req, res) => {
                         label = "pls call-7976929440";
                     }
                 }
-                let newStatus = lwpcheck(date, status, '2026-01-04');
+                let newStatus = lwpcheck(date, status, '2026-02-04');
 
                 // let newStatus = status;
                 monthlyAttendanceLogs.push({
@@ -678,7 +678,6 @@ router.get('/api/attendance', async (req, res) => {
 const lwpcheck = (attDate, status, lockDate) => {
     // Only Absent can become LWP
     if (status !== 'A') return status;
-
     // Normalize attendance date
     const attendanceDate =
         attDate instanceof Date

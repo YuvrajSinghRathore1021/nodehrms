@@ -948,6 +948,7 @@ router.get('/api/HtmlView', async (req, res) => {
 
 
 // new work 
+
 router.post('/api/data', async (req, res) => {
     try {
         const { userData, month, year } = req.body;
@@ -1111,6 +1112,359 @@ router.post('/api/data', async (req, res) => {
 });
 
 
+router.get('/api/HtmlViewApi', async (req, res) => {
+    try {
+        // Extract parameters from query
+        const { userData, month, year } = req.query;
 
+        if (!userData || !month || !year) {
+            return res.status(400).send('Missing required parameters: userData, month, year');
+        }
+
+        // Fetch dynamic data from your API
+        const apiResponse = await fetch(`http://localhost:2100/PDFdow/api/data`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ userData, month, year })
+        });
+        console.log('API Response Status:', apiResponse);
+        if (!apiResponse.ok) {
+            throw new Error('Failed to fetch salary data');
+        }
+
+        const result = await apiResponse.json();
+
+        if (!result.status) {
+            throw new Error(result.message || 'Failed to fetch salary data');
+        }
+
+        const salaryData = result.data;
+
+        // Calculate totals
+        const earningsTotal = salaryData.earnings.reduce((sum, item) => sum + (item.amount || 0), 0);
+        const deductionsTotal = salaryData.deductions.reduce((sum, item) => sum + (item.amount || 0), 0);
+        const netPay = earningsTotal - deductionsTotal;
+
+        // Calculate YTD (Year-to-Date) - you might want to fetch actual YTD from database
+        // For now, using the same as current for demonstration
+        const earningsTotalYTD = earningsTotal;
+        const deductionsTotalYTD = deductionsTotal;
+        const netPayYTD = netPay;
+
+        const htmlContent = ` <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <title>Payslip - ${salaryData.employee.name}</title>
+        <style>
+            @font-face {
+                font-family: 'Poppins';
+                src: url('${serverAddress}/uploads/fonts/poppins/Poppins-Regular.ttf') format('truetype');
+                font-weight: 400;
+                font-style: normal;
+            }
+
+            @font-face {
+                font-family: 'PoppinsMedium';
+                src: url('${serverAddress}/uploads/fonts/poppins/Poppins-Medium.ttf') format('truetype');
+                font-weight: 600;
+                font-style: normal;
+            }
+            
+            html {
+                -webkit-print-color-adjust: exact;
+            }
+            
+            body {
+                background-color: #f3f4f6;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
+                margin: 0;
+            }
+
+            .poppins-regular {
+                font-family: "Poppins", sans-serif;
+                font-weight: 400;
+                font-style: normal;
+            }
+
+            .poppins-medium {
+                font-family: "PoppinsMedium", sans-serif;
+                font-weight: 600;
+                font-style: normal;
+            }
+
+            .poppins-bold {
+                font-family: "Poppins", sans-serif;
+                font-weight: 700;
+                font-style: normal;
+            }
+
+            .poppins-black {
+                font-family: "Poppins", sans-serif;
+                font-weight: 900;
+                font-style: normal;
+            }
+
+            .payslip-container {
+                background-color: white;
+                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+                border-radius: 0.5rem;
+                width: 100%;
+                max-width: 56rem;
+                background-image: url("${serverAddress}/uploads/logo/bg.png");
+                background-size: cover;
+                background-position: center;
+            }
+
+            .header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .title {
+                font-size: 1.875rem;
+                font-weight: bold;
+                color: #1f2937;
+            }
+
+            .logo {
+                height: 3rem;
+            }
+
+            .employee-info {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 2rem;
+                padding-left: 40px;
+                padding-right: 40px;
+                margin-top: 30px;
+            }
+
+            .employee-details p {
+                margin: 0.25rem 0;
+            }
+
+            .employee-name {
+                color: #293646;
+            }
+
+            .payroll-info p {
+                margin: 0.25rem 0;
+            }
+
+            .info-label {
+                color: #293646;
+            }
+
+            ul {
+                list-style: none;
+                padding: 0;
+                margin: 0;
+                border-radius: 0.5rem;
+                overflow: hidden;
+                border-left: 1px solid #CA282C;
+                border-right: 1px solid #CA282C;
+                margin-bottom: 2rem;
+            }
+
+            ul li {
+                display: flex;
+                padding: 15px;
+                padding-left: 15px;
+                padding-right: 15px;
+            }
+
+            ul li.header {
+                background-color: #CA282C;
+                color: white;
+            }
+
+            ul li:not(.header):not(:last-child) {
+                border-bottom: 1px solid #e5e7eb;
+            }
+
+            ul li span {
+                flex: 1;
+            }
+
+            ul li span:first-child {
+                flex: 2;
+            }
+
+            .signature {
+                color: #1f2937;
+                margin-top: 2rem;
+                padding-left: 40px;
+                margin-top: 200px;
+            }
+
+            .bold {
+                font-weight: bold;
+            }
+
+            h2 {
+                margin: 0;
+            }
+            
+            .amount {
+                text-align: right;
+            }
+            
+            .text-right {
+                text-align: right;
+            }
+        </style>
+    </head>
+    
+    <body>
+        <div class="payslip-container">
+            <div style="display: flex; justify-content: space-between; align-items: center;height: 50px;gap: 60px;">
+                <div
+                    style="background-color: #CA282C; clip-path: polygon(0 0, 82% 0, 100% 100%, 0 100%); width: 100%; height: 50px;">
+                </div>
+                <div style="width: 100%; display: flex; align-items: center; justify-content: center;">
+                    <h2 style="padding-right: 40px;">${salaryData.company.name || 'Company'}</h2>
+                </div>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;height: 80px;margin-top: 20px;">
+                <div style="width: 100%; display: flex; align-items: center; ">
+                    <h1 class="poppins-medium" style="padding-left: 40px; margin:0px;color: #293646; letter-spacing: 5px;">
+                        PAYSLIP</h1>
+                </div>
+                <div style="background-color: #CA282C;clip-path: polygon(0 0, 100% 0, 100% 100%, 25% 100%);
+                 width: 100%; height: 80px;">
+                </div>
+            </div>
+    
+            <div class="employee-info">
+                <div class="employee-details">
+                    <p class="employee-name poppins-medium">${salaryData.employee.name}</p>
+                    <p class="poppins-regular" style="font-size: 14px; color: #45484D;">${salaryData.company.address || 'Address not available'}</p>
+                    <p class="poppins-regular" style="font-size: 14px; color: #45484D;">Employee ID: ${salaryData.employee.employee_id}</p>
+                    <p class="poppins-regular" style="font-size: 14px; color: #45484D;">Email: ${salaryData.employee.email}</p>
+                </div>
+                <div class="payroll-info poppins-regular">
+                    <p style="display: flex; gap: 50px;align-items: center; color: #45484D;">
+                        <span class="info-label poppins-medium">Payroll#</span> ${salaryData.employee.employee_id}
+                    </p>
+                    <p style="display: flex; gap: 50px;align-items: center;color: #45484D;">
+                        <span class="info-label poppins-medium">Pay Date</span> ${new Date().toLocaleDateString('en-GB')}
+                    </p>
+                    <p style="display: flex; gap: 50px;align-items: center; color: #45484D;">
+                        <span class="info-label poppins-medium">Pay Period</span> ${salaryData.salary.month}/${salaryData.salary.year}
+                    </p>
+                    <p style="display: flex; gap: 50px;align-items: center; color: #45484D;">
+                        <span class="info-label poppins-medium">Work Days</span> ${salaryData.salary.present_days}/${salaryData.salary.working_days}
+                    </p>
+                </div>
+            </div>
+    
+            <!-- EARNINGS Section -->
+            <div style="padding-right: 40px; padding-left: 40px; margin-top: 80px;">
+                <ul class="poppins-medium">
+                    <li class="header">
+                        <span>EARNINGS</span>
+                        <span>CURRENT</span>
+                        <span>YTD</span>
+                    </li>
+                    ${salaryData.earnings.map(earning => `
+                    <li>
+                        <span style="color: #293646;">${earning.name}</span>
+                        <span class="poppins-regular amount" style="color: #293646;">$${earning.amount.toFixed(2)}</span>
+                        <span class="poppins-regular amount" style="color: #293646;">$${earning.amount.toFixed(2)}</span>
+                    </li>
+                    `).join('')}
+                    ${salaryData.earnings.length === 0 ? `
+                    <li>
+                        <span style="color: #293646;">Basic Pay</span>
+                        <span class="poppins-regular amount" style="color: #293646;">$${salaryData.salary.basic_pay || '0.00'}</span>
+                        <span class="poppins-regular amount" style="color: #293646;">$${salaryData.salary.basic_pay || '0.00'}</span>
+                    </li>
+                    ` : ''}
+                    <li style="background-color: #CA282C; color: white;">
+                        <span>GROSS PAY</span>
+                        <span class="poppins-regular amount">$${earningsTotal.toFixed(2)}</span>
+                        <span class="poppins-regular amount">$${earningsTotalYTD.toFixed(2)}</span>
+                    </li>
+                </ul>
+            </div>
+    
+            <!-- DEDUCTIONS Section -->
+            <div style="padding-right: 40px; padding-left: 40px;">
+                <ul class="poppins-medium">
+                    <li class="header poppins-medium">
+                        <span>DEDUCTIONS</span>
+                        <span>CURRENT</span>
+                        <span>YTD</span>
+                    </li>
+                    ${salaryData.deductions.map(deduction => `
+                    <li>
+                        <span class="poppins-medium" style="color: #293646;">${deduction.name}</span>
+                        <span class="poppins-regular amount" style="color: #293646;">$${deduction.amount.toFixed(2)}</span>
+                        <span class="poppins-regular amount" style="color: #293646;">$${deduction.amount.toFixed(2)}</span>
+                    </li>
+                    `).join('')}
+                    ${salaryData.deductions.length === 0 ? `
+                    <li>
+                        <span class="poppins-medium" style="color: #293646;">No Deductions</span>
+                        <span class="poppins-regular amount" style="color: #293646;">$0.00</span>
+                        <span class="poppins-regular amount" style="color: #293646;">$0.00</span>
+                    </li>
+                    ` : ''}
+                    <li style="background-color: #CA282C; color: white;">
+                        <span>TOTAL DEDUCTIONS</span>
+                        <span class="amount">$${deductionsTotal.toFixed(2)}</span>
+                        <span class="amount">$${deductionsTotalYTD.toFixed(2)}</span>
+                    </li>
+                </ul>
+            </div>
+    
+            <div style="display: flex; justify-content: flex-end;padding-right: 40px; margin-top: 20px;">
+                <div class="poppins-medium"
+                    style="background-color: #CA282C;color: white;padding:15px 20px 15px 20px; border-top-left-radius: 20px;border-bottom-right-radius: 20px;gap: 40px; display: flex;">
+                    <span>NET PAY</span>
+                    <span>$${netPay.toFixed(2)}</span>
+                    <span>$${netPayYTD.toFixed(2)}</span>
+                </div>
+            </div>
+    
+            <div class="signature">
+                <div style="width: 200px;">
+                    <div style="width: 100%; height: 1px; background-color: #E2E2E2; margin-top: 100px;"></div>
+                    <p class="poppins-medium" style="text-align: center; margin-top:10px;color: #293646;">Authorized Signature</p>
+                </div>
+            </div>
+            
+            <div style="padding: 20px 40px; color: #666; font-size: 12px; text-align: center;">
+                <p>This payslip is computer generated and does not require a physical signature.</p>
+                <p>For any discrepancies, please contact the HR department within 7 days of receiving this payslip.</p>
+            </div>
+    
+            <div style="height:20px;width: 100%; background-color: #CA282C;"></div>
+        </div>
+    </body>
+    </html>`;
+
+        res.setHeader('Content-Type', 'text/html');
+        return res.status(200).send(htmlContent);
+
+    } catch (error) {
+        console.error('Error generating HTML view:', error);
+        return res.status(500).send(`
+            <html>
+                <body>
+                    <h1>Error generating payslip</h1>
+                    <p>${error.message}</p>
+                </body>
+            </html>
+        `);
+    }
+});
 
 module.exports = router;

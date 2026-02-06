@@ -49,7 +49,10 @@ router.post("/FetchLeaveCount", async (req, res) => {
          AND CURDATE() BETWEEN lb.session_start AND lb.session_end
        WHERE lr.company_id = ?`,
       [employeeId, companyId, companyId]
-    );////AND lb.year = YEAR(CURDATE())
+    );
+   
+    
+
     // ----  Fetch ALL pending leave requests at once
     const [leaveRequests] = await db.promise().query(
       `SELECT leave_rule_id, start_date, end_date, start_half, end_half 
