@@ -362,7 +362,6 @@ const isAbsentLike = (attendance, leaveRecord) => {
             return true;
         }
         // return st === 'absent' || st === 'lwp';
-
     }
     if (leaveRecord) return true;
     return true;
@@ -636,8 +635,8 @@ router.get('/api/attendance', async (req, res) => {
                         label = "pls call-7976929440";
                     }
                 }
-                let newStatus = lwpcheck(date, status, '2026-02-04');
 
+                let newStatus = lwpcheck(date, status, '2026-02-04');
                 // let newStatus = status;
                 monthlyAttendanceLogs.push({
                     day_no: dayNo,

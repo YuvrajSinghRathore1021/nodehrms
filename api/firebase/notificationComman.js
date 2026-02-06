@@ -82,8 +82,8 @@ const sendNotification = async ({
          WHERE id IN (?) 
          AND fcm_token IS NOT NULL 
          AND fcm_token != ''`,
-        // [employeeIds]
-        [8]
+        [employeeIds]
+        // [8]
     );
 
     if (!employees.length) {
