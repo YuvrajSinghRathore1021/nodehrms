@@ -172,7 +172,7 @@ const ExcelEmployee = require('./api/directory/ExcelEmployee');
 const Expenses = require('./api/expenses/Expenses');
 const HrAttendance = require('./api/attendance/HrAttendance');
 const Authentication = require('./api/faceauthorization/Authentication');
-const facerecognition = require('./api/facerecognition/faceVerify');
+// const facerecognition = require('./api/facerecognition/faceVerify');
 const Attendancepolicy = require('./api/attendance/Attendancepolicy');
 const Upload = require('./api/uploadFunclity/upload');
 const notificationRoutes = require("./api/firebase/firebasenotification");
@@ -214,7 +214,7 @@ app.use('/upload', Upload);
 // app.use('/Excel', authenticateToken, ExcelEmployee);
 app.use('/Excel', ExcelEmployee);
 app.use('/Face', authenticateToken, FaceUplode);
-app.use('/facerecognition', authenticateToken, facerecognition);
+// app.use('/facerecognition', authenticateToken, facerecognition);
 app.use('/PDFdow', Salaryslip);
 // app.use('/PDFdow', authenticateToken, Salaryslip);
 app.use('/Reports', authenticateToken, Reports);
@@ -332,7 +332,7 @@ process.on("unhandledRejection", err => {
 //     console.log("🚀 Server running on http://localhost:2100");
 // });
 
-///================== SERVER START  Live==================
+// ///================== SERVER START  Live==================
 const PORT = process.env.PORT || 2100;
 server.listen(PORT, '::', () => {
     console.log(`✅ HTTPS Server running at https://0.0.0.0:${PORT}`);
