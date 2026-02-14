@@ -6,7 +6,7 @@ const path = require("path");
 const db = require('../../../DB/ConnectionSql');
 const { Console } = require("console");
 
-const serverAddress = "http://localhost:2100";
+const serverAddress = process.env.SERVER_ADDRESS || "http://localhost:2100";
 // Serve static files (e.g., fonts)
 router.use('/static', express.static(path.join(__dirname, '../../../public')));
 
@@ -185,7 +185,7 @@ router.get('/api/HtmlView', async (req, res) => {
         }
 
         // Fetch dynamic data from your API
-        const apiResponse = await fetch(`http://localhost:2100/PDFdow/api/data`, {
+        const apiResponse = await fetch(`${serverAddress}/PDFdow/api/data`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -903,7 +903,7 @@ router.post('/api/MakePdf', async (req, res) => {
 //             });
 //         }
 //         // First, fetch the HTML content from the existing HtmlView endpoint
-//         const htmlResponse = await fetch(`http://localhost:2100/PDFdow/api/HtmlView?userData=${userData}&month=${month}&year=${year}&employeeId=${employeeId || ''}`);
+//         const htmlResponse = await fetch(`${serverAddress}/PDFdow/api/HtmlView?userData=${userData}&month=${month}&year=${year}&employeeId=${employeeId || ''}`);
 
 //         if (!htmlResponse.ok) {
 //             throw new Error('Failed to fetch HTML content');
@@ -1024,7 +1024,7 @@ router.post('/api/HtmlViewToJpg', async (req, res) => {
 
         // HTML fetch karo
         const htmlResponse = await fetch(
-            `http://localhost:2100/PDFdow/api/HtmlView?userData=${userData}&month=${month}&year=${year}&employeeId=${employeeId || ''}`
+            `${serverAddress}/PDFdow/api/HtmlView?userData=${userData}&month=${month}&year=${year}&employeeId=${employeeId || ''}`
         );
 
         if (!htmlResponse.ok) {
