@@ -715,7 +715,6 @@ router.get('/api/PayDetails', async (req, res) => {
                 }
             }
 
-
             const holidayCount = allHolidays.filter(dateStr => {
                 const date = new Date(dateStr);
                 return date >= adjustedStartDate && date <= adjustedEndDate;

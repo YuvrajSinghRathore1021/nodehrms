@@ -325,12 +325,12 @@ router.post("/leave", async (req, res) => {
 
     let insertResult;
     const insertQuery = type == "admin"
-      ? "INSERT INTO leaves (company_id, employee_id, leave_type, leave_rule_id, start_date, end_date, status, reason, rm_id, start_half, end_half, admin_status, admin_remark, admin_id, created, updated) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())"
-      : "INSERT INTO leaves (company_id, employee_id, leave_type, leave_rule_id, start_date, end_date, status, reason, rm_id, start_half, end_half, created, updated) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
+      ? "INSERT INTO leaves (company_id, employee_id, leave_type, leave_rule_id, start_date, end_date,  reason, rm_id, start_half, end_half, admin_status, admin_remark, admin_id, created, updated) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())"
+      : "INSERT INTO leaves (company_id, employee_id, leave_type, leave_rule_id, start_date, end_date,  reason, rm_id, start_half, end_half, created, updated) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
 
     const insertParams = type == "admin"
-      ? [decodedUserData.company_id, employeeIdNew, leaveRule.leave_type, leave_type, start_date, end_date, leaveStatus, reason, RmIdValue, start_half, end_half, adminStatus, adminRemark, adminId]
-      : [decodedUserData.company_id, employeeIdNew, leaveRule.leave_type, leave_type, start_date, end_date, leaveStatus, reason, RmIdValue, start_half, end_half];
+      ? [decodedUserData.company_id, employeeIdNew, leaveRule.leave_type, leave_type, start_date, end_date, reason, RmIdValue, start_half, end_half, adminStatus, adminRemark, adminId]
+      : [decodedUserData.company_id, employeeIdNew, leaveRule.leave_type, leave_type, start_date, end_date, reason, RmIdValue, start_half, end_half];
 
     [insertResult] = await db.promise().query(insertQuery, insertParams);
 
@@ -338,7 +338,7 @@ router.post("/leave", async (req, res) => {
     if (leaveStatus == 1) { // Only deduct if auto-approved
       await updateLeaveBalance(insertResult.insertId, decodedUserData.company_id);
     }
-    
+
     // console.log("insertId:", insertResult.insertId);
     // console.log("RmIdValue:", RmIdValue);
     // // Send notifications

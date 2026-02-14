@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const db = require('../../DB/ConnectionSql');
 const { Shortleave } = require('./Shortleave');
+const { getEmployeeProfile } = require('../../helpers/getEmployeeProfile');
+
 
 function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
     const R = 6371000; // Earth's radius in meters
@@ -57,7 +59,11 @@ router.post('/Attendancemark', async (req, res) => {
     if (empId != decodedUserData.id) {
         applyBy = decodedUserData.id;
     }
-
+    let getEmployeeData = {
+        userData,
+        CheckId: empId,
+        reload: true
+    }
     try {
         const employeeResults = await queryDb('SELECT attendance_rules_id,branch_id ,work_week_id FROM employees WHERE employee_status=1 and status=1 and delete_status=0 and  id = ? AND company_id = ?', [empId, companyId]);
 
@@ -68,6 +74,7 @@ router.post('/Attendancemark', async (req, res) => {
         let empbranch_id = employeeResults[0].branch_id;
         if (empbranch_id != 0 && attendanceType != "hr") {
             const branchResults = await queryDb('SELECT id, company_id, name, location_status, latitude, longitude, radius, ip, ip_status,status,location_required,location_break FROM branches WHERE id = ? AND company_id = ? AND status=1', [employeeResults[0].branch_id, companyId]);
+        
             if (branchResults.length === 0) {
 
             } else {
@@ -78,6 +85,7 @@ router.post('/Attendancemark', async (req, res) => {
                     && ((branchResults[0].location_required == 1 && (type == 'in' || type == 'out')) || (branchResults[0].location_required == 2 && type == 'in') || (branchResults[0].location_required == 3 && type == 'out')
                         || ((branchResults[0].location_break == 1 && (type == 'Start_break' || type == 'End_break')) || (branchResults[0].location_break == 2 && type == 'Start_break') || (branchResults[0].location_break == 3 && type == 'End_break')))
                 ) {
+                   
                     const distance = getDistanceFromLatLonInMeters(latitude, longitude, branchResults[0].latitude, branchResults[0].longitude);
                     if (distance > branchResults[0].radius) {
                         return res.status(200).json({
@@ -88,6 +96,7 @@ router.post('/Attendancemark', async (req, res) => {
                 }
             }
         }
+      
 
         const rulesResults = await queryDb('SELECT in_time,out_time,out_time_required,max_working_hours,working_hours_required,half_day,penalty_rule_applied,late_coming_penalty,late_coming_allowed_days,last_in_time,early_leaving_penalty,last_out_time,in_grace_period_minutes FROM attendance_rules WHERE rule_id = ? AND company_id = ?', [employeeResults[0].attendance_rules_id, companyId]);
         const rule = rulesResults.length > 0 ? rulesResults[0] : { in_time: '09:30', out_time: '18:30' };
@@ -158,9 +167,11 @@ router.post('/Attendancemark', async (req, res) => {
             let attendanceCheckInsert = await queryDb('INSERT INTO attendance (status,in_latitude, in_longitude, daily_status_in, daily_status_intime, employee_id, company_id, attendance_date, check_in_time, in_ip,branch_id_in,apply_by,reason,late_coming_leaving,attendance_reason) VALUES (?,?,?, ?, ?, ?, ?,CURDATE(), ?,  ?, ?,?,?,?,?)',
                 [empAttendanceStatus, latitude, longitude, dailyStatus, timeCount, empId, companyId, formattedTime, IpHandal, empbranch_id, applyBy, reason, late_coming_leaving, attendance_reason]);
             if (!attendanceCheckInsert || !attendanceCheckInsert.insertId) {
-
                 return res.status(500).json({ status: false, message: 'Failed to mark attendance. Please try again.', error: attendanceCheckInsert });
             } else {
+
+                const resultEmpin = await getEmployeeProfile(getEmployeeData);
+                req.io.to(empId.toString()).emit("profileResponse", resultEmpin);
                 return res.status(200).json({ status: true, message: `Attendance marked as 'in' at ${formattedTime}.` });
             }
 
@@ -357,6 +368,8 @@ router.post('/Attendancemark', async (req, res) => {
 
             // After marking 'out', calculate total break duration
             await calculateAndUpdateTotalBreakDuration(empId, companyId);
+            const resultEmpout = await getEmployeeProfile(getEmployeeData);
+            req.io.to(empId.toString()).emit("profileResponse", resultEmpout);
             return res.status(200).json({ status: true, message: `Attendance marked as 'out' at ${formattedTime}. Duration: ${duration}.` });
 
         } else if (type === 'Start_break') {

@@ -341,6 +341,22 @@ router.post('/api/AttendanceReqSubmit', async (req, res) => {
 
 
     try {
+        // Check existing request
+        const [existingRequest] = await db.promise().query(
+            `SELECT id FROM attendance_requests 
+     WHERE employee_id = ? 
+     AND company_id = ? 
+     AND request_date = ? and ((rm_id>0 and rm_status!=2) or (admin_id>0  and admin_status!=2))`,
+            [employee_id, decodedUserData.company_id, request_date]
+        );
+
+        if (existingRequest.length > 0) {
+            return res.status(400).json({
+                status: false,
+                message: "Attendance request already exists"
+            });
+        }
+
         let RmIdValue = 0;
         // Step 1: Get the reporting manager ID
         const [SettingMultiLeaveApprove] = await db.promise().query(
@@ -364,7 +380,7 @@ router.post('/api/AttendanceReqSubmit', async (req, res) => {
         // Step 2: Insert the attendance request
         const [insertResults] = await db.promise().query(
             'INSERT INTO attendance_requests (attendance_id,rm_id, employee_id, company_id, request_type, request_date, in_time, out_time, reason,short_leave,short_leave_type,short_leave_reason) VALUES (?,?, ?, ?, ?, ?, ?, ?, ?,?,?,?)',
-            [attendance_id, RmIdValue, employee_id, decodedUserData.company_id, request_type, request_date, in_time, out_time, reason, short_leave, short_leave_type, short_leave_reason]
+            [attendance_id, RmIdValue, employee_id, decodedUserData?.company_id, request_type, request_date, in_time, out_time, reason, short_leave, short_leave_type, short_leave_reason]
         );
         if (RmIdValue) {
             await sendNotification({

@@ -1,34 +1,9 @@
 const express = require('express');
-const multer = require('multer');
 const router = express.Router();
 const db = require('../../DB/ConnectionSql');
-const path = require('path');
-const fs = require('fs');
+
 
 const { getEmployeeProfile } = require('../../helpers/getEmployeeProfile');
-
-// Rules
-// SELECT `id`, `employee_id`, `company_id`, `face_authentication`, `face_url`, `embeddings`,
-//  `created_at` FROM `face_auth` WHERE 1
-
-
-// Set up multer storage
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        const dir = path.join(__dirname, '../../uploads/face');
-        if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
-        }
-        cb(null, dir);
-    },
-    filename: (req, file, cb) => {
-        const ext = path.extname(file.originalname);
-        cb(null, `${Date.now()}${ext}`);
-    }
-});
-
-const upload = multer({ storage: storage });
-
 
 
 router.post('/faceRegister', async (req, res) => {
@@ -53,8 +28,12 @@ router.post('/faceRegister', async (req, res) => {
         return res.status(400).json({ status: false, message: 'Invalid input data' });
     }
     let faceUrl = face || '';
-
-    const result = await getEmployeeProfile(req.body, id);
+    let newData = {
+        userData,
+        CheckId: userId,
+        reload: true
+    }
+    const result = await getEmployeeProfile(newData);
 
     try {
         const [rows] = await db.promise().query(

@@ -5,7 +5,6 @@ const puppeteer = require("puppeteer");
 const fs = require("fs");
 const path = require("path");
 const db = require('../../../DB/ConnectionSql');
-const { Console } = require("console");
 
 const serverAddress = process.env.SERVER_ADDRESS || "https://api.sysboat.com";
 console.log('Server address for API calls:', serverAddress);
@@ -13,7 +12,6 @@ console.log('Server address for API calls:', serverAddress);
 router.use('/static', express.static(path.join(__dirname, '../../../public')));
 
 // new work 
-
 router.post('/api/data', async (req, res) => {
     try {
         const { userData, month, year, employeeId } = req.body;
@@ -216,7 +214,7 @@ router.get('/api/HtmlView', async (req, res) => {
         // For now, using the same as current for demonstration
         const earningsTotalYTD = earningsTotal;
         const deductionsTotalYTD = deductionsTotal;
-       
+
 
         const htmlContent = ` <!DOCTYPE html>
     <html lang="en">
@@ -1035,14 +1033,26 @@ router.post('/api/HtmlViewToJpg', async (req, res) => {
 
         const htmlContent = await htmlResponse.text();
 
-        // Puppeteer launch
+        // //// Puppeteer launch
+        // browser = await puppeteer.launch({
+        //     headless: "new",
+        //     args: [
+        //         "--no-sandbox",
+        //         "--disable-setuid-sandbox",
+        //         "--disable-dev-shm-usage",
+        //         "--disable-gpu"
+        //     ]
+        // });
+
         browser = await puppeteer.launch({
-            headless: "new",
+            headless: true,
             args: [
                 "--no-sandbox",
                 "--disable-setuid-sandbox",
                 "--disable-dev-shm-usage",
-                "--disable-gpu"
+                "--disable-gpu",
+                "--no-zygote",
+                "--single-process"
             ]
         });
 

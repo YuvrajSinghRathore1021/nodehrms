@@ -3,12 +3,9 @@ const { AdminCheck } = require('../model/functlity/AdminCheck');
 
 exports.getEmployeeProfile = async ({ userData, CheckId, reload = false }) => {
     try {
-       
-        
+
         let decodedUserData = null;
-
         if (!userData) throw new Error("userData is missing");
-
         try {
             const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
             decodedUserData = JSON.parse(decodedString);
@@ -61,6 +58,11 @@ exports.getEmployeeProfile = async ({ userData, CheckId, reload = false }) => {
             `SELECT in_time, out_time, half_day, max_working_hours FROM attendance_rules 
        WHERE rule_id = ? AND company_id = ?`, [emp.attendance_rules_id, decodedUserData.company_id]
         );
+        const [attendance] = await db.promise().query(
+            `SELECT attendance_id FROM attendance WHERE employee_id = ? AND company_id = ? AND attendance_date = CURDATE()`, [employeeId, decodedUserData.company_id]
+        );
+
+
 
         //     // embeddings
         const [faceAuth] = await db.promise().query(
@@ -128,7 +130,7 @@ exports.getEmployeeProfile = async ({ userData, CheckId, reload = false }) => {
         const [outHours, outMinutes] = out_time.split(':').map(Number);
         const inIST = new Date(today.getFullYear(), today.getMonth(), today.getDate(), inHours, inMinutes);
         const outIST = new Date(today.getFullYear(), today.getMonth(), today.getDate(), outHours, outMinutes);
-
+        let locationAccess = attendance.length > 0 ? permissionData?.location_access : 0;
 
         return {
             status: true,
@@ -151,14 +153,14 @@ exports.getEmployeeProfile = async ({ userData, CheckId, reload = false }) => {
 
 
             face_detection: permissionData?.face_detection || 0,
-            location_access: permissionData?.location_access || 0,
+            location_access: locationAccess || 0,
             branchSwitch: permissionData?.branch_switch == 1 ? true : permissionData?.branch_switch == 0 ? false : true,
 
             liveFaceDetection: permissionData?.live_face_detection,
 
             permission: {
                 block_app: permissionData?.block_app || 0,
-                location_access: permissionData?.location_access || 0,
+                location_access: locationAccess || 0,
                 interval_ms: permissionData?.interval_ms || 0,
                 face_detection: permissionData?.face_detection || 0,
                 live_face_detection: permissionData?.live_face_detection || 0,
