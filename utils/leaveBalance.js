@@ -12,7 +12,6 @@ const updateLeaveBalance = async (leaveId, company_id) => {
 
         if (!leaveRows.length) return;
         const leave = leaveRows[0];
-        console.log("Leave Details:", leave);
 
         // 2. Calculate leave days
         const leaveDays = calculateLeaveDays(
@@ -32,7 +31,6 @@ const updateLeaveBalance = async (leaveId, company_id) => {
             [leave.employee_id, leave.leave_rule_id, company_id, leave.start_date]
         );
 
-        console.log("balanceResults Details:", balanceRows);
 
         if (!balanceRows.length) return;
 

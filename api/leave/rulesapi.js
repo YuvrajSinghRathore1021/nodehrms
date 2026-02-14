@@ -151,7 +151,7 @@ router.post("/RulesUpdate", (req, res) => {
     apply_leaves_next_year,
     auto_deduction, deduction_count, deduction_date, deduction_start_date, deduction_end_date,
 
-    userData, leave_number_hide = 0
+    userData, leave_number_hide = 0,max_negative_leaves=0
   } = req.body;
   const recordId = id;
   let decodedUserData = null;
@@ -201,6 +201,7 @@ router.post("/RulesUpdate", (req, res) => {
         max_leaves_month = ?,
         continuous_leaves = ?,
         negative_leaves = ?,
+        max_negative_leaves=?,
         future_dated_leaves = ?,
         future_dated_leaves_after = ?,
         backdated_leaves = ?,
@@ -226,6 +227,7 @@ router.post("/RulesUpdate", (req, res) => {
       max_leaves_month,
       continuous_leaves,
       negative_leaves,
+      max_negative_leaves,
       future_dated_leaves,
       future_dated_leaves_after,
       backdated_leaves,
