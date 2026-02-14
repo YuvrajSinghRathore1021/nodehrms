@@ -1,4 +1,5 @@
 const express = require("express");
+require("dotenv").config();
 const router = express.Router();
 const puppeteer = require("puppeteer");
 const fs = require("fs");
@@ -6,7 +7,8 @@ const path = require("path");
 const db = require('../../../DB/ConnectionSql');
 const { Console } = require("console");
 
-const serverAddress = process.env.SERVER_ADDRESS || "http://localhost:2100";
+const serverAddress = process.env.SERVER_ADDRESS || "https://api.sysboat.com";
+console.log('Server address for API calls:', serverAddress);
 // Serve static files (e.g., fonts)
 router.use('/static', express.static(path.join(__dirname, '../../../public')));
 
