@@ -122,17 +122,23 @@ router.post("/leave", async (req, res) => {
 
   // ================== CHECK DUPLICATE LEAVES ====================
   const [existingLeave] = await db.promise().query(
-    `SELECT leave_id, status FROM leaves 
+    `SELECT leave_id, rm_id,rm_status,admin_id,admin_status FROM leaves 
      WHERE employee_id = ? AND company_id = ? 
      AND ((start_date BETWEEN ? AND ?) OR (end_date BETWEEN ? AND ?) OR (start_date <= ? AND end_date >= ?))
-     AND ((rm_id > 0 and rm_status != 2) OR (admin_id>0 and admin_status != 2)) and deletestatus=0`,
+     AND ((rm_status != 2) OR (admin_status != 2)) and deletestatus=0`,
     [employeeIdNew, decodedUserData.company_id, start_date, end_date, start_date, end_date, start_date, end_date]
   );
   if (existingLeave.length > 0) {
-    const statusMap = { 0: 'Pending', 1: 'Approved', 2: 'Rejected' };
+    let existingStatus = "";
+    if (existingLeave[0].rm_id > 0 && existingLeave[0].rm_status == 0) {
+      existingStatus = "Pending From Reporting Manager";
+    } else if (existingLeave[0].admin_status == 0 ) {
+      existingStatus = "Pending From Admin";
+    }
+
     return res.status(400).json({
       status: false,
-      message: `Leave for this date range has already been applied. Status: ${statusMap[existingLeave[0].status] || 'Unknown'}`,
+      message: `Leave for this date range has already been applied. Status: ${existingStatus}`,
       existing_leave_id: existingLeave[0].leave_id
     });
   }
@@ -325,8 +331,8 @@ router.post("/leave", async (req, res) => {
 
     let insertResult;
     const insertQuery = type == "admin"
-      ? "INSERT INTO leaves (company_id, employee_id, leave_type, leave_rule_id, start_date, end_date,  reason, rm_id, start_half, end_half, admin_status, admin_remark, admin_id, created, updated) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())"
-      : "INSERT INTO leaves (company_id, employee_id, leave_type, leave_rule_id, start_date, end_date,  reason, rm_id, start_half, end_half, created, updated) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
+      ? "INSERT INTO leaves (company_id, employee_id, leave_type, leave_rule_id, start_date, end_date,  reason, rm_id, start_half, end_half, admin_status, admin_remark, admin_id, created, updated) VALUES (?,  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())"
+      : "INSERT INTO leaves (company_id, employee_id, leave_type, leave_rule_id, start_date, end_date,  reason, rm_id, start_half, end_half, created, updated) VALUES (?, ?, ?, ?, ?, ?, ?,  ?, ?, ?, NOW(), NOW())";
 
     const insertParams = type == "admin"
       ? [decodedUserData.company_id, employeeIdNew, leaveRule.leave_type, leave_type, start_date, end_date, reason, RmIdValue, start_half, end_half, adminStatus, adminRemark, adminId]

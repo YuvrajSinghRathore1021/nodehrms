@@ -74,7 +74,7 @@ router.post('/Attendancemark', async (req, res) => {
         let empbranch_id = employeeResults[0].branch_id;
         if (empbranch_id != 0 && attendanceType != "hr") {
             const branchResults = await queryDb('SELECT id, company_id, name, location_status, latitude, longitude, radius, ip, ip_status,status,location_required,location_break FROM branches WHERE id = ? AND company_id = ? AND status=1', [employeeResults[0].branch_id, companyId]);
-        
+
             if (branchResults.length === 0) {
 
             } else {
@@ -85,7 +85,7 @@ router.post('/Attendancemark', async (req, res) => {
                     && ((branchResults[0].location_required == 1 && (type == 'in' || type == 'out')) || (branchResults[0].location_required == 2 && type == 'in') || (branchResults[0].location_required == 3 && type == 'out')
                         || ((branchResults[0].location_break == 1 && (type == 'Start_break' || type == 'End_break')) || (branchResults[0].location_break == 2 && type == 'Start_break') || (branchResults[0].location_break == 3 && type == 'End_break')))
                 ) {
-                   
+
                     const distance = getDistanceFromLatLonInMeters(latitude, longitude, branchResults[0].latitude, branchResults[0].longitude);
                     if (distance > branchResults[0].radius) {
                         return res.status(200).json({
@@ -96,7 +96,7 @@ router.post('/Attendancemark', async (req, res) => {
                 }
             }
         }
-      
+
 
         const rulesResults = await queryDb('SELECT in_time,out_time,out_time_required,max_working_hours,working_hours_required,half_day,penalty_rule_applied,late_coming_penalty,late_coming_allowed_days,last_in_time,early_leaving_penalty,last_out_time,in_grace_period_minutes FROM attendance_rules WHERE rule_id = ? AND company_id = ?', [employeeResults[0].attendance_rules_id, companyId]);
         const rule = rulesResults.length > 0 ? rulesResults[0] : { in_time: '09:30', out_time: '18:30' };
@@ -436,7 +436,6 @@ const parseDuration = (durationStr) => {
 
 const calculateAndUpdateTotalBreakDuration = async (employeeId, companyId) => {
     const breakLogs = await queryDb('SELECT SUM(duration) AS total_break_time FROM break_logs WHERE employee_id = ? AND attendance_id IN (SELECT attendance_id FROM attendance WHERE employee_id = ? AND company_id = ? AND attendance_date = CURDATE())', [employeeId, employeeId, companyId]);
-
     if (breakLogs.length > 0 && breakLogs[0].total_break_time) {
         const totalBreakTime = breakLogs[0].total_break_time;
         // Update attendance with the total break time
