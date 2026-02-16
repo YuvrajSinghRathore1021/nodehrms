@@ -132,13 +132,13 @@ router.post("/leave", async (req, res) => {
     let existingStatus = "";
     if (existingLeave[0].rm_id > 0 && existingLeave[0].rm_status == 0) {
       existingStatus = "Pending From Reporting Manager";
-    } else if (existingLeave[0].admin_status == 0 ) {
+    } else if (existingLeave[0].admin_status == 0) {
       existingStatus = "Pending From Admin";
     }
 
     return res.status(400).json({
       status: false,
-      message: `Leave for this date range has already been applied. Status: ${existingStatus}`,
+      message: `Leave for this date range has already been applied.Status: ${existingStatus}`,
       existing_leave_id: existingLeave[0].leave_id
     });
   }
