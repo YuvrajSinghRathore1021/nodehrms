@@ -4,6 +4,7 @@ const db = require("../../DB/ConnectionSql");
 const { sendNotification } = require('../../api/firebase/notificationComman');
 const updateLeaveBalance = require("../../utils/leaveBalance");
 const calculateLeaveDays = require("../../utils/calculateLeaveDays");
+const leaveconversion = require("../../utils/leave/leaveconversion");
 
 
 // app cheak A / web cheak A
@@ -135,7 +136,6 @@ router.post("/leave", async (req, res) => {
     } else if (existingLeave[0].admin_status == 0) {
       existingStatus = "Pending From Admin";
     }
-
     return res.status(400).json({
       status: false,
       message: `Leave for this date range has already been applied.Status: ${existingStatus}`,
@@ -145,7 +145,6 @@ router.post("/leave", async (req, res) => {
 
   // ================== CALCULATE LEAVE DAYS ====================
   let leaveDays = calculateLeaveDays(startDate, endDate, start_half, end_half);
-
 
 
   if (leaveDays <= 0) {
@@ -158,11 +157,12 @@ router.post("/leave", async (req, res) => {
   // ================== LEAVE BALANCE VALIDATION ====================
 
   const [leaveBalance] = await db.promise().query(
-    `SELECT id, total_leaves, used_leaves, remaining_leaves,  status 
+    `SELECT id, total_leaves, used_leaves, remaining_leaves,old_balance , status 
      FROM leave_balance 
      WHERE employee_id = ? AND company_id = ? AND leave_rules_id = ?  AND status = 1 and session_start <= ? and session_end >= ?`,
     [employeeIdNew, decodedUserData.company_id, leave_type, startDate, endDate]
   );
+
 
   if (leaveBalance.length == 0) {
     return res.status(400).json({
@@ -171,7 +171,36 @@ router.post("/leave", async (req, res) => {
     });
   }
 
-  if (leaveBalance[0].remaining_leaves < leaveDays && leaveRule.negative_leaves == 0) {
+
+  const [pendingLeaves] = await db.promise().query(`
+  SELECT leave_rule_id, start_date, end_date, start_half, end_half
+  FROM leaves
+  WHERE employee_id=? 
+    AND company_id=? 
+    AND leave_rule_id=? 
+    AND admin_status=0 
+    AND deletestatus=0
+`, [emp.id, decodedUserData.company_id, leave_type]);
+
+  const pendingByRule = {};
+
+  for (const lv of pendingLeaves) {
+    const days = calculateLeaveDays(
+      lv.start_date,
+      lv.end_date,
+      lv.start_half,
+      lv.end_half
+    );
+
+    pendingByRule[lv.leave_rule_id] =
+      (pendingByRule[lv.leave_rule_id] || 0) + days;
+  }
+
+  const pending = pendingByRule[leave_type] || 0;
+  const leavecount = await leaveconversion(emp.id, leave_type);
+  let totalLeave = leaveBalance[0].total_leaves + leaveBalance[0].old_balance + leavecount - leaveBalance[0].used_leaves - pending
+
+  if (totalLeave < leaveDays && leaveRule.negative_leaves == 0) {
     return res.status(400).json({
       status: false,
       message: `Insufficient leave balance. Available: ${leaveBalance[0].remaining_leaves} days, Requested: ${leaveDays} days.`

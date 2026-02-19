@@ -1,8 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../../DB/ConnectionSql");
-const { json } = require("body-parser");
 const calculateLeaveDays = require("../../utils/calculateLeaveDays");
+const leaveconversion = require("../../utils/leave/leaveconversion");
+
 
 ////// working code 
 // app cheak A / web cheak A
@@ -41,7 +42,7 @@ router.post("/FetchLeaveCount", async (req, res) => {
 
     // ---- Step 2: Fetch rules + balance
     const [rules] = await db.promise().query(
-      `SELECT lr.*, lb.used_leaves, lb.assign_date ,lb.old_balance
+      `SELECT lr.*, lb.used_leaves, lb.assign_date ,lb.old_balance,
        FROM leave_rules lr
        INNER JOIN leave_balance lb ON lr.id = lb.leave_rules_id 
         AND lb.employee_id = ? 
@@ -160,7 +161,8 @@ router.post("/FetchLeaveCount", async (req, res) => {
 
       if (decodedUserData?.company_id == 10) {
         // employeeId
-        const leavecount = await handleleave(employeeId, rule.id);
+        // const leavecount = await handleleave(employeeId, rule.id);
+        const leavecount = await leaveconversion(employeeId, rule.id);
         // totalCreditedNew = totalCredited + leavecount;
         totalCreditedNew = Number((available + leavecount).toFixed(2));
         available = totalCreditedNew;
@@ -177,8 +179,7 @@ router.post("/FetchLeaveCount", async (req, res) => {
         available_leaves: available.toString(),
         monthly_balance_leave: monthly_balance_leave.toString(),
         Available: available > 0
-      });
-
+      }); 
     }
 
     res.json({ status: true, records: results });

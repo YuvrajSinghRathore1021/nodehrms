@@ -72,7 +72,7 @@ router.post('/api/Add', async (req, res) => {
                     if (platformType == 'ios' || platformType == 'android') {
                         db.query('INSERT INTO employees (company_id,employee_id,first_name,last_name,official_email_id,date_of_Joining,marital_status,blood_group,email_id,contact_number,current_address,permanent_address,probation_status,experience,job_title,dob,gender,work_location,department,sub_department,designation,employee_type,probation_period,reporting_manager,ctc,emergency_contact_name,emergency_contact_number,alternate_phone,bank,branch,city,ifsc,account_number,attendance_rules_id,work_week_id,structure_id) VALUES (?,?, ?, ?, ?, ?, ?, ?,?, ?, ?, ?, ?,?,?, ?, ?, ?, ?,?,?, ?, ?, ?, ?,?,?, ?, ?, ?, ?,?,?,?,?,?)',
                             [decodedUserData.company_id, employee_id, first_name, last_name, official_email_id, date_of_Joining, marital_status, blood_group, email_id, contact_number, current_address, permanent_address, probation_status, experience, job_title, dob, gender, work_location, department, sub_department, designation, employee_type, probation_period, reporting_manager, ctc, emergency_contact_name, emergency_contact_number, alternate_phone, bank, branch, city, ifsc, account_number, attendance_rule_id,rule_id,structure_id],
-                            (err) => {
+                            (err, result) => {
                                 if (err) {
                                     return res.status(500).json({
                                         status: false,
@@ -82,6 +82,7 @@ router.post('/api/Add', async (req, res) => {
                                 }
                                 return res.status(200).json({
                                     status: true,
+                                    lastInsertId: result.insertId,
                                     message: 'Employee Add successfully.'
                                 });
                             }
@@ -89,7 +90,7 @@ router.post('/api/Add', async (req, res) => {
                     } else {
                         db.query('INSERT INTO employees (reporting_manager,ctc,company_id,employee_id,first_name,last_name,email_id,date_of_Joining,contact_number,dob,gender,attendance_rules_id,work_week_id,structure_id) VALUES (?,?, ?, ?, ?, ?, ?, ?, ?, ?,? ,?,?,?)',
                             [reporting_manager, ctc, decodedUserData.company_id, employee_id, first_name, last_name, email, date_of_joining, phone_number, dob, gender,attendance_rule_id,rule_id,structure_id],
-                            (err) => {
+                            (err,result) => {
                                 if (err) {
                                     return res.status(500).json({
                                         status: false,
@@ -99,6 +100,7 @@ router.post('/api/Add', async (req, res) => {
                                 }
                                 return res.status(200).json({
                                     status: true,
+                                    lastInsertId: result.insertId,
                                     message: 'Employee Add successfully.'
                                 });
                             }

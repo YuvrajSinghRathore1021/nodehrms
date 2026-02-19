@@ -4,7 +4,7 @@ const db = require("../../DB/ConnectionSql");
 const { json } = require("body-parser");
 const { AdminCheck } = require("../../model/functlity/AdminCheck");
 const calculateLeaveDays = require("../../utils/calculateLeaveDays");
-
+const leaveconversion = require("../../utils/leave/leaveconversion");
 ////// Fetch Department Employee //////////
 
 // web cheak A
@@ -151,7 +151,7 @@ router.post("/RulesUpdate", (req, res) => {
     apply_leaves_next_year,
     auto_deduction, deduction_count, deduction_date, deduction_start_date, deduction_end_date,
 
-    userData, leave_number_hide = 0,max_negative_leaves=0
+    userData, leave_number_hide = 0, max_negative_leaves = 0
   } = req.body;
   const recordId = id;
   let decodedUserData = null;
@@ -319,6 +319,7 @@ router.get("/Assign_Rules", (req, res) => {
     }
   });
 });
+
 // web cheak A
 router.post("/update-leave-type", (req, res) => {
   const { id, leave_rule_id, userData, assign_date } = req.body;
@@ -959,7 +960,6 @@ router.post("/leaveBalanceUpdate", (req, res) => {
 router.get("/Balance", async (req, res) => {
   try {
     const { page = 1, limit = 10, userData, departmentId = 0, subDepartmentid = 0, employeeStatus = 1, search = '' } = req.query;
-
     const offset = (page - 1) * limit;
 
     if (!userData) {
@@ -1029,8 +1029,7 @@ router.get("/Balance", async (req, res) => {
            lb.used_leaves, lb.old_balance, lb.assign_date
     FROM leave_rules lr
     INNER JOIN leave_balance lb ON lr.id = lb.leave_rules_id 
-    WHERE lb.employee_id=? 
-      AND lb.company_id=? 
+    WHERE lb.employee_id=? AND lb.company_id=? 
       AND CURDATE() BETWEEN lb.session_start AND lb.session_end
   `, [emp.id, decodedUserData.company_id]);
 
@@ -1052,8 +1051,7 @@ router.get("/Balance", async (req, res) => {
           lv.start_half,
           lv.end_half
         );
-        pendingByRule[lv.leave_rule_id] =
-          (pendingByRule[lv.leave_rule_id] || 0) + days;
+        pendingByRule[lv.leave_rule_id] = (pendingByRule[lv.leave_rule_id] || 0) + days;
       }
 
       const empData = {
@@ -1090,8 +1088,7 @@ router.get("/Balance", async (req, res) => {
         else if (rule.accrual_frequency === "quarterly") periodsPerYear = 4;
         else if (rule.accrual_frequency === "half-yearly") periodsPerYear = 2;
 
-        const leavesPerPeriod =
-          rule.leaves_allowed_year / periodsPerYear;
+        const leavesPerPeriod = rule.leaves_allowed_year / periodsPerYear;
 
         const monthsDiff =
           (today.getFullYear() - assignDate.getFullYear()) * 12 +
@@ -1111,10 +1108,9 @@ router.get("/Balance", async (req, res) => {
         const used = Number(rule.used_leaves || 0);
         const old = Number(rule.old_balance || 0);
         const pending = Number(pendingByRule[rule.leave_rule_id] || 0);
-
-        const balance = Number(
-          (totalCredited + old - used - pending).toFixed(1)
-        );
+        
+        const leavecount = await leaveconversion(emp.employee_id, rule.leave_rule_id);
+        const balance = Number((totalCredited + old + leavecount - used - pending).toFixed(1));
 
         empData.leave_balances[rule.leave_type] = {
           total: Number(totalCredited.toFixed(1)),
@@ -1130,7 +1126,7 @@ router.get("/Balance", async (req, res) => {
     // --- FINAL RESPONSE
     return res.status(200).json({
       status: true,
-      total: countRows[0].total,
+      total: countRows[0]?.total || 0,
       leave_types: Array.from(leaveTypeSet),
       data: finalResult
     });
