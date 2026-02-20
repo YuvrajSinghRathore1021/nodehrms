@@ -180,7 +180,7 @@ router.post("/leave", async (req, res) => {
     AND leave_rule_id=? 
     AND admin_status=0 
     AND deletestatus=0
-`, [emp.id, decodedUserData.company_id, leave_type]);
+`, [employeeIdNew, decodedUserData.company_id, leave_type]);
 
   const pendingByRule = {};
 
@@ -197,7 +197,7 @@ router.post("/leave", async (req, res) => {
   }
 
   const pending = pendingByRule[leave_type] || 0;
-  const leavecount = await leaveconversion(emp.id, leave_type);
+  const leavecount = await leaveconversion(employeeIdNew, leave_type);
   let totalLeave = leaveBalance[0].total_leaves + leaveBalance[0].old_balance + leavecount - leaveBalance[0].used_leaves - pending
 
   if (totalLeave < leaveDays && leaveRule.negative_leaves == 0) {

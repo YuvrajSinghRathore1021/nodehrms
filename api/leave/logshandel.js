@@ -42,7 +42,7 @@ router.post("/FetchLeaveCount", async (req, res) => {
 
     // ---- Step 2: Fetch rules + balance
     const [rules] = await db.promise().query(
-      `SELECT lr.*, lb.used_leaves, lb.assign_date ,lb.old_balance,
+      `SELECT lr.*, lb.used_leaves, lb.assign_date ,lb.old_balance
        FROM leave_rules lr
        INNER JOIN leave_balance lb ON lr.id = lb.leave_rules_id 
         AND lb.employee_id = ? 
@@ -193,22 +193,6 @@ router.post("/FetchLeaveCount", async (req, res) => {
   }
 });
 
-
-const handleleave = async (employeeId, rule_id) => {
-  const [rows] = await db.promise().query(
-    `SELECT count(id) as total 
-        FROM attendance_leave_conversions 
-        WHERE employee_id=? and  leave_rule_id=?`,
-    [employeeId, rule_id]
-  );
-
-  // ✅ If converted to leave
-  if (rows.length > 0) {
-    return rows[0].total;
-  }
-  // ❌ No conversion found
-  return 0;
-};
 
 
 
