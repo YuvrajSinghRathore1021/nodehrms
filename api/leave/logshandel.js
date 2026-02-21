@@ -6,6 +6,7 @@ const leaveconversion = require("../../utils/leave/leaveconversion");
 
 
 ////// working code 
+
 // app cheak A / web cheak A
 router.post("/FetchLeaveCount", async (req, res) => {
   const { userData, employee_Id = 0 } = req.body;
@@ -51,8 +52,8 @@ router.post("/FetchLeaveCount", async (req, res) => {
        WHERE lr.company_id = ?`,
       [employeeId, companyId, companyId]
     );
-   
-    
+
+
 
     // ----  Fetch ALL pending leave requests at once
     const [leaveRequests] = await db.promise().query(
@@ -179,7 +180,7 @@ router.post("/FetchLeaveCount", async (req, res) => {
         available_leaves: available.toString(),
         monthly_balance_leave: monthly_balance_leave.toString(),
         Available: available > 0
-      }); 
+      });
     }
 
     res.json({ status: true, records: results });
@@ -192,11 +193,6 @@ router.post("/FetchLeaveCount", async (req, res) => {
     });
   }
 });
-
-
-
-
-
 
 
 module.exports = router;

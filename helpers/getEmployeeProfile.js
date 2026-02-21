@@ -132,6 +132,7 @@ exports.getEmployeeProfile = async ({ userData, CheckId, reload = false }) => {
         const outIST = new Date(today.getFullYear(), today.getMonth(), today.getDate(), outHours, outMinutes);
         let locationAccess = attendance.length > 0 ? permissionData?.location_access : 0;
 
+        let branchSwitch = permissionData?.branch_switch == 0 ? 0 : 1
         return {
             status: true,
             message: "Profile fetched successfully",
@@ -154,7 +155,7 @@ exports.getEmployeeProfile = async ({ userData, CheckId, reload = false }) => {
 
             face_detection: permissionData?.face_detection || 0,
             location_access: locationAccess || 0,
-            branchSwitch: permissionData?.branch_switch == 1 ? true : permissionData?.branch_switch == 0 ? false : true,
+            branchSwitch: branchSwitch,
 
             liveFaceDetection: permissionData?.live_face_detection,
 
@@ -164,7 +165,7 @@ exports.getEmployeeProfile = async ({ userData, CheckId, reload = false }) => {
                 interval_ms: permissionData?.interval_ms || 0,
                 face_detection: permissionData?.face_detection || 0,
                 live_face_detection: permissionData?.live_face_detection || 0,
-                branch_switch: permissionData?.branch_switch == 0 ? 0 : true,
+                branch_switch: branchSwitch,
                 allow_relogin: permissionData?.allow_relogin || 0,
                 block_punch_in_out: permissionData?.block_punch_in_out || 0,
                 block_break_in_out: permissionData?.block_break_in_out || 0,

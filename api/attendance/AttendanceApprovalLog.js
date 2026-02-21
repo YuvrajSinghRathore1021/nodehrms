@@ -422,7 +422,7 @@ LEFT JOIN employees AS e  ON a.apply_by = e.id WHERE a.employee_id = ? AND a.com
 
 // app cheak A / web cheak A
 router.post('/api/ApprovalSubmit', async (req, res) => {
-    const { userData, ApprovalRequests_id, Type, ApprovalStatus, employee_id, in_time, out_time, reason, request_date, request_type,short_leave=0,short_leave_type=0,short_leave_reason="" } = req.body;
+    const { userData, ApprovalRequests_id, Type, ApprovalStatus, employee_id, in_time, out_time, reason, request_date, request_type, short_leave = 0, short_leave_type = 0, short_leave_reason = "" } = req.body;
     let decodedUserData = null;
     // Decode and validate userData
     if (userData) {
@@ -522,29 +522,28 @@ router.post('/api/ApprovalSubmit', async (req, res) => {
             let insertQuery = '';
             let insertParams = '';
             let actionType = '';
-
+            let duration = await calculateDuration(in_time || attendanceRequestType[0].in_time, out_time || attendanceRequestType[0].out_time);
             if (attendanceRequestType[0].attendance_id != 0 && attendanceRequestType[0].attendance_id != '') {
-
                 insertQuery = `
-                UPDATE attendance SET request_id=?,daily_status_in=?, daily_status_intime=?, daily_status_out=?, daily_status_outtime=?, 
+                UPDATE attendance SET duration=?,request_id=?,daily_status_in=?, daily_status_intime=?, daily_status_out=?, daily_status_outtime=?, 
                      status=?, check_in_time=?, check_out_time=?, approval_status=?, short_leave=?, short_leave_type=?, short_leave_reason=?
                       Where  employee_id=? AND company_id=? And attendance_id=?`;
 
-                insertParams = [ApprovalRequests_id,
+                insertParams = [duration, ApprovalRequests_id,
                     dailyStatusIN, timeCountIN, dailyStatusOUT, timeCountOUT,
                     attendanceRequestType[0].request_type, in_time || attendanceRequestType[0].in_time, out_time || attendanceRequestType[0].out_time, 1
                     , short_leave, short_leave_type, short_leave_reason,
-                     employee_id, company_id, attendanceRequestType[0].attendance_id];
+                    employee_id, company_id, attendanceRequestType[0].attendance_id];
 
                 actionType = 'update';
 
             } else {
                 insertQuery = `
-                INSERT INTO attendance (request_id,daily_status_in, daily_status_intime, daily_status_out, daily_status_outtime, 
+                INSERT INTO attendance (duration,request_id,daily_status_in, daily_status_intime, daily_status_out, daily_status_outtime, 
                     employee_id, company_id, attendance_date, status, check_in_time, check_out_time, approval_status, short_leave, short_leave_type, short_leave_reason
-                ) VALUES (?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+                ) VALUES (?,?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
-                insertParams = [ApprovalRequests_id,
+                insertParams = [duration, ApprovalRequests_id,
                     dailyStatusIN, timeCountIN, dailyStatusOUT, timeCountOUT,
                     employee_id, company_id, attendanceRequestType[0].request_date, attendanceRequestType[0].request_type, in_time || attendanceRequestType[0].in_time, out_time || attendanceRequestType[0].out_time, 1
                     , short_leave, short_leave_type, short_leave_reason
@@ -625,4 +624,34 @@ function trackTime(officeStartTime, arrivalTimeOrCloseTime) {
     }
 };
 
+
+const calculateDuration = (startTime, endTime, breakDurationMillis = 0) => {
+    return new Promise((resolve, reject) => {
+        try {
+            const start = new Date(`1970-01-01T${startTime}Z`);
+            const end = new Date(`1970-01-01T${endTime}Z`);
+
+            if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+                return reject(new Error('Invalid start or end time'));
+            }
+
+            let totalDurationMillis = end.getTime() - start.getTime();
+
+            // Important: if endTime is lower than startTime (means cross over midnight), handle it
+            if (totalDurationMillis < 0) {
+                totalDurationMillis += 24 * 60 * 60 * 1000; // Add 24 hours
+            }
+
+            totalDurationMillis -= breakDurationMillis;
+
+            const totalMinutes = Math.floor(totalDurationMillis / 60000);
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = totalMinutes % 60;
+
+            resolve(`${hours} hour ${minutes} minute`);
+        } catch (error) {
+            reject(new Error('Error calculating duration'));
+        }
+    });
+};
 module.exports = router;
