@@ -1040,8 +1040,21 @@ router.post('/api/HtmlViewToJpg', async (req, res) => {
         //     ]
         // });
 
+        // browser = await puppeteer.launch({
+        //     headless: true,
+        //     args: [
+        //         "--no-sandbox",
+        //         "--disable-setuid-sandbox",
+        //         "--disable-dev-shm-usage",
+        //         "--disable-gpu",
+        //         "--no-zygote",
+        //         "--single-process"
+        //     ]
+        // });
+
         browser = await puppeteer.launch({
             headless: true,
+            executablePath: "/usr/bin/google-chrome",
             args: [
                 "--no-sandbox",
                 "--disable-setuid-sandbox",
