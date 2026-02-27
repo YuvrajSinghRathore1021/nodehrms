@@ -133,8 +133,6 @@ router.post("/fetchleave", (req, res) => {
     });
 });
 
-
-
 // new 
 const decodeUserData = (userData) => {
     try {
@@ -144,8 +142,6 @@ const decodeUserData = (userData) => {
         return null;
     }
 };
-
-
 
 // admin api 
 // app cheak A / web cheak A
@@ -381,8 +377,6 @@ router.post("/api/Review", async (req, res) => {
         res.status(500).json({ status: false, error: "Server error", message: err.message });
     }
 });
-
-
 
 
 router.post("/api/Approved", async (req, res) => {
@@ -621,7 +615,6 @@ router.post("/api/Approved", async (req, res) => {
         res.status(500).json({ status: false, error: "Server error", message: err.message });
     }
 });
-
 
 
 // Rejected //

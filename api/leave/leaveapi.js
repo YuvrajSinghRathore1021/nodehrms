@@ -410,10 +410,7 @@ router.post("/leave", async (req, res) => {
 });
 
 
-
-
-///////////  Soft Delete ////////////////
-// web cheak A
+///////////  Soft Delete ////////////////;
 router.post("/delete", (req, res) => {
   const { leave_id } = req.body;
   if (!leave_id) {
@@ -516,9 +513,7 @@ router.post("/LeaveRequest", async (req, res) => {
   });
 });
 
-
 // // app cheak A / web cheak A -working but balance not update 
-
 
 router.post("/api/ApprovalSubmit", async (req, res) => {
   const {

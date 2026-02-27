@@ -15,36 +15,35 @@ router.use('/static', express.static(path.join(__dirname, '../../../public')));
 router.post('/api/data', async (req, res) => {
     try {
         const { userData, month, year, employeeId } = req.body;
-
         /* ===================  Decode User =================== */
-        // if (!userData) {
-        //     return res.status(400).json({
-        //         status: false,
-        //         message: 'userData is required'
-        //     });
-        // }
+        if (!userData) {
+            return res.status(400).json({
+                status: false,
+                message: 'userData is required'
+            });
+        }
+        let decodedUserData = null;
 
-        // let decodedUserData = null;
+        if (userData) {
+            try {
+                const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+                decodedUserData = JSON.parse(decodedString);
+            } catch (error) {
+                return res.status(400).json({ status: false, error: 'Invalid userData format' });
+            }
+        }
 
-        // if (userData) {
-        //     try {
-        //         const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-        //         decodedUserData = JSON.parse(decodedString);
-        //     } catch (error) {
-        //         return res.status(400).json({ status: false, error: 'Invalid userData format' });
-        //     }
-        // }
+        if (!decodedUserData?.id || !decodedUserData?.company_id) {
+            return res.status(400).json({
+                status: false,
+                message: 'Invalid userData'
+            });
+        }
 
-        // if (!decodedUserData?.id || !decodedUserData?.company_id) {
-        //     return res.status(400).json({
-        //         status: false,
-        //         message: 'Invalid userData'
-        //     });
-        // }
-
-        // const employee_Id = employeeId || decodedUserData.id;
-        const companyId = 6;
-
+        const employee_Id = employeeId || decodedUserData.id;
+        const companyId = decodedUserData?.company_id;
+        // const companyId = 6;
+        console.log(employee_Id, companyId)
 
         if (!month || !year) {
             return res.status(400).json({
@@ -888,7 +887,6 @@ router.post('/api/MakePdf', async (req, res) => {
     }
 });
 
-
 // New API endpoint to convert HTML view to JPG
 // image save in --proper work 
 // router.post('/api/HtmlViewToJpg', async (req, res) => {
@@ -1007,8 +1005,6 @@ router.post('/api/MakePdf', async (req, res) => {
 //     }
 // });
 
-
-
 router.post('/api/HtmlViewToJpg', async (req, res) => {
     let browser;
 
@@ -1111,7 +1107,5 @@ router.post('/api/HtmlViewToJpg', async (req, res) => {
         });
     }
 });
-
-
 
 module.exports = router;

@@ -5,16 +5,7 @@ const mysql = require('mysql2');
 const { ConsoleMessage } = require('puppeteer');
 const db = require('../../DB/ConnectionSql');
 
-// // DB Connection
-// const db = mysql.createConnection({
-//   // new  rds connection    // 
-//   host: 'database-1.c564ew8oajmx.ap-south-1.rds.amazonaws.com',
-//   user: 'hrmsadmin',
-//   password: 'HrmsAdmin123Latest',
-//   database: 'hrms',
-//   port: 3306
 
-// });
 
 
 

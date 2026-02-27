@@ -156,6 +156,7 @@ router.post('/NotificationGet', (req, res) => {
         return res.status(200).json({ status: true, data: results, message: 'Notification fetched successfully' });
     });
 });
+
 // app cheak A / web cheak A
 router.post("/announcementGet", (req, res) => {
     const { userData, notification_type = "message" } = req.body;
@@ -318,7 +319,7 @@ router.post('/testprofile', async (req, res) => {
     }
 
     let userId = 10;
-  
+
     req.io.to(userId.toString()).emit("profileResponse", result);
 
     // res.json(result);
