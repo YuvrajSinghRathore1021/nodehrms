@@ -163,7 +163,6 @@ const Employeesdetails = require('./api/app/employeesdetails/Employeesdetails');
 const EmployeeLocationTracking = require('./api/location/EmployeeLocationTracking');
 const FaceUplode = require('./api/faceauthorization/Uplode');
 const NotificationApi = require('./api/notification/Notificationsystem');
-const Levesubmit = require('./api/leave/levesubmit');
 const Reports = require('./api/reports/Report');
 const Salary = require('./api/Salary/Salary');
 const Dashboard = require('./api/dashboard/Dashboard');
@@ -231,7 +230,6 @@ app.use('/sendMail', Mail);
 app.use('/Notification', Notification);
 app.use('/uploads', express.static(path.join(__dirname, './uploads')));
 // try
-app.use('/levesubmit', authenticateToken, Levesubmit);
 app.use('/EmployeeLocation', authenticateToken, EmployeeLocationTracking);
 // Salary
 app.use('/Salary', authenticateToken, Salary);
@@ -328,7 +326,7 @@ process.on("unhandledRejection", err => {
 
 
 // // //================== SERVER START  Local==================
-// server.listen(2100, "0.0.0.0", () => {
+// server.listen(2200, "0.0.0.0", () => {
 //     console.log("🚀 Server running on http://localhost:2100");
 // });
 
