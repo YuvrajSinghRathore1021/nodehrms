@@ -437,21 +437,21 @@ router.get('/api/HtmlView', async (req, res) => {
                     ${salaryData.earnings.map(earning => `
                     <li>
                         <span style="color: #293646;">${earning.name}</span>
-                        <span class="poppins-regular amount" style="color: #293646;">₹${earning.amount.toFixed(2)}</span>
-                        <span class="poppins-regular amount" style="color: #293646;">₹${earning.amount.toFixed(2)}</span>
+                        <span class="poppins-regular amount" style="color: #293646;">&#8377;${earning.amount.toFixed(2)}</span>
+                        <span class="poppins-regular amount" style="color: #293646;">&#8377;${earning.amount.toFixed(2)}</span>
                     </li>
                     `).join('')}
                     ${salaryData.earnings.length === 0 ? `
                     <li>
                         <span style="color: #293646;">Basic Pay</span>
-                        <span class="poppins-regular amount" style="color: #293646;">₹${salaryData.salary.basic_pay || '0.00'}</span>
-                        <span class="poppins-regular amount" style="color: #293646;">₹${salaryData.salary.basic_pay || '0.00'}</span>
+                        <span class="poppins-regular amount" style="color: #293646;">&#8377;${salaryData.salary.basic_pay || '0.00'}</span>
+                        <span class="poppins-regular amount" style="color: #293646;">&#8377;${salaryData.salary.basic_pay || '0.00'}</span>
                     </li>
                     ` : ''}
                     <li style="background-color: #CA282C; color: white;">
                         <span>GROSS PAY</span>
-                        <span class="poppins-regular amount">₹${earningsTotal.toFixed(2)}</span>
-                        <span class="poppins-regular amount">₹${earningsTotalYTD.toFixed(2)}</span>
+                        <span class="poppins-regular amount">&#8377;${earningsTotal.toFixed(2)}</span>
+                        <span class="poppins-regular amount">&#8377;${earningsTotalYTD.toFixed(2)}</span>
                     </li>
                 </ul>
             </div>
@@ -467,21 +467,21 @@ router.get('/api/HtmlView', async (req, res) => {
                     ${salaryData.deductions.map(deduction => `
                     <li>
                         <span class="poppins-medium" style="color: #293646;">${deduction.name}</span>
-                        <span class="poppins-regular amount" style="color: #293646;">₹${deduction.amount.toFixed(2)}</span>
-                        <span class="poppins-regular amount" style="color: #293646;">₹${deduction.amount.toFixed(2)}</span>
+                        <span class="poppins-regular amount" style="color: #293646;">&#8377;${deduction.amount.toFixed(2)}</span>
+                        <span class="poppins-regular amount" style="color: #293646;">&#8377;${deduction.amount.toFixed(2)}</span>
                     </li>
                     `).join('')}
                     ${salaryData.deductions.length === 0 ? `
                     <li>
                         <span class="poppins-medium" style="color: #293646;">No Deductions</span>
-                        <span class="poppins-regular amount" style="color: #293646;">₹0.00</span>
-                        <span class="poppins-regular amount" style="color: #293646;">₹0.00</span>
+                        <span class="poppins-regular amount" style="color: #293646;">&#8377;0.00</span>
+                        <span class="poppins-regular amount" style="color: #293646;">&#8377;0.00</span>
                     </li>
                     ` : ''}
                     <li style="background-color: #CA282C; color: white;">
                         <span>TOTAL DEDUCTIONS</span>
-                        <span class="amount">₹${deductionsTotal.toFixed(2)}</span>
-                        <span class="amount">₹${deductionsTotalYTD.toFixed(2)}</span>
+                        <span class="amount">&#8377;${deductionsTotal.toFixed(2)}</span>
+                        <span class="amount">&#8377;${deductionsTotalYTD.toFixed(2)}</span>
                     </li>
                 </ul>
             </div>
@@ -490,7 +490,7 @@ router.get('/api/HtmlView', async (req, res) => {
                 <div class="poppins-medium"
                     style="background-color: #CA282C;color: white;padding:15px 20px 15px 20px; border-top-left-radius: 20px;border-bottom-right-radius: 20px;gap: 40px; display: flex;">
                     <span>NET PAY</span>
-                    <span>₹${netPay.toFixed(2)}</span>
+                    <span>&#8377;${netPay.toFixed(2)}</span>
                  
                 </div>
             </div>
@@ -1030,16 +1030,7 @@ router.post('/api/HtmlViewToJpg', async (req, res) => {
         const htmlContent = await htmlResponse.text();
 
         // //// Puppeteer launch
-        // browser = await puppeteer.launch({
-        //     headless: "new",
-        //     args: [
-        //         "--no-sandbox",
-        //         "--disable-setuid-sandbox",
-        //         "--disable-dev-shm-usage",
-        //         "--disable-gpu"
-        //     ]
-        // });
-
+        // local 
         // browser = await puppeteer.launch({
         //     headless: true,
         //     args: [
@@ -1052,9 +1043,10 @@ router.post('/api/HtmlViewToJpg', async (req, res) => {
         //     ]
         // });
 
+        // live 
         browser = await puppeteer.launch({
             headless: true,
-            executablePath: "/usr/bin/google-chrome",
+            // executablePath: "/usr/bin/google-chrome",
             args: [
                 "--no-sandbox",
                 "--disable-setuid-sandbox",
