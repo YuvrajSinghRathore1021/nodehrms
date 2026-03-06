@@ -56,6 +56,7 @@ router.post('/api/UrlGet', async (req, res) => {
                     iName: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M18 15h-2v2h2m0-6h-2v2h2m2 6h-8v-2h2v-2h-2v-2h2v-2h-2V9h8M10 7H8V5h2m0 6H8V9h2m0 6H8v-2h2m0 6H8v-2h2M6 7H4V5h2m0 6H4V9h2m0 6H4v-2h2m0 6H4v-2h2m6-10V3H2v18h20V7z"/></svg>`,
                     links: [
                         { to: '/Company_Profile', icon: 'fas fa-circle', label: 'Company Profile' },
+                        { to: '/blogs', icon: 'fas fa-circle', label: 'Policy / Updates' },
                         ...(company_id === 6 ? [{ to: '/CompanyView', icon: 'fas fa-circle', label: 'Client View' }] : [])
                     ]
                 },
