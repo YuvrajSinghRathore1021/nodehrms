@@ -140,6 +140,7 @@ const Employeesdirectory = require('./api/directory/Employeesdirectory');
 const leaveapi = require('./api/leave/leaveapi');
 const holidayapi = require('./api/holiday/holidayapi');
 const Setting = require('./api/setting/Setting');
+const Blog = require('./api/posts/posts');
 const AttendanceSetting = require('./api/attendance/AttendanceSetting');
 const Header = require('./api/Default/Header');
 const Notification = require('./api/notification/Notificationsystem');
@@ -179,6 +180,8 @@ const notificationRoutes = require("./api/firebase/firebasenotification");
 //////url
 app.use("/api/notification", notificationRoutes);
 app.use('/Company', authenticateToken, CompanyAdd); ////->done
+app.use('/Blog', Blog);
+// app.use('/Blog', authenticateToken, Blog); ////->done
 app.use('/Admin', authenticateToken, AdminPage); ////->done
 app.use('/Attendance', authenticateToken, Attendance);////->done
 app.use('/Attendancemark', authenticateToken, Attendancemark); ////->done

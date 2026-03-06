@@ -99,7 +99,7 @@ router.post('/api/Add', async (req, res) => {
     });
 });
 
-//remove 
+// // remove 
 // router.post('/api/Edit', async (req, res) => {
 //     const {
 //         company_name,
@@ -983,11 +983,6 @@ router.post('/employee-hierarchyTeam', (req, res) => {
 });
 
 
-
-
-
-
-
 // Branch code 
 // web cheak A
 router.get("/Branchfetch", (req, res) => {
@@ -1038,15 +1033,9 @@ router.get("/Branchfetch", (req, res) => {
 
             // Fetch employees for all these branches
             const empQuery = `
-        SELECT 
-          id AS value,
-          CONCAT(first_name, ' ', last_name) AS label,
-          branch_id
-        FROM employees
-        WHERE company_id = ? 
-          AND branch_id IN (${branchIds.map(() => "?").join(",")})
-          AND status = 1 
-          AND delete_status = 0;
+        SELECT id AS value, CONCAT(first_name, ' ', last_name) AS label, branch_id
+        FROM employees WHERE company_id = ? 
+          AND branch_id IN (${branchIds.map(() => "?").join(",")}) AND status = 1 AND delete_status = 0;
       `;
 
             db.query(empQuery, [decodedUserData.company_id, ...branchIds], (empErr, employees) => {
