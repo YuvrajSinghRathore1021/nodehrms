@@ -602,8 +602,8 @@ router.get('/api/attendance', async (req, res) => {
                 }
 
                 // ================= HOLIDAY / WO / SANDWICH =================
-                // else if (isHoliday || isWeeklyOff) {
-                else if ((decodedUserData.company_id == 10 && isWeeklyOff) || (decodedUserData.company_id != 10 && (isHoliday || isWeeklyOff))) {
+                else if (isHoliday || isWeeklyOff) {
+                    // else if ((decodedUserData.company_id == 10 && isWeeklyOff) || (decodedUserData.company_id != 10 && (isHoliday || isWeeklyOff))) {
 
 
                     const prev = new Date(date); prev.setDate(prev.getDate() - 1);
@@ -634,9 +634,11 @@ router.get('/api/attendance', async (req, res) => {
                     //     status = 'SP';
                     //     label = 'Sandwich Penalty';
                     // } 
-                    if (!isFirstDay && !isLastDay && isPureAbsent(prevAtt, prevLeave) && isPureAbsent(nextAtt, nextLeave)) {
-                        status = 'SP';
-                        label = 'Sandwich Penalty';
+                    if ((decodedUserData.company_id == 10 && isWeeklyOff) || (decodedUserData.company_id != 10 && (isHoliday || isWeeklyOff))) {
+                        if (!isFirstDay && !isLastDay && isPureAbsent(prevAtt, prevLeave) && isPureAbsent(nextAtt, nextLeave)) {
+                            status = 'SP';
+                            label = 'Sandwich Penalty';
+                        }
                     }
                     else if (isHoliday || isWeeklyOff) {
                         status = isHoliday ? 'H' : 'WO';
