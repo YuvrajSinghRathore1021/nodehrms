@@ -517,8 +517,6 @@ router.get('/api/attendance', async (req, res) => {
                 const date1 = `${dateValue.getFullYear()}-${String(dateValue.getMonth() + 1).padStart(2, '0')}-${String(dateValue.getDate()).padStart(2, '0')}`;
                 const date = new Date(date1);
 
-
-
                 if (date.getMonth() !== month - 1) break;
 
                 const dayOfWeek = date.getDay();
@@ -589,7 +587,6 @@ router.get('/api/attendance', async (req, res) => {
                         label = 'Leave Without Pay';
                     }
                 }
-
                 // ================= LEAVE =================
                 else if (leave) {
                     if (
@@ -605,7 +602,9 @@ router.get('/api/attendance', async (req, res) => {
                 }
 
                 // ================= HOLIDAY / WO / SANDWICH =================
-                else if (isHoliday || isWeeklyOff) {
+                // else if (isHoliday || isWeeklyOff) {
+                else if ((decodedUserData.company_id == 10 && isWeeklyOff) || (decodedUserData.company_id != 10 && (isHoliday || isWeeklyOff))) {
+
 
                     const prev = new Date(date); prev.setDate(prev.getDate() - 1);
                     const next = new Date(date); next.setDate(next.getDate() + 1);
