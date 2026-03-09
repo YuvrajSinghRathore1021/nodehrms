@@ -617,17 +617,29 @@ router.get('/api/attendance', async (req, res) => {
 
                     const prevAtt = attendanceResults.find(a => new Date(a.attendance_date).toISOString().split("T")[0] === prevStr);
                     const nextAtt = attendanceResults.find(a => new Date(a.attendance_date).toISOString().split("T")[0] === nextStr);
-                    
+
                     const prevLeave = leaveResultsRequest.find(l => prevStr >= l.start_date.split("T")[0] && prevStr <= l.end_date.split("T")[0]);
                     const nextLeave = leaveResultsRequest.find(l => nextStr >= l.start_date.split("T")[0] && nextStr <= l.end_date.split("T")[0]);
                     const isFirstDay = dayNo === 1;
                     const isLastDay = dayNo === daysInMonth;
-                   
-                    // if (isAbsentLike(prevAtt, prevLeave) && isAbsentLike(nextAtt, nextLeave)) {
-                    if (!isFirstDay && !isLastDay && isAbsentLike(prevAtt, prevLeave) && isAbsentLike(nextAtt, nextLeave)) {
+
+
+                    // console.log(dayNo, "  =========");
+                    // console.log("isFirstDay=", isFirstDay)
+                    // console.log("isLastDay=", isLastDay)
+                    // console.log("1=", prevAtt, prevLeave, isAbsentLike(prevAtt, prevLeave));
+                    // console.log("2=", nextAtt, nextLeave, isAbsentLike(nextAtt, nextLeave));
+                    // console.log("==========");
+                    //// woking but some error 
+                    // if (!isFirstDay && !isLastDay && isAbsentLike(prevAtt, prevLeave) && isAbsentLike(nextAtt, nextLeave)) {
+                    //     status = 'SP';
+                    //     label = 'Sandwich Penalty';
+                    // } 
+                    if (!isFirstDay && !isLastDay && isPureAbsent(prevAtt, prevLeave) && isPureAbsent(nextAtt, nextLeave)) {
                         status = 'SP';
                         label = 'Sandwich Penalty';
-                    } else if (isHoliday || isWeeklyOff) {
+                    }
+                    else if (isHoliday || isWeeklyOff) {
                         status = isHoliday ? 'H' : 'WO';
                         label = isHoliday ? `Holiday - ${isHoliday}` : 'Weekly Off';
                     } else {
@@ -636,7 +648,7 @@ router.get('/api/attendance', async (req, res) => {
                     }
                 }
 
-                let newStatus = lwpcheck(date, status, '2026-02-04');
+                let newStatus = lwpcheck(date, status, '2026-03-04');
                 // let newStatus = status;
                 monthlyAttendanceLogs.push({
                     day_no: dayNo,
@@ -672,7 +684,11 @@ router.get('/api/attendance', async (req, res) => {
         res.status(500).json({ message: 'An error occurred while fetching attendance data', error: err.message });
     }
 });
-
+const isPureAbsent = (att, leave) => {
+    if (att) return false;
+    if (leave) return false;
+    return true;
+};
 
 const lwpcheck = (attDate, status, lockDate) => {
     // Only Absent can become LWP
