@@ -6,10 +6,10 @@ const decodeUserData = require("../../model/decodeUserData");
 // ==================== ROUTES ====================
 
 // GET all posts with filters
-router.get('/posts', async (req, res) => {
+router.post('/postView', async (req, res) => {
     try {
         const { userData, category, company, search, priority, pinned, page = 1, limit = 10,
-            sortBy = 'pinned DESC, published_date DESC' } = req.query;
+            sortBy = 'pinned DESC, published_date DESC' } = req.body;
 
         let decodedUserData = null;
         if (userData) {

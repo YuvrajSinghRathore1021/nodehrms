@@ -449,7 +449,7 @@ router.post('/api/AttendancePending', async (req, res) => {
                 return res.status(400).json({ status: false, message: 'Invalid startDate or endDate format. Expected YYYY-MM-DD.' });
             }
 
-            let empsql = `SELECT id, id as employee_id,CONCAT(first_name,' ', last_name) AS first_name, employee_id 
+            let empsql = `SELECT id, id as employee_id,CONCAT(first_name,' ', last_name) AS first_name, employee_id,date_of_Joining 
                   FROM employees 
                   WHERE employee_status=1 AND status=1 AND delete_status=0 AND id=? AND company_id=?`;
             let EmpArrayValue = [EmployeeId, decodedUserData.company_id];
@@ -464,11 +464,15 @@ router.post('/api/AttendancePending', async (req, res) => {
             if (empResults.length == 0) {
                 return res.status(200).json({ status: false, message: 'Employees not found' });
             }
+            if (startDate < empResults[0].date_of_Joining) {
+                startDate = empResults[0].date_of_Joining;
+            }
 
             const [holidayResults] = await db.promise().query(
                 `SELECT date FROM holiday WHERE company_id=? AND status=1 AND date BETWEEN ? AND ?`,
                 [decodedUserData.company_id, startDate, endDate]
             );
+
             const holidays = new Set(holidayResults.map(holiday => new Date(holiday.date).toISOString().split('T')[0]));
 
             const [workWeekData] = await db.promise().query(
