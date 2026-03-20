@@ -2,7 +2,41 @@ const express = require('express');
 const router = express.Router();
 const db = require('../../DB/ConnectionSql');
 // EmployeeLocation
+// //working for company
+// router.post('/EmployeeLocationGet', (req, res) => {
+//   const { userData } = req.body;
+//   let decodedUserData = null;
 
+//   if (userData) {
+//     try {
+//       const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+//       decodedUserData = JSON.parse(decodedString);
+//     } catch (error) {
+//       return res.status(400).json({ status: false, error: 'Invalid userData' });
+//     }
+//   }
+//   if (!decodedUserData || !decodedUserData.company_id || !decodedUserData.id) {
+//     return res.status(400).json({ status: false, error: 'company_id, id are required' });
+//   }
+
+//   db.query(`SELECT l.id,e.profile_image,l.employee_id,CONCAT(e.first_name,' ',e.last_name) as name,  l.latitude, l.longitude, l.timestamp FROM locations l INNER JOIN employees e ON e.id=l.employee_id WHERE l.company_id=? And l.type=1`,
+//     [decodedUserData.company_id],
+//     (err, results) => {
+//       if (err) {
+//         return res.status(500).json({
+//           status: false,
+//           message: 'Database error.',
+//           error: err
+//         });
+//       }
+//       return res.status(200).json({
+//         status: true,
+//         message: 'Data Fatch successfully.',
+//         data: results
+//       });
+
+//     });
+// });
 
 // app cheak A / web cheak A
 router.post('/EmployeeLocationGet', (req, res) => {
@@ -36,7 +70,7 @@ router.post('/EmployeeLocationGet', (req, res) => {
       return res.status(200).json({ status: true, data: [] }); // No allowed targets
     }
     const placeholders = targetIds.join(',');
-
+  
     let locationSql = `
           SELECT e.id,e.profile_image, e.id as employee_id,
               CONCAT(e.first_name, ' ', e.last_name) AS name,
