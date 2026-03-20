@@ -413,7 +413,7 @@ io.on("connection", (socket) => {
                     locationData.longitude
                 );
 
-                // if (dist < 20) return; // // ignore
+                if (dist < 50) return; // // ignore
             }
             // ================== REDIS QUEUE ==================
             await pubClient.rPush(`${QUEUE_PREFIX}${userId}`, JSON.stringify(locationData));
