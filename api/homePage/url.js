@@ -119,7 +119,8 @@ router.post('/api/UrlGet', async (req, res) => {
                     title: 'Location',
                     iName: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="16" cy="11" r="4"/><path d="M24 15c-3 7-8 15-8 15s-5-8-8-15s2-13 8-13s11 6 8 13"/></g></svg>`,
                     links: [
-                        { to: '/location', icon: 'fas fa-circle', label: 'Manage Location' },
+                        { to: '/location', icon: 'fas fa-circle', label: 'Live Location' },
+                        { to: '/LocationHistory', icon: 'fas fa-circle', label: 'Location History' },
                         { to: '/location_view', icon: 'fas fa-circle', label: 'Location Permissions' },
                         { to: '/attendanceLocationView', icon: 'fas fa-circle', label: 'Attendance Location View' }
                     ]
