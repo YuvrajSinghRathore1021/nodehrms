@@ -16,7 +16,7 @@ const BATCH_INTERVAL = 5000; // 5 min
 const MAX_BUFFER_SIZE = 500; // safety limit
 const QUEUE_PREFIX = "location_queue:";
 
-// // localhost
+// // // localhost
 // const server = http.createServer(app);
 
 // live 
@@ -253,7 +253,6 @@ app.use('/attendancepolicy', authenticateToken, Attendancepolicy);
 
 // ================== SOCKET LOGIC ==================
 io.on("connection", (socket) => {
-    // console.log("🔗 Socket connected:", socket.id);
     // ---------- JOIN ----------
     socket.on("join", ({ userId, company_id }) => {
         // console.log("🔗 Join request:", { userId, company_id });
@@ -370,8 +369,10 @@ io.on("connection", (socket) => {
             latitude: data.latitude || 0,
             longitude: data.longitude || 0,
             speed: data.speed || 0,
-            recorded_at: new Date()
+            recorded_at: getISTDateTime()
         };
+
+
 
         try {
             // // ================== REDIS LIVE ==================
@@ -413,7 +414,7 @@ io.on("connection", (socket) => {
                     locationData.longitude
                 );
 
-                if (dist < 50) return; // // ignore
+                if (dist < 30) return;   // // // ignore
             }
             // ================== REDIS QUEUE ==================
             await pubClient.rPush(`${QUEUE_PREFIX}${userId}`, JSON.stringify(locationData));
@@ -442,11 +443,9 @@ io.on("connection", (socket) => {
 
 
 setInterval(async () => {
-    console.log("⏳ Worker processing queues...");
-
+    // console.log("⏳ Worker processing queues...");
     try {
         const keys = await pubClient.keys(`${QUEUE_PREFIX}*`);
-        console.log("keys=", keys);
         for (const key of keys) {
             const data = await pubClient.lRange(key, 0, BATCH_SIZE - 1);
 
@@ -504,6 +503,11 @@ server.listen(PORT, '::', () => {
     console.log(`✅ HTTPS Server running at https://0.0.0.0:${PORT}`);
 });
 
+function getISTDateTime() {
+    return new Date().toLocaleString("sv-SE", {
+        timeZone: "Asia/Kolkata"
+    }).replace("T", " ").slice(0, 19);
+}
 
 function getDistance(lat1, lon1, lat2, lon2) {
     const R = 6371e3;

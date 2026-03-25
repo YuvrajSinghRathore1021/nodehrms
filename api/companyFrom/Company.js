@@ -99,69 +99,70 @@ router.post('/api/Add', async (req, res) => {
     });
 });
 
-// // remove 
-// router.post('/api/Edit', async (req, res) => {
-//     const {
-//         company_name,
-//         owner_name,
-//         industry,
-//         headquarters,
-//         website,
-//         phone_number,
-//         email,
-//         address,
-//         editId,
-//         member, logo
-//     } = req.body;
+// // remove
 
-//     // Check for required fields
-//     if (!company_name || !owner_name || !industry || !phone_number || !email || !address || !editId) {
-//         return res.status(400).json({ status: false, message: 'All fields are required.' });
-//     }
+router.post('/api/Edit', async (req, res) => {
+    const {
+        company_name,
+        owner_name,
+        industry,
+        headquarters,
+        website,
+        phone_number,
+        email,
+        address,
+        editId,
+        member, logo
+    } = req.body;
 
-//     // Get the new logo filename if it exists
-//     const newLogo = logo ? logo : null;
+    // Check for required fields
+    if (!company_name || !owner_name || !industry || !phone_number || !email || !address || !editId) {
+        return res.status(400).json({ status: false, message: 'All fields are required.' });
+    }
 
-//     // Fetch the current logo from the database
-//     db.query('SELECT logo FROM companies WHERE id = ?', [editId], (err, results) => {
-//         if (err) {
-//             console.error(err);
-//             return res.status(500).json({
-//                 status: false,
-//                 message: 'Failed to fetch current logo.',
-//                 error: err.message
-//             });
-//         }
+    // Get the new logo filename if it exists
+    const newLogo = logo ? logo : null;
 
-//         // Check if the company exists
-//         if (results.length === 0) {
-//             return res.status(404).json({ status: false, message: 'Company not found.' });
-//         }
+    // Fetch the current logo from the database
+    db.query('SELECT logo FROM companies WHERE id = ?', [editId], (err, results) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({
+                status: false,
+                message: 'Failed to fetch current logo.',
+                error: err.message
+            });
+        }
 
-//         // Use the existing logo if no new logo is uploaded
-//         const currentLogo = results[0].logo;
-//         const logoToUse = newLogo || currentLogo;
-//         // Update company details
-//         db.query(
-//             'UPDATE companies SET company_name = ?,member = ?, owner_name = ?, industry = ?, headquarters = ?, website = ?, phone_number = ?, email = ?, address = ?, logo = ? WHERE id = ?',
-//             [company_name, member, owner_name, industry, headquarters, website, phone_number, email, address, logoToUse, editId],
-//             (err) => {
-//                 if (err) {
-//                     console.error(err);
-//                     return res.status(500).json({
-//                         status: false,
-//                         message: 'Failed to edit company.',
-//                         error: err.message
-//                     });
-//                 }
-//                 return res.status(200).json({
-//                     status: true,
-//                     message: 'Company edited successfully.'
-//                 });
-//             }
-//         );
-//     });
-// });
+        // Check if the company exists
+        if (results.length === 0) {
+            return res.status(404).json({ status: false, message: 'Company not found.' });
+        }
+
+        // Use the existing logo if no new logo is uploaded
+        const currentLogo = results[0].logo;
+        const logoToUse = newLogo || currentLogo;
+        // Update company details
+        db.query(
+            'UPDATE companies SET company_name = ?,member = ?, owner_name = ?, industry = ?, headquarters = ?, website = ?, phone_number = ?, email = ?, address = ?, logo = ? WHERE id = ?',
+            [company_name, member, owner_name, industry, headquarters, website, phone_number, email, address, logoToUse, editId],
+            (err) => {
+                if (err) {
+                    console.error(err);
+                    return res.status(500).json({
+                        status: false,
+                        message: 'Failed to edit company.',
+                        error: err.message
+                    });
+                }
+                return res.status(200).json({
+                    status: true,
+                    message: 'Company edited successfully.'
+                });
+            }
+        );
+    });
+});
 // web cheak A
 
 /// check web y
@@ -233,7 +234,7 @@ router.get('/api/data', (req, res) => {
     if (!decodedUserData || !decodedUserData.id) {
         return res.status(400).json({ status: false, error: 'Employee ID is required' });
     }
-    let query = 'SELECT a.id, a.company_name, a.owner_name,a.member, a.logo, a.industry, a.headquarters, a.website, a.phone_number, a.email, a.address_id FROM companies a WHERE ';
+    let query = 'SELECT a.id, a.company_name, a.owner_name,a.member, a.logo, a.industry, a.headquarters, a.website, a.phone_number, a.email, a.address_id,a.address FROM companies a WHERE ';
     const queryParams = [];
     if (companyId == 6) {
         query += ' 1=1 ';
