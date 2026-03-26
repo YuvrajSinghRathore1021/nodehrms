@@ -216,7 +216,7 @@ router.post('/api/UploadLogo', async (req, res) => {
 
 // web cheak A
 router.get('/api/data', (req, res) => {
-    const { userData, type } = req.query;
+    const { userData, type, search } = req.query;
     let decodedUserData = null;
     if (userData) {
         try {
@@ -235,17 +235,23 @@ router.get('/api/data', (req, res) => {
         return res.status(400).json({ status: false, error: 'Employee ID is required' });
     }
     let query = 'SELECT a.id, a.company_name, a.owner_name,a.member, a.logo, a.industry, a.headquarters, a.website, a.phone_number, a.email, a.address_id,a.address FROM companies a WHERE ';
-    const queryParams = [];
+    let queryParams = [];
     if (companyId == 6) {
         query += ' 1=1 ';
     } else {
         query += ' a.id = ? ';
         queryParams.push(companyId);
     }
+    if (search && search.trim() !== '') {
+        query += ` AND (a.company_name LIKE ? OR a.owner_name LIKE ? OR  a.industry LIKE ? OR  a.phone_number LIKE ? OR  a.email LIKE ?  )`;
+        queryParams.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
+    }
+
     if (type != 'directory') {
         query += '  ORDER BY a.company_name ASC LIMIT ? OFFSET ? ';
         queryParams.push(limit, offset);
     }
+
 
     db.query(query, queryParams, (err, results) => {
         if (err) {
@@ -253,8 +259,15 @@ router.get('/api/data', (req, res) => {
             return res.status(500).json({ status: false, error: 'Server error' });
         }
         // Count total records for pagination
-        const countQuery = 'SELECT COUNT(id) AS total FROM companies WHERE 1=1';
-        db.query(countQuery, (err, countResults) => {
+        let countQuery = 'SELECT COUNT(id) AS total FROM companies WHERE 1=1';
+        let countQueryParams = [];
+
+        if (search && search.trim() !== '') {
+            countQuery += ` AND (company_name LIKE ? OR owner_name LIKE ? OR  industry LIKE ? OR  phone_number LIKE ? OR  email LIKE ?  )`;
+            countQueryParams.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
+        }
+
+        db.query(countQuery, countQueryParams, (err, countResults) => {
             if (err) {
                 console.error('Error counting attendance records:', err);
                 return res.status(500).json({ status: false, error: 'Server error' });
