@@ -104,14 +104,147 @@ WHERE e.id = ? AND e.company_id = ?`;
 
 
 
-// web cheak A
-router.get('/api/documentGet', async (req, res) => {
-    const { userData, data } = req.query;
-    let EmployeeId = null;
+// // web cheak A
+// router.get('/api/documentGet', async (req, res) => {
+//     const { userData, data } = req.query;
+//     let EmployeeId = null;
 
-    if (data) {
-        EmployeeId = data['EmployeeId'] ? data['EmployeeId'] : null;
-    }
+//     if (data) {
+//         EmployeeId = data['EmployeeId'] ? data['EmployeeId'] : null;
+//     }
+
+//     let decodedUserData = null;
+//     if (userData) {
+//         try {
+//             const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+//             decodedUserData = JSON.parse(decodedString);
+//         } catch (error) {
+//             return res.status(400).json({ status: false, error: 'Invalid userData format' });
+//         }
+//     }
+//     const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
+
+//     if (isAdmin === false) {
+//         return res.status(200).json({
+//             status: false,
+//             error: 'You do not have access to this functionality', message: 'You do not have access to this functionality'
+//         });
+//     }
+//     const limit = parseInt(req.query.limit, 10) || 10;
+//     const page = parseInt(req.query.page, 10) || 1;
+//     const offset = (page - 1) * limit;
+
+//     if (!decodedUserData || !decodedUserData.id) {
+//         return res.status(400).json({ status: false, error: 'Employee ID is required' });
+//     }
+
+//     // Build the base query
+//     let query = `SELECT id, employee_id, company_id, document_name, file_path, status, add_stamp, uploaded_at FROM documents WHERE company_id = ? And employee_id = ?`;
+
+//     const queryParams = [decodedUserData.company_id, EmployeeId || decodedUserData.id];
+
+//     // Add pagination
+//     query += ' LIMIT ? OFFSET ?';
+//     queryParams.push(limit, offset);
+
+//     // Execute query
+//     db.query(query, queryParams, (err, results) => {
+//         if (err) {
+//             console.error('Error fetching data records:', err);
+//             return res.status(500).json({ status: false, error: 'Server error' });
+//         }
+
+//         // Add serial number (srno) to each result
+//         const dataWithSrno = results.map((item, index) => ({
+//             srno: offset + index + 1, // Generate serial number based on offset
+//             ...item
+//         }));
+
+//         // Get total count of records (for pagination)
+//         let countQuery = 'SELECT COUNT(id) AS total FROM documents WHERE company_id = ? And employee_id = ?';
+//         let countQueryParams = [decodedUserData.company_id, EmployeeId || decodedUserData.id];
+
+
+//         db.query(countQuery, countQueryParams, (err, countResults) => {
+//             if (err) {
+//                 console.error('Error counting data records:', err);
+//                 return res.status(500).json({ status: false, error: 'Server error' });
+//             }
+//             const total = countResults[0].total;
+//             res.json({
+//                 status: true,
+//                 data: dataWithSrno,
+//                 total,
+//                 page,
+//                 limit
+//             });
+//         });
+//     });
+// })
+// // web cheak A
+// router.post('/api/documentUpdate', async (req, res) => {
+//     try {
+//         const { userData, id, status } = req.body;
+//         let decodedUserData = null;
+
+//         if (userData) {
+//             try {
+//                 const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+//                 decodedUserData = JSON.parse(decodedString);
+//             } catch (error) {
+//                 return res.status(400).json({ status: false, error: 'Invalid userData format' });
+//             }
+//         }
+
+//         if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+//             return res.status(400).json({
+//                 status: false,
+//                 error: 'Employee ID and Company ID are required',
+//             });
+//         }
+
+//         const Query = `UPDATE documents SET status = ? WHERE id = ?`;
+//         const QueryArray = [status, id];
+
+//         db.query(Query, QueryArray, (err, Result) => {
+//             if (err) {
+//                 console.error('Error checking for duplicate salary details:', err);
+//                 return res.status(500).json({
+//                     status: false,
+//                     message: 'Failed to check duplicate salary details.',
+//                 });
+//             }
+//             return res.status(200).json({
+//                 status: true,
+//                 message: 'successfully updated',
+//                 data: Result,
+//             });
+
+//         })
+//     } catch (error) {
+//         console.error('Error processing salary submission:', error);
+//         res.status(500).json({
+//             status: false,
+//             message: 'Failed to process salary submission.',
+//         });
+//     }
+// });
+
+
+
+// Update documentGet endpoint to support filters and multiple employees
+router.post('/api/documentGet', async (req, res) => {
+    const {
+        userData,
+        page = 1,
+        limit = 10,
+        employee_id,
+        status_filter = 'all',
+        document_type = '',
+        date_from = null,
+        date_to = null,
+        search = ''
+    } = req.body;
 
     let decodedUserData = null;
     if (userData) {
@@ -122,69 +255,238 @@ router.get('/api/documentGet', async (req, res) => {
             return res.status(400).json({ status: false, error: 'Invalid userData format' });
         }
     }
-    const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
 
-    if (isAdmin === false) {
-        return res.status(200).json({
+    const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
+    if (!isAdmin) {
+        return res.status(403).json({
             status: false,
-            error: 'You do not have access to this functionality', message: 'You do not have access to this functionality'
+            message: 'You do not have access to this functionality'
         });
     }
-    const limit = parseInt(req.query.limit, 10) || 10;
-    const page = parseInt(req.query.page, 10) || 1;
-    const offset = (page - 1) * limit;
 
-    if (!decodedUserData || !decodedUserData.id) {
-        return res.status(400).json({ status: false, error: 'Employee ID is required' });
+    const parsedLimit = parseInt(limit, 10);
+    const parsedPage = parseInt(page, 10);
+    const offset = (parsedPage - 1) * parsedLimit;
+
+    // Handle multiple employees
+    let employeeIdCondition = '';
+    let queryParams = [decodedUserData.company_id];
+
+    if (employee_id && employee_id !== '') {
+        const employeeIdArray = employee_id.split(',').map(id => parseInt(id));
+        const placeholders = employeeIdArray.map(() => '?').join(',');
+        employeeIdCondition = ` AND d.employee_id IN (${placeholders})`;
+        queryParams.push(...employeeIdArray);
+    } else {
+        return res.json({
+            status: true,
+            data: [],
+            total: 0,
+            page: parsedPage,
+            limit: parsedLimit
+        });
     }
 
-    // Build the base query
-    let query = `SELECT id, employee_id, company_id, document_name, file_path, status, add_stamp, uploaded_at FROM documents WHERE company_id = ? And employee_id = ?`;
+    let query = `
+        SELECT d.id, d.employee_id, d.company_id, d.document_name, d.file_path, d.status, 
+                d.add_stamp, d.uploaded_at,
+               CONCAT(e.first_name, ' ', e.last_name) AS employee_name
+        FROM documents d
+        LEFT JOIN employees e ON d.employee_id = e.id
+        WHERE d.company_id = ? ${employeeIdCondition}
+    `;
 
-    const queryParams = [decodedUserData.company_id, EmployeeId || decodedUserData.id];
+    // Status filter
+    if (status_filter !== 'all') {
+        query += ` AND d.status = ?`;
+        queryParams.push(parseInt(status_filter));
+    }
 
-    // Add pagination
-    query += ' LIMIT ? OFFSET ?';
-    queryParams.push(limit, offset);
+    // Document type filter
+    // if (document_type && document_type !== '') {
+    //     query += ` AND d.document_type = ?`;
+    //     queryParams.push(document_type);
+    // }
 
-    // Execute query
-    db.query(query, queryParams, (err, results) => {
-        if (err) {
-            console.error('Error fetching data records:', err);
-            return res.status(500).json({ status: false, error: 'Server error' });
+    // Date range filter
+    if (date_from && date_from !== 'null') {
+        query += ` AND DATE(d.uploaded_at) >= ?`;
+        queryParams.push(date_from);
+    }
+    if (date_to && date_to !== 'null') {
+        query += ` AND DATE(d.uploaded_at) <= ?`;
+        queryParams.push(date_to);
+    }
+
+    // Search filter
+    if (search && search.trim() !== '') {
+        query += ` AND (
+            d.document_name LIKE ? OR
+            e.first_name LIKE ? OR
+            e.last_name LIKE ?
+        )`;
+        const searchLike = `%${search}%`;
+        queryParams.push(searchLike, searchLike, searchLike);
+    }
+
+    query += ` ORDER BY d.id DESC LIMIT ? OFFSET ?`;
+    queryParams.push(parsedLimit, offset);
+
+    try {
+        const [results] = await db.promise().query(query, queryParams);
+
+        // Get total count
+        let countQuery = `SELECT COUNT(d.id) AS total FROM documents d
+            LEFT JOIN employees e ON d.employee_id = e.id
+            WHERE d.company_id = ? ${employeeIdCondition}`;
+
+        let countParams = [decodedUserData.company_id];
+        if (employee_id && employee_id !== '') {
+            const employeeIdArray = employee_id.split(',').map(id => parseInt(id));
+            countParams.push(...employeeIdArray);
         }
 
-        // Add serial number (srno) to each result
-        const dataWithSrno = results.map((item, index) => ({
-            srno: offset + index + 1, // Generate serial number based on offset
-            ...item
-        }));
+        if (status_filter !== 'all') {
+            countQuery += ` AND d.status = ?`;
+            countParams.push(parseInt(status_filter));
+        }
+        // if (document_type && document_type !== '') {
+        //     countQuery += ` AND d.document_type = ?`;
+        //     countParams.push(document_type);
+        // }
+        if (date_from && date_from !== 'null') {
+            countQuery += ` AND DATE(d.uploaded_at) >= ?`;
+            countParams.push(date_from);
+        }
+        if (date_to && date_to !== 'null') {
+            countQuery += ` AND DATE(d.uploaded_at) <= ?`;
+            countParams.push(date_to);
+        }
+        if (search && search.trim() !== '') {
+            countQuery += ` AND (
+                d.document_name LIKE ? OR
+                e.first_name LIKE ? OR
+                e.last_name LIKE ?
+            )`;
+            const searchLike = `%${search}%`;
+            countParams.push(searchLike, searchLike, searchLike);
+        }
 
-        // Get total count of records (for pagination)
-        let countQuery = 'SELECT COUNT(id) AS total FROM documents WHERE company_id = ? And employee_id = ?';
-        let countQueryParams = [decodedUserData.company_id, EmployeeId || decodedUserData.id];
+        const [countResults] = await db.promise().query(countQuery, countParams);
+        const total = countResults[0]?.total || 0;
 
-
-        db.query(countQuery, countQueryParams, (err, countResults) => {
-            if (err) {
-                console.error('Error counting data records:', err);
-                return res.status(500).json({ status: false, error: 'Server error' });
-            }
-            const total = countResults[0].total;
-            res.json({
-                status: true,
-                data: dataWithSrno,
-                total,
-                page,
-                limit
-            });
+        return res.json({
+            status: true,
+            data: results,
+            total,
+            page: parsedPage,
+            limit: parsedLimit
         });
-    });
-})
-// web cheak A
-router.post('/api/documentUpdate', async (req, res) => {
+
+    } catch (error) {
+        console.error('Error:', error);
+        return res.status(500).json({ status: false, error: 'Server error' });
+    }
+});
+
+// Document statistics endpoint
+router.post('/api/documentStats', async (req, res) => {
+    const {
+        userData,
+        employee_ids,
+        status_filter = 'all',
+        date_from = null,
+        date_to = null,
+        search = ''
+    } = req.body;
+
+    let decodedUserData = null;
+    if (userData) {
+        try {
+            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+            decodedUserData = JSON.parse(decodedString);
+        } catch (error) {
+            return res.status(400).json({ status: false, error: 'Invalid userData format' });
+        }
+    }
+
+    const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
+    if (!isAdmin) {
+        return res.status(403).json({
+            status: false,
+            message: 'You do not have access to this functionality'
+        });
+    }
+
+    let employeeIdCondition = '';
+    let queryParams = [decodedUserData.company_id];
+
+    if (employee_ids && employee_ids !== '') {
+        const employeeIdArray = employee_ids.split(',').map(id => parseInt(id));
+        const placeholders = employeeIdArray.map(() => '?').join(',');
+        employeeIdCondition = ` AND d.employee_id IN (${placeholders})`;
+        queryParams.push(...employeeIdArray);
+    } else {
+        return res.json({
+            status: true,
+            data: {
+                total: 0,
+                pending: 0,
+                approved: 0,
+                rejected: 0
+            }
+        });
+    }
+
+    let query = `
+        SELECT 
+            COUNT(*) AS total,
+            SUM(CASE WHEN d.status = 0 THEN 1 ELSE 0 END) AS pending,
+            SUM(CASE WHEN d.status = 2 THEN 1 ELSE 0 END) AS approved,
+            SUM(CASE WHEN d.status = 3 THEN 1 ELSE 0 END) AS rejected
+        FROM documents d
+        LEFT JOIN employees e ON d.employee_id = e.id
+        WHERE d.company_id = ? ${employeeIdCondition}
+    `;
+
+    if (status_filter !== 'all') {
+        query += ` AND d.status = ?`;
+        queryParams.push(parseInt(status_filter));
+    }
+
+    if (date_from && date_from !== 'null') {
+        query += ` AND DATE(d.uploaded_at) >= ?`;
+        queryParams.push(date_from);
+    }
+    if (date_to && date_to !== 'null') {
+        query += ` AND DATE(d.uploaded_at) <= ?`;
+        queryParams.push(date_to);
+    }
+    if (search && search.trim() !== '') {
+        query += ` AND (
+            d.document_name LIKE ? OR
+            e.first_name LIKE ? OR
+            e.last_name LIKE ?
+        )`;
+        const searchLike = `%${search}%`;
+        queryParams.push(searchLike, searchLike, searchLike);
+    }
     try {
-        const { userData, id, status } = req.body;
+        const [results] = await db.promise().query(query, queryParams);
+        return res.json({
+            status: true,
+            data: results[0] || { total: 0, pending: 0, approved: 0, rejected: 0 }
+        });
+    } catch (error) {
+        console.error('Error:', error);
+        return res.status(500).json({ status: false, error: 'Server error' });
+    }
+});
+
+// Bulk document update endpoint
+router.post('/api/bulkDocumentUpdate', async (req, res) => {
+    try {
+        const { userData, ids, status } = req.body;
         let decodedUserData = null;
 
         if (userData) {
@@ -203,29 +505,96 @@ router.post('/api/documentUpdate', async (req, res) => {
             });
         }
 
-        const Query = `UPDATE documents SET status = ? WHERE id = ?`;
-        const QueryArray = [status, id];
+        if (!ids || ids.length === 0) {
+            return res.status(400).json({
+                status: false,
+                message: 'No documents selected',
+            });
+        }
+
+        const placeholders = ids.map(() => '?').join(',');
+        const Query = `UPDATE documents SET status = ? WHERE id IN (${placeholders})`;
+        const QueryArray = [status, ...ids];
 
         db.query(Query, QueryArray, (err, Result) => {
             if (err) {
-                console.error('Error checking for duplicate salary details:', err);
+                console.error('Error updating documents:', err);
                 return res.status(500).json({
                     status: false,
-                    message: 'Failed to check duplicate salary details.',
+                    message: 'Failed to update documents.',
                 });
             }
             return res.status(200).json({
                 status: true,
-                message: 'successfully updated',
+                message: `${Result.affectedRows} document(s) updated successfully`,
                 data: Result,
             });
-
-        })
+        });
     } catch (error) {
-        console.error('Error processing salary submission:', error);
+        console.error('Error processing document update:', error);
         res.status(500).json({
             status: false,
-            message: 'Failed to process salary submission.',
+            message: 'Failed to process document update.',
+        });
+    }
+});
+
+// Update documentUpdate endpoint to handle document_type
+router.post('/api/documentUpdate', async (req, res) => {
+    try {
+        const { userData, id, status, document_type, remark } = req.body;
+        let decodedUserData = null;
+
+        if (userData) {
+            try {
+                const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+                decodedUserData = JSON.parse(decodedString);
+            } catch (error) {
+                return res.status(400).json({ status: false, error: 'Invalid userData format' });
+            }
+        }
+
+        if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+            return res.status(400).json({
+                status: false,
+                error: 'Employee ID and Company ID are required',
+            });
+        }
+
+        let Query = `UPDATE documents SET status = ?`;
+        let QueryArray = [status];
+
+        if (remark) {
+            Query += `, remark = ?`;
+            QueryArray.push(remark);
+        }
+        if (document_type) {
+            Query += `, document_type = ?`;
+            QueryArray.push(document_type);
+        }
+
+        Query += `, updated_by = ?, updated_at = NOW() WHERE id = ?`;
+        QueryArray.push(decodedUserData.id, id);
+
+        db.query(Query, QueryArray, (err, Result) => {
+            if (err) {
+                console.error('Error updating document:', err);
+                return res.status(500).json({
+                    status: false,
+                    message: 'Failed to update document.',
+                });
+            }
+            return res.status(200).json({
+                status: true,
+                message: 'Document updated successfully',
+                data: Result,
+            });
+        });
+    } catch (error) {
+        console.error('Error processing document update:', error);
+        res.status(500).json({
+            status: false,
+            message: 'Failed to process document update.',
         });
     }
 });

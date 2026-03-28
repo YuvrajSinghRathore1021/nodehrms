@@ -265,6 +265,24 @@ router.post('/attendanceEdit', async (req, res) => {
         // Execute query
         const [result] = await db.promise().query(sql, params);
 
+
+        const [request] = await db.promise().query(`
+    SELECT * FROM attendance_requests 
+    WHERE employee_id = ? 
+    AND company_id = ? and request_date=?
+`, [employeeId, company_id, attendanceDate]);
+
+        let hrReasonNew = hrReason ? `Admin direct action with Reason: ${hrReason}` : `Admin direct action`;
+
+        if (request.length > 0) {
+            // ✅ Mark request approved
+            await db.promise().query(`
+        UPDATE attendance_requests 
+        SET  admin_id = ?, admin_status = ?,admin_remark=?
+        WHERE request_date=? and company_id=? and employee_id=?
+    `, [decodedUserData.id, attendance_status, hrReasonNew, attendanceDate, company_id, employeeId]);
+        }
+
         if (result.affectedRows > 0) {
             return res.status(200).json({ status: true, message: "Success", data: result });
         }
@@ -568,9 +586,9 @@ WHERE (att.attendance_id = ? or (att.attendance_date=? and att.employee_id=?)) A
                 data: [
                     {
                         "attendance_id": 0,
-                        attendance_date:attendanceDate
+                        attendance_date: attendanceDate
                     }]
-               
+
             });
         }
 

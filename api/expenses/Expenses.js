@@ -5,10 +5,131 @@ const db = require('../../DB/ConnectionSql');
 const { AdminCheck } = require('../../model/functlity/AdminCheck');
 router.use(cors());
 
-// app cheak A / web cheak A
-router.post('/api/getExpenses', async (req, res) => {
+// // app cheak A / web cheak A
+// router.post('/api/getExpenses', async (req, res) => {
 
-    const { userData, limit = 10, page = 1, search = '' } = req.body;
+//     const { userData, limit = 10, page = 1, search = '' } = req.body;
+
+//     let decodedUserData = null;
+//     if (userData) {
+//         try {
+//             const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+//             decodedUserData = JSON.parse(decodedString);
+//         } catch (error) {
+//             return res.status(400).json({ status: false, error: 'Invalid userData format' });
+//         }
+//     }
+
+//     // Validate required userData fields
+//     if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+//         return res.status(400).json({ status: false, error: 'Invalid or missing employee credentials' });
+//     }
+//     let employeeId = req.body.employee_id || decodedUserData.id;
+
+//     // SELECT id, employee_id, company_id, expense_type, amount, reason, expense_date, added_by, rm_id, admin_id, rm_status, admin_status, rm_remark, admin_remark, status, created_at, updated_at FROM expenses WHERE 1
+
+//     const parsedLimit = parseInt(limit, 10);
+//     const parsedPage = parseInt(page, 10);
+//     const offset = (parsedPage - 1) * parsedLimit;
+
+//     let query = `
+//     SELECT e.id,e.employee_id,e.expense_type,e.amount,e.reason,e.expense_date,e.document,e.added_by,e.rm_id,e.admin_id,e.rm_status,e.admin_status,e.rm_remark,e.admin_remark,e.status,e.created_at,e.updated_at,
+//         e.payment_status,e.scheduled_pay_date,e.is_auto_release,e.payment_released_at,
+//         CONCAT(emp.first_name, ' ', emp.last_name) AS employee_name,
+//         CONCAT(rm.first_name, ' ', rm.last_name) AS rm_name,
+//         CONCAT(admin.first_name, ' ', admin.last_name) AS admin_name,
+//         CONCAT(added.first_name, ' ', added.last_name) AS added_by_name
+//     FROM expenses e
+//     LEFT JOIN employees emp ON e.employee_id = emp.id
+//     LEFT JOIN employees rm ON e.rm_id = rm.id
+//     LEFT JOIN employees admin ON e.admin_id = admin.id
+//     LEFT JOIN employees added ON e.added_by = added.id
+//     WHERE e.company_id = ? AND e.employee_id = ?
+// `;
+
+//     let queryParams = [decodedUserData.company_id, employeeId];
+
+//     // Add search condition if search string is provided
+//     if (search && search.trim() !== '') {
+//         query += ` AND (
+//         emp.first_name LIKE ? OR emp.last_name LIKE ? OR
+//         e.reason LIKE ? OR
+//         e.expense_type LIKE ? OR
+//         e.amount LIKE ?
+//     )`;
+//         const searchLike = `%${search}%`;
+//         queryParams.push(searchLike, searchLike, searchLike, searchLike, searchLike);
+//     }
+
+//     query += ` ORDER BY e.id DESC LIMIT ? OFFSET ?`;
+//     queryParams.push(parsedLimit, offset);
+
+
+//     try {
+//         // Fetch main employee(s)
+//         const [results] = await db.promise().query(query, queryParams);
+
+//         // Get total count
+//         let countQuery = `SELECT COUNT(e.id) AS total FROM expenses e
+// LEFT JOIN employees emp ON e.employee_id = emp.id
+// WHERE e.company_id = ? AND e.employee_id = ?`;
+
+//         let countParams = [decodedUserData.company_id, employeeId];
+
+//         if (search && search.trim() !== '') {
+//             countQuery += ` AND (
+//         emp.first_name LIKE ? OR emp.last_name LIKE ? OR
+//         e.reason LIKE ? OR
+//         e.expense_type LIKE ? OR
+//         e.amount LIKE ?
+//     )`;
+//             const searchLike = `%${search}%`;
+//             countParams.push(searchLike, searchLike, searchLike, searchLike, searchLike);
+//         }
+
+//         const [countResults] = await db.promise().query(countQuery, countParams);
+
+//         const total = countResults[0]?.total || 0;
+
+//         let expensesWithSrnu = results.map((Expenses, index) => ({
+//             srnu: offset + index + 1,
+//             action_status: actionFound(Expenses),
+//             employee_name: Expenses.employee_name || '',
+//             rm_name: Expenses.rm_name || '',
+//             admin_name: Expenses.admin_name || '',
+//             added_by_name: Expenses.added_by_name || '',
+//             edit_action: true,
+//             ...Expenses
+//         }));
+
+
+//         return res.json({
+//             status: true,
+//             expenses: expensesWithSrnu,
+//             total,
+//             page: parsedPage,
+//             limit: parsedLimit
+//         });
+
+//     } catch (error) {
+//         console.error('Error:', error);
+//         return res.status(500).json({ status: false, error: 'Server error' });
+//     }
+
+// });
+
+router.post('/api/getExpenses', async (req, res) => {
+    const {
+        userData,
+        limit = 10,
+        page = 1,
+        search = '',
+        employee_id,
+        status_filter = 'all',
+        expense_type = '',
+        date_from = null,
+        date_to = null
+    } = req.body;
 
     let decodedUserData = null;
     if (userData) {
@@ -20,43 +141,88 @@ router.post('/api/getExpenses', async (req, res) => {
         }
     }
 
-    // Validate required userData fields
     if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
         return res.status(400).json({ status: false, error: 'Invalid or missing employee credentials' });
     }
-    let employeeId = req.body.employee_id || decodedUserData.id;
-
-    // SELECT id, employee_id, company_id, expense_type, amount, reason, expense_date, added_by, rm_id, admin_id, rm_status, admin_status, rm_remark, admin_remark, status, created_at, updated_at FROM expenses WHERE 1
 
     const parsedLimit = parseInt(limit, 10);
     const parsedPage = parseInt(page, 10);
     const offset = (parsedPage - 1) * parsedLimit;
 
+    // Handle multiple employees
+    let employeeIdCondition = '';
+    let queryParams = [decodedUserData.company_id];
+
+    if (employee_id && employee_id !== '') {
+        const employeeIdArray = employee_id.split(',').map(id => parseInt(id));
+        const placeholders = employeeIdArray.map(() => '?').join(',');
+        employeeIdCondition = ` AND e.employee_id IN (${placeholders})`;
+        queryParams.push(...employeeIdArray);
+    } else {
+        // If no employees selected, return empty results
+        return res.json({
+            status: true,
+            expenses: [],
+            total: 0,
+            page: parsedPage,
+            limit: parsedLimit
+        });
+    }
+
     let query = `
-    SELECT e.id,e.employee_id,e.expense_type,e.amount,e.reason,e.expense_date,e.document,e.added_by,e.rm_id,e.admin_id,e.rm_status,e.admin_status,e.rm_remark,e.admin_remark,e.status,e.created_at,e.updated_at,
-        e.payment_status,e.scheduled_pay_date,e.is_auto_release,e.payment_released_at,
-        CONCAT(emp.first_name, ' ', emp.last_name) AS employee_name,
-        CONCAT(rm.first_name, ' ', rm.last_name) AS rm_name,
-        CONCAT(admin.first_name, ' ', admin.last_name) AS admin_name,
-        CONCAT(added.first_name, ' ', added.last_name) AS added_by_name
+    SELECT e.id, e.employee_id, e.expense_type, e.amount, e.reason, e.expense_date, e.document, 
+           e.added_by, e.rm_id, e.admin_id, e.rm_status, e.admin_status, e.rm_remark, 
+           e.admin_remark, e.status, e.created_at, e.updated_at,
+           e.payment_status, e.scheduled_pay_date, e.is_auto_release, e.payment_released_at,
+           CONCAT(emp.first_name, ' ', emp.last_name) AS employee_name,
+           CONCAT(rm.first_name, ' ', rm.last_name) AS rm_name,
+           CONCAT(admin.first_name, ' ', admin.last_name) AS admin_name,
+           CONCAT(added.first_name, ' ', added.last_name) AS added_by_name
     FROM expenses e
     LEFT JOIN employees emp ON e.employee_id = emp.id
     LEFT JOIN employees rm ON e.rm_id = rm.id
     LEFT JOIN employees admin ON e.admin_id = admin.id
     LEFT JOIN employees added ON e.added_by = added.id
-    WHERE e.company_id = ? AND e.employee_id = ?
+    WHERE e.company_id = ? ${employeeIdCondition}
 `;
 
-    let queryParams = [decodedUserData.company_id, employeeId];
+    // Status filter
+    if (status_filter !== 'all') {
+        if (status_filter === 'paid') {
+            query += ` AND e.payment_status = 'paid'`;
+        } else if (status_filter === 'unpaid') {
+            query += ` AND (e.payment_status = 'unpaid' OR e.payment_status IS NULL)`;
+        } else if (status_filter === 'pending') {
+            query += ` AND (e.rm_status = 0 OR e.admin_status = 0)`;
+        } else if (status_filter === 'rejected') {
+            query += ` AND (e.rm_status = 2 OR e.admin_status = 2)`;
+        }
+    }
 
-    // Add search condition if search string is provided
+    // Expense type filter
+    if (expense_type && expense_type !== '') {
+        query += ` AND e.expense_type = ?`;
+        queryParams.push(expense_type);
+    }
+
+    // Date range filter
+    if (date_from && date_from !== 'null') {
+        query += ` AND DATE(e.expense_date) >= ?`;
+        queryParams.push(date_from);
+    }
+    if (date_to && date_to !== 'null') {
+        query += ` AND DATE(e.expense_date) <= ?`;
+        queryParams.push(date_to);
+    }
+
+    // Search filter
     if (search && search.trim() !== '') {
         query += ` AND (
-        emp.first_name LIKE ? OR emp.last_name LIKE ? OR
-        e.reason LIKE ? OR
-        e.expense_type LIKE ? OR
-        e.amount LIKE ?
-    )`;
+            emp.first_name LIKE ? OR emp.last_name LIKE ? OR
+            e.reason LIKE ? OR
+            e.expense_type LIKE ? OR
+            e.amount LIKE ?
+        )`;
         const searchLike = `%${search}%`;
         queryParams.push(searchLike, searchLike, searchLike, searchLike, searchLike);
     }
@@ -64,31 +230,59 @@ router.post('/api/getExpenses', async (req, res) => {
     query += ` ORDER BY e.id DESC LIMIT ? OFFSET ?`;
     queryParams.push(parsedLimit, offset);
 
-
     try {
-        // Fetch main employee(s)
         const [results] = await db.promise().query(query, queryParams);
 
-        // Get total count
+        // Get total count with same filters
         let countQuery = `SELECT COUNT(e.id) AS total FROM expenses e
-LEFT JOIN employees emp ON e.employee_id = emp.id
-WHERE e.company_id = ? AND e.employee_id = ?`;
+            LEFT JOIN employees emp ON e.employee_id = emp.id
+            WHERE e.company_id = ? ${employeeIdCondition}`;
 
-        let countParams = [decodedUserData.company_id, employeeId];
+        let countParams = [decodedUserData.company_id];
+        if (employee_id && employee_id !== '') {
+            const employeeIdArray = employee_id.split(',').map(id => parseInt(id));
+            countParams.push(...employeeIdArray);
+        }
+
+        // Apply same filters to count query
+        if (status_filter !== 'all') {
+            if (status_filter === 'paid') {
+                countQuery += ` AND e.payment_status = 'paid'`;
+            } else if (status_filter === 'unpaid') {
+                countQuery += ` AND (e.payment_status = 'unpaid' OR e.payment_status IS NULL)`;
+            } else if (status_filter === 'pending') {
+                countQuery += ` AND (e.rm_status = 0 OR e.admin_status = 0)`;
+            } else if (status_filter === 'rejected') {
+                countQuery += ` AND (e.rm_status = 2 OR e.admin_status = 2)`;
+            }
+        }
+
+        if (expense_type && expense_type !== '') {
+            countQuery += ` AND e.expense_type = ?`;
+            countParams.push(expense_type);
+        }
+
+        if (date_from && date_from !== 'null') {
+            countQuery += ` AND DATE(e.expense_date) >= ?`;
+            countParams.push(date_from);
+        }
+        if (date_to && date_to !== 'null') {
+            countQuery += ` AND DATE(e.expense_date) <= ?`;
+            countParams.push(date_to);
+        }
 
         if (search && search.trim() !== '') {
             countQuery += ` AND (
-        emp.first_name LIKE ? OR emp.last_name LIKE ? OR
-        e.reason LIKE ? OR
-        e.expense_type LIKE ? OR
-        e.amount LIKE ?
-    )`;
+                emp.first_name LIKE ? OR emp.last_name LIKE ? OR
+                e.reason LIKE ? OR
+                e.expense_type LIKE ? OR
+                e.amount LIKE ?
+            )`;
             const searchLike = `%${search}%`;
             countParams.push(searchLike, searchLike, searchLike, searchLike, searchLike);
         }
 
         const [countResults] = await db.promise().query(countQuery, countParams);
-
         const total = countResults[0]?.total || 0;
 
         let expensesWithSrnu = results.map((Expenses, index) => ({
@@ -102,7 +296,6 @@ WHERE e.company_id = ? AND e.employee_id = ?`;
             ...Expenses
         }));
 
-
         return res.json({
             status: true,
             expenses: expensesWithSrnu,
@@ -115,10 +308,9 @@ WHERE e.company_id = ? AND e.employee_id = ?`;
         console.error('Error:', error);
         return res.status(500).json({ status: false, error: 'Server error' });
     }
-
 });
 
-
+// // Update your getExpenses endpoint to support 
 
 function actionFound(action) {
     // // get approve next // admin  // 0 =pending, 1=approved, 2=rejected
@@ -232,8 +424,8 @@ router.post('/expensesAdd', async (req, res) => {
 // app cheak A / web cheak A
 router.post('/RequestApprove', async (req, res) => {
     const { userData, expense_type, amount, reason, employee_id, action_type, id, status } = req.body;
-    let decodedUserData = null;
 
+    let decodedUserData = null;
     if (userData) {
         try {
             const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
@@ -282,8 +474,64 @@ router.post('/RequestApprove', async (req, res) => {
 });
 
 //amount count =total, totalpaid,totalunpaid,totalrejected,totalreturned        
+// router.post('/amountCount', async (req, res) => {
+//     const { userData, employee_id } = req.body;
+//     let decodedUserData = null;
+
+//     if (userData) {
+//         try {
+//             const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+//             decodedUserData = JSON.parse(decodedString);
+//         } catch (error) {
+//             return res.status(400).json({ status: false, error: 'Invalid userData' });
+//         }
+//     }
+
+//     // Validate decoded userData
+//     if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+//         return res.status(400).json({ status: false, error: 'Employee ID and company ID are required' });
+//     }
+//     // Basic validations
+//     if (!employee_id) {
+//         return res.status(400).json({ status: false, message: 'Missing required fields.' });
+//     }
+//     try {
+//         const [Results] = await db.promise().query(
+//             `SELECT 
+//                 SUM(CASE WHEN status = 1 THEN amount ELSE 0 END) AS total,
+//                 SUM(CASE WHEN status = 1 AND rm_status = 1 AND admin_status = 1 THEN amount ELSE 0 END) AS totalpaid,
+//                 SUM(CASE WHEN status = 1 AND (rm_status = 0 OR admin_status = 0) THEN amount ELSE 0 END) AS totalunpaid,
+//                 SUM(CASE WHEN status = 2 THEN amount ELSE 0 END) AS totalrejected,
+//                 SUM(CASE WHEN status = 3 THEN amount ELSE 0 END) AS totalreturned
+//             FROM expenses
+//             WHERE company_id = ? AND employee_id = ?`,
+//             [decodedUserData.company_id, employee_id]
+//         );
+
+//         if (Results.length === 0) {
+//             return res.status(404).json({ status: false, message: 'No expenses found for this employee' });
+//         }
+
+//         return res.status(200).json({ status: true, data: Results[0] });
+
+//     } catch (err) {
+//         res.status(500).json({ status: false, message: 'Database error', error: err.message });
+//     }
+// });
+
+
+// Update your amountCount endpoint to support multiple employees and filters
 router.post('/amountCount', async (req, res) => {
-    const { userData, employee_id } = req.body;
+    const {
+        userData,
+        employee_ids,
+        status_filter = 'all',
+        expense_type = '',
+        date_from = null,
+        date_to = null,
+        search = ''
+    } = req.body;
+
     let decodedUserData = null;
 
     if (userData) {
@@ -299,35 +547,110 @@ router.post('/amountCount', async (req, res) => {
     if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and company ID are required' });
     }
-    // Basic validations
-    if (!employee_id) {
-        return res.status(400).json({ status: false, message: 'Missing required fields.' });
+
+    // Handle multiple employees
+    let employeeIdCondition = '';
+    let queryParams = [decodedUserData.company_id];
+
+    if (employee_ids && employee_ids !== '') {
+        const employeeIdArray = employee_ids.split(',').map(id => parseInt(id));
+        const placeholders = employeeIdArray.map(() => '?').join(',');
+        employeeIdCondition = ` AND e.employee_id IN (${placeholders})`;
+        queryParams.push(...employeeIdArray);
+    } else {
+        // If no employees selected, return empty stats
+        return res.status(200).json({
+            status: true,
+            data: {
+                total: 0,
+                totalpaid: 0,
+                totalunpaid: 0,
+                totalrejected: 0,
+                totalreturned: 0,
+                totalpending: 0
+            }
+        });
     }
+
+    // Build the query with filters
+    let query = `
+        SELECT 
+            SUM(CASE WHEN e.status = 1 THEN e.amount ELSE 0 END) AS total,
+            SUM(CASE WHEN e.status = 1 AND e.payment_status = 'paid' THEN e.amount ELSE 0 END) AS totalpaid,
+            SUM(CASE WHEN e.status = 1 AND (e.payment_status = 'unpaid' OR e.payment_status IS NULL) THEN e.amount ELSE 0 END) AS totalunpaid,
+            SUM(CASE WHEN e.status = 2 THEN e.amount ELSE 0 END) AS totalrejected,
+            SUM(CASE WHEN e.status = 3 THEN e.amount ELSE 0 END) AS totalreturned,
+            SUM(CASE WHEN e.status = 1 AND (e.rm_status = 0 OR e.admin_status = 0) THEN e.amount ELSE 0 END) AS totalpending
+        FROM expenses e
+        LEFT JOIN employees emp ON e.employee_id = emp.id
+        WHERE e.company_id = ? ${employeeIdCondition}
+    `;
+
+    // Apply status filter
+    if (status_filter !== 'all') {
+        if (status_filter === 'paid') {
+            query += ` AND e.payment_status = 'paid'`;
+        } else if (status_filter === 'unpaid') {
+            query += ` AND (e.payment_status = 'unpaid' OR e.payment_status IS NULL)`;
+        } else if (status_filter === 'pending') {
+            query += ` AND (e.rm_status = 0 OR e.admin_status = 0)`;
+        } else if (status_filter === 'rejected') {
+            query += ` AND (e.rm_status = 2 OR e.admin_status = 2)`;
+        }
+    }
+
+    // Apply expense type filter
+    if (expense_type && expense_type !== '') {
+        query += ` AND e.expense_type = ?`;
+        queryParams.push(expense_type);
+    }
+
+    // Apply date range filter
+    if (date_from && date_from !== 'null') {
+        query += ` AND DATE(e.expense_date) >= ?`;
+        queryParams.push(date_from);
+    }
+    if (date_to && date_to !== 'null') {
+        query += ` AND DATE(e.expense_date) <= ?`;
+        queryParams.push(date_to);
+    }
+
+    // Apply search filter
+    if (search && search.trim() !== '') {
+        query += ` AND (
+            emp.first_name LIKE ? OR emp.last_name LIKE ? OR
+            e.reason LIKE ? OR
+            e.expense_type LIKE ? OR
+            e.amount LIKE ?
+        )`;
+        const searchLike = `%${search}%`;
+        queryParams.push(searchLike, searchLike, searchLike, searchLike, searchLike);
+    }
+
     try {
-        const [Results] = await db.promise().query(
-            `SELECT 
-                SUM(CASE WHEN status = 1 THEN amount ELSE 0 END) AS total,
-                SUM(CASE WHEN status = 1 AND rm_status = 1 AND admin_status = 1 THEN amount ELSE 0 END) AS totalpaid,
-                SUM(CASE WHEN status = 1 AND (rm_status = 0 OR admin_status = 0) THEN amount ELSE 0 END) AS totalunpaid,
-                SUM(CASE WHEN status = 2 THEN amount ELSE 0 END) AS totalrejected,
-                SUM(CASE WHEN status = 3 THEN amount ELSE 0 END) AS totalreturned
-            FROM expenses
-            WHERE company_id = ? AND employee_id = ?`,
-            [decodedUserData.company_id, employee_id]
-        );
+        const [Results] = await db.promise().query(query, queryParams);
 
         if (Results.length === 0) {
-            return res.status(404).json({ status: false, message: 'No expenses found for this employee' });
+            return res.status(200).json({
+                status: true,
+                data: {
+                    total: 0,
+                    totalpaid: 0,
+                    totalunpaid: 0,
+                    totalrejected: 0,
+                    totalreturned: 0,
+                    totalpending: 0
+                }
+            });
         }
 
         return res.status(200).json({ status: true, data: Results[0] });
 
     } catch (err) {
+        console.error('Database error:', err);
         res.status(500).json({ status: false, message: 'Database error', error: err.message });
     }
 });
-
-
 
 
 // expenses edit 

@@ -151,12 +151,12 @@ app.use('/uploads', express.static(path.join(__dirname, './uploads')));
 io.on("connection", (socket) => {
 
   socket.on("join", (userId) => {
-    console.log("User joined room:", userId);
+    // console.log("User joined room:", userId);
     socket.join(userId?.toString());
   });
 
   socket.on("disconnect", () => {
-    console.log("User disconnected:", socket.id);
+    // console.log("User disconnected:", socket.id);
   });
 });
 

@@ -10,10 +10,10 @@ router.use(cors());
 router.post('/api/Add', async (req, res) => {
 
     const { employee_id, userData, ctc, first_name, last_name, email, date_of_joining, phone_number, dob, gender, reporting_manager, platformType,
-        official_email_id, date_of_Joining, marital_status, blood_group, email_id, contact_number, current_address, permanent_address, probation_status, experience, job_title, work_location, department, sub_department, designation, employee_type, probation_period, emergency_contact_name, emergency_contact_number, alternate_phone, bank, 
-        branch, city, ifsc, account_number ,rule_id=0,attendance_rule_id=0,structure_id=0} = req.body;
+        official_email_id, date_of_Joining, marital_status, blood_group, email_id, contact_number, current_address, permanent_address, probation_status, experience, job_title, work_location, department, sub_department, designation, employee_type, probation_period, emergency_contact_name, emergency_contact_number, alternate_phone, bank,
+        branch, city, ifsc, account_number, rule_id = 0, attendance_rule_id = 0, structure_id = 0 } = req.body;
 
-        
+
     let decodedUserData = null;
 
     if (userData) {
@@ -71,7 +71,7 @@ router.post('/api/Add', async (req, res) => {
 
                     if (platformType == 'ios' || platformType == 'android') {
                         db.query('INSERT INTO employees (company_id,employee_id,first_name,last_name,official_email_id,date_of_Joining,marital_status,blood_group,email_id,contact_number,current_address,permanent_address,probation_status,experience,job_title,dob,gender,work_location,department,sub_department,designation,employee_type,probation_period,reporting_manager,ctc,emergency_contact_name,emergency_contact_number,alternate_phone,bank,branch,city,ifsc,account_number,attendance_rules_id,work_week_id,structure_id) VALUES (?,?, ?, ?, ?, ?, ?, ?,?, ?, ?, ?, ?,?,?, ?, ?, ?, ?,?,?, ?, ?, ?, ?,?,?, ?, ?, ?, ?,?,?,?,?,?)',
-                            [decodedUserData.company_id, employee_id, first_name, last_name, official_email_id, date_of_Joining, marital_status, blood_group, email_id, contact_number, current_address, permanent_address, probation_status, experience, job_title, dob, gender, work_location, department, sub_department, designation, employee_type, probation_period, reporting_manager, ctc, emergency_contact_name, emergency_contact_number, alternate_phone, bank, branch, city, ifsc, account_number, attendance_rule_id,rule_id,structure_id],
+                            [decodedUserData.company_id, employee_id, first_name, last_name, official_email_id, date_of_Joining, marital_status, blood_group, email_id, contact_number, current_address, permanent_address, probation_status, experience, job_title, dob, gender, work_location, department, sub_department, designation, employee_type, probation_period, reporting_manager, ctc, emergency_contact_name, emergency_contact_number, alternate_phone, bank, branch, city, ifsc, account_number, attendance_rule_id, rule_id, structure_id],
                             (err, result) => {
                                 if (err) {
                                     return res.status(500).json({
@@ -89,8 +89,8 @@ router.post('/api/Add', async (req, res) => {
                         );
                     } else {
                         db.query('INSERT INTO employees (reporting_manager,ctc,company_id,employee_id,first_name,last_name,email_id,date_of_Joining,contact_number,dob,gender,attendance_rules_id,work_week_id,structure_id) VALUES (?,?, ?, ?, ?, ?, ?, ?, ?, ?,? ,?,?,?)',
-                            [reporting_manager, ctc, decodedUserData.company_id, employee_id, first_name, last_name, email, date_of_joining, phone_number, dob, gender,attendance_rule_id,rule_id,structure_id],
-                            (err,result) => {
+                            [reporting_manager, ctc, decodedUserData.company_id, employee_id, first_name, last_name, email, date_of_joining, phone_number, dob, gender, attendance_rule_id, rule_id, structure_id],
+                            (err, result) => {
                                 if (err) {
                                     return res.status(500).json({
                                         status: false,
@@ -320,7 +320,7 @@ router.get('/api/fetchDetails', (req, res) => {
                          current_address, permanent_address, social_profile_link 
                   FROM employees WHERE id = ?`;
     } else if (type === 'Work') {
-        query = `SELECT e.id,e.login_status, e.date_of_Joining, e.work_location, e.employee_type, e.employee_id, 
+        query = `SELECT e.id,e.login_status, e.date_of_Joining,e.last_day, e.work_location, e.employee_type, e.employee_id, 
        e.experience, e.probation_period, e.probation_status, e.job_title, e.designation, e.status,
        d.name AS department_name, 
        sd.name AS sub_department_name
@@ -362,7 +362,8 @@ router.post('/api/Update', (req, res) => {
     const { type, id, first_name, last_name, reporting_manager, blood_group, dob, marital_status, gender, official_email_id, email_id, contact_number, alternate_phone, current_address, permanent_address, activeSection,
         date_of_Joining, work_location, employee_type, employee_id, status,
         experience, probation_period, probation_status, sub_department, department, job_title, designation
-        , ctc, emergency_contact_name, emergency_contact_number, bank, branch, city, ifsc, account_number, platformType, login_status
+        , ctc, emergency_contact_name, emergency_contact_number, bank, branch, city, ifsc, account_number, platformType, login_status,
+        last_day
     } = req.body;
     let query;
     let values;
@@ -386,8 +387,8 @@ router.post('/api/Update', (req, res) => {
 
             switch (activeSection) {
                 case 'BasicInfo':
-                    query = 'UPDATE employees SET login_status=?,probation_period=?,status=?,probation_status=?,date_of_Joining=?, work_location=?, employee_type=?, employee_id=?, experience=?,reporting_manager=? WHERE id=?';
-                    values = [login_status, probation_period, status, probation_status, date_of_Joining, work_location, employee_type, employee_id, experience, reporting_manager, id];
+                    query = 'UPDATE employees SET login_status=?,probation_period=?,status=?,probation_status=?,date_of_Joining=?, work_location=?, employee_type=?, employee_id=?, experience=?,reporting_manager=?,last_day=? WHERE id=?';
+                    values = [login_status, probation_period, status, probation_status, date_of_Joining, work_location, employee_type, employee_id, experience, reporting_manager, last_day, id];
                     break;
                 case 'WorkInfo':
                     query = 'UPDATE employees SET job_title=?,designation=?,sub_department=?, department=? WHERE id=?';

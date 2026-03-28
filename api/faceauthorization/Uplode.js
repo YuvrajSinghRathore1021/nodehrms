@@ -49,50 +49,6 @@ const fileExists = (Emp_id, company_id) => {
     });
 };
 
-// Upload route (single file only)  
-// app cheak A
-router.post('/registerFace', async (req, res) => {
-    const { userData, face } = req.body;
-    let decodedUserData = null;
-
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: "Invalid userData" });
-        }
-    }
-
-    if (!decodedUserData.company_id) {
-        return res.status(400).json({ status: false, error: "Company ID is missing or invalid" });
-    }
-
-    let company_id = decodedUserData.company_id;
-    let Emp_id = decodedUserData.id;
-
-    if (face) {
-        return res.status(400).json({ status: false, message: 'No face uploaded' });
-    }
-
-    const fileName = face;
-
-    try {
-        const exists = await fileExists(Emp_id, company_id);
-
-        if (exists) {
-            // If file already exists, update it
-            await updateFile(Emp_id, company_id, fileName, res);
-        } else {
-            // If file does not exist, insert it
-            await insertFile(Emp_id, company_id, fileName, res);
-        }
-    } catch (err) {
-        console.error('Upload error:', err);
-        return res.status(500).json({ status: false, message: 'Error while uploading document' });
-    }
-});
-
 
 // app cheak A
 router.post('/faceGet', async (req, res) => {
@@ -133,40 +89,6 @@ router.post('/faceGet', async (req, res) => {
 
 });
 
-
-// app cheak A
-router.post('/deleteFace', async (req, res) => {
-    const { userData, id } = req.body;
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: "Invalid userData" });
-        }
-    }
-
-    if (!decodedUserData.company_id) {
-        return res.status(400).json({ status: false, error: "Company ID is missing or invalid" });
-    }
-    let company_id = decodedUserData.company_id;
-
-    try {
-        const query = `UPDATE face_auth SET face_url = '' ,face_authentication=0,embeddings='' WHERE employee_id = ? AND company_id = ?`;
-        const values = [id, company_id];
-        const resNew = await db.promise().query(query, values);
-        if (resNew[0].affectedRows == 0) {
-            return res.status(404).json({ status: false, message: 'No matching record found to delete face data' });
-        }
-
-        return res.status(200).json({ status: true, message: 'Face data deleted successfully!' });
-
-    } catch (err) {
-        console.error('Upload error:', err);
-        return res.status(500).json({ status: false, message: 'Error while uploading document' });
-    }
-});
 
 module.exports = router;
 

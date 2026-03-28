@@ -75,7 +75,7 @@ router.post('/faceRegister', async (req, res) => {
 
 
 router.post('/faceDelete', async (req, res) => {
-    const { userData, employeeId } = req.body;
+    const { userData, employeeId, id } = req.body;
 
     let decodedUserData = null;
 
@@ -90,7 +90,7 @@ router.post('/faceDelete', async (req, res) => {
     }
 
     const company_id = decodedUserData.company_id;
-    const id = employeeId || decodedUserData.id;
+    const empId = employeeId || id || decodedUserData.id;
     // Server-side validation
     if (!company_id) {
         return res.status(400).json({ status: false, message: 'Invalid input data' });
@@ -99,14 +99,14 @@ router.post('/faceDelete', async (req, res) => {
 
     const query = `SELECT id FROM face_auth WHERE employee_id = ? AND company_id = ?`;
 
-    const values = [id, company_id];
+    const values = [empId, company_id];
 
     try {
         const [rows] = await db.promise().query(query, values);
         if (rows.length > 0) {
             // Delete existing record
             const deleteQuery = `DELETE FROM face_auth WHERE employee_id = ? AND company_id = ? and face_authentication=1`;
-            const deleteValues = [id, company_id];
+            const deleteValues = [empId, company_id];
             await db.promise().query(deleteQuery, deleteValues);
             return res.status(200).json({ status: true, message: 'Face data deleted successfully!' });
         } else {

@@ -76,7 +76,6 @@ router.post('/Attendancemark', async (req, res) => {
             const branchResults = await queryDb('SELECT id, company_id, name, location_status, latitude, longitude, radius, ip, ip_status,status,location_required,location_break FROM branches WHERE id = ? AND company_id = ? AND status=1', [employeeResults[0].branch_id, companyId]);
 
             if (branchResults.length === 0) {
-
             } else {
                 if (branchResults[0].ip_status == 1 && branchResults[0].ip != IpHandal) {
                     return res.status(200).json({ status: false, message: 'You are not allowed to mark attendance from this IP address.' });
@@ -85,7 +84,6 @@ router.post('/Attendancemark', async (req, res) => {
                     && ((branchResults[0].location_required == 1 && (type == 'in' || type == 'out')) || (branchResults[0].location_required == 2 && type == 'in') || (branchResults[0].location_required == 3 && type == 'out')
                         || ((branchResults[0].location_break == 1 && (type == 'Start_break' || type == 'End_break')) || (branchResults[0].location_break == 2 && type == 'Start_break') || (branchResults[0].location_break == 3 && type == 'End_break')))
                 ) {
-
                     const distance = getDistanceFromLatLonInMeters(latitude, longitude, branchResults[0].latitude, branchResults[0].longitude);
                     if (distance > branchResults[0].radius) {
                         return res.status(200).json({
@@ -97,10 +95,8 @@ router.post('/Attendancemark', async (req, res) => {
             }
         }
 
-
         const rulesResults = await queryDb('SELECT in_time,out_time,out_time_required,max_working_hours,working_hours_required,half_day,penalty_rule_applied,late_coming_penalty,late_coming_allowed_days,last_in_time,early_leaving_penalty,last_out_time,in_grace_period_minutes FROM attendance_rules WHERE rule_id = ? AND company_id = ?', [employeeResults[0].attendance_rules_id, companyId]);
         const rule = rulesResults.length > 0 ? rulesResults[0] : { in_time: '09:30', out_time: '18:30' };
-
         let dailyStatus = '';
         let timeCount = '';
 
@@ -118,7 +114,6 @@ router.post('/Attendancemark', async (req, res) => {
                 timeCount = '00:00';
             }
 
-
             const attendanceResults = await queryDb('SELECT attendance_id FROM attendance WHERE employee_id = ? AND company_id = ? AND attendance_date = CURDATE()', [empId, companyId]);
             if (attendanceResults.length > 0) {
                 return res.status(400).json({ status: false, message: 'Attendance for today is already marked as in.' });
@@ -126,6 +121,7 @@ router.post('/Attendancemark', async (req, res) => {
 
             let empAttendanceStatus = 'Present';
             let attendance_reason = "";
+
             ////neew addd////
             if (rule?.penalty_rule_applied == 1) {
                 // Late Coming Penalty Check
@@ -173,7 +169,7 @@ router.post('/Attendancemark', async (req, res) => {
                 const resultEmpin = await getEmployeeProfile(getEmployeeData);
 
                 // setTimeout(() => {
-                //     req.io.to(empId.toString()).emit("profileResponse", resultEmpin);
+                    req.io.to(empId.toString()).emit("profileResponse", resultEmpin);
                 // }, 1000);
                 return res.status(200).json({ status: true, message: `Attendance marked as 'in' at ${formattedTime}.` });
             }
@@ -373,7 +369,7 @@ router.post('/Attendancemark', async (req, res) => {
             await calculateAndUpdateTotalBreakDuration(empId, companyId);
             const resultEmpout = await getEmployeeProfile(getEmployeeData);
             // setTimeout(() => {
-            //     req.io.to(empId.toString()).emit("profileResponse", resultEmpout);
+                req.io.to(empId.toString()).emit("profileResponse", resultEmpout);
             // }, 1000);
             return res.status(200).json({ status: true, message: `Attendance marked as 'out' at ${formattedTime}. Duration: ${duration}.` });
 

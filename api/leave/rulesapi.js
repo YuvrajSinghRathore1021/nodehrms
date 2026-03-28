@@ -998,7 +998,7 @@ router.post("/update-leave-type", async (req, res) => {
       );
 
       if (ruleResults.length === 0) {
-        console.log(`Rule ID ${ruleId} not found, skipping...`);
+        // console.log(`Rule ID ${ruleId} not found, skipping...`);
         continue;
       }
 
@@ -1006,12 +1006,12 @@ router.post("/update-leave-type", async (req, res) => {
 
       // Check if rule has effective date restrictions
       if (rule.effective_from && new Date(rule.effective_from) > new Date()) {
-        console.log(`Rule ID ${ruleId} not effective yet, skipping...`);
+        // console.log(`Rule ID ${ruleId} not effective yet, skipping...`);
         continue;
       }
 
       if (rule.effective_to && new Date(rule.effective_to) < new Date()) {
-        console.log(`Rule ID ${ruleId} has expired, skipping...`);
+        // console.log(`Rule ID ${ruleId} has expired, skipping...`);
         continue;
       }
 

@@ -50,8 +50,7 @@ router.post("/RulesUpdate", async (req, res) => {
     if (!monthlyLeaveStructure) {
         monthlyLeaveStructurenew = generateMonthlyLeaveStructure(leaves_allowed_year, apply_leaves_next_year)
     }
-    console.log(monthlyLeaveStructurenew);
-    return;
+    
     let decodedUserData = null;
     if (userData) {
         try {

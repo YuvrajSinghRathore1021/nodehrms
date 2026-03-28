@@ -43,7 +43,6 @@ router.post('/api/data', async (req, res) => {
         const employee_Id = employeeId || decodedUserData.id;
         const companyId = decodedUserData?.company_id;
         // const companyId = 6;
-        console.log(employee_Id, companyId)
 
         if (!month || !year) {
             return res.status(400).json({
