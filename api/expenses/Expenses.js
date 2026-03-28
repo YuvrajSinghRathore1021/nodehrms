@@ -287,7 +287,7 @@ router.post('/api/getExpenses', async (req, res) => {
 
         let expensesWithSrnu = results.map((Expenses, index) => ({
             srnu: offset + index + 1,
-            action_status: actionFound(Expenses),
+            action_status: actionFound(Expenses, decodedUserData.id),
             employee_name: Expenses.employee_name || '',
             rm_name: Expenses.rm_name || '',
             admin_name: Expenses.admin_name || '',
@@ -312,7 +312,7 @@ router.post('/api/getExpenses', async (req, res) => {
 
 // // Update your getExpenses endpoint to support 
 
-function actionFound(action) {
+function actionFound(action, employeeId=0) {
     // // get approve next // admin  // 0 =pending, 1=approved, 2=rejected
     if (action.rm_id == 0 && action.admin_id == 0) {
         return `admin`;
@@ -330,6 +330,9 @@ function actionFound(action) {
     else if (action.rm_status == 2 || action.admin_status == 2) {
         return `view`;
     } else if (action.admin_status == 1 || action.admin_status == 2) {
+        return `view`;
+    }
+    else if (action.employee_id == employeeId) {
         return `view`;
     }
     return ' ';
