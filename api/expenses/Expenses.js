@@ -144,7 +144,7 @@ router.post('/api/getExpenses', async (req, res) => {
     if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
         return res.status(400).json({ status: false, error: 'Invalid or missing employee credentials' });
     }
-
+    let employee_idNew = employee_id || decodedUserData.id;
     const parsedLimit = parseInt(limit, 10);
     const parsedPage = parseInt(page, 10);
     const offset = (parsedPage - 1) * parsedLimit;
@@ -153,8 +153,8 @@ router.post('/api/getExpenses', async (req, res) => {
     let employeeIdCondition = '';
     let queryParams = [decodedUserData.company_id];
 
-    if (employee_id && employee_id !== '') {
-        const employeeIdArray = employee_id.split(',').map(id => parseInt(id));
+    if (employee_idNew && employee_idNew !== '') {
+        const employeeIdArray = employee_idNew.split(',').map(id => parseInt(id));
         const placeholders = employeeIdArray.map(() => '?').join(',');
         employeeIdCondition = ` AND e.employee_id IN (${placeholders})`;
         queryParams.push(...employeeIdArray);
@@ -239,8 +239,8 @@ router.post('/api/getExpenses', async (req, res) => {
             WHERE e.company_id = ? ${employeeIdCondition}`;
 
         let countParams = [decodedUserData.company_id];
-        if (employee_id && employee_id !== '') {
-            const employeeIdArray = employee_id.split(',').map(id => parseInt(id));
+        if (employee_idNew && employee_idNew !== '') {
+            const employeeIdArray = employee_idNew.split(',').map(id => parseInt(id));
             countParams.push(...employeeIdArray);
         }
 
