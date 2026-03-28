@@ -169,7 +169,7 @@ router.post('/Attendancemark', async (req, res) => {
                 const resultEmpin = await getEmployeeProfile(getEmployeeData);
 
                 // setTimeout(() => {
-                    req.io.to(empId.toString()).emit("profileResponse", resultEmpin);
+                    // req.io.to(empId.toString()).emit("profileResponse", resultEmpin);
                 // }, 1000);
                 return res.status(200).json({ status: true, message: `Attendance marked as 'in' at ${formattedTime}.` });
             }
@@ -369,7 +369,7 @@ router.post('/Attendancemark', async (req, res) => {
             await calculateAndUpdateTotalBreakDuration(empId, companyId);
             const resultEmpout = await getEmployeeProfile(getEmployeeData);
             // setTimeout(() => {
-                req.io.to(empId.toString()).emit("profileResponse", resultEmpout);
+                // req.io.to(empId.toString()).emit("profileResponse", resultEmpout);
             // }, 1000);
             return res.status(200).json({ status: true, message: `Attendance marked as 'out' at ${formattedTime}. Duration: ${duration}.` });
 

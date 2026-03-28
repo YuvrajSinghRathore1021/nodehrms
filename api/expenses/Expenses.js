@@ -312,9 +312,11 @@ router.post('/api/getExpenses', async (req, res) => {
 
 // // Update your getExpenses endpoint to support 
 
-function actionFound(action, employeeId=0) {
+function actionFound(action, employeeId = 0) {
     // // get approve next // admin  // 0 =pending, 1=approved, 2=rejected
-    if (action.rm_id == 0 && action.admin_id == 0) {
+    if (action.employee_id == employeeId) {
+        return `view`;
+    } else if (action.rm_id == 0 && action.admin_id == 0) {
         return `admin`;
     } else if (action.rm_id > 0 && action.rm_status == 1 && action.admin_status == 0) {
         return `admin`;
@@ -332,9 +334,8 @@ function actionFound(action, employeeId=0) {
     } else if (action.admin_status == 1 || action.admin_status == 2) {
         return `view`;
     }
-    else if (action.employee_id == employeeId) {
-        return `view`;
-    }
+
+
     return ' ';
 }
 
@@ -409,7 +410,7 @@ router.post('/expensesAdd', async (req, res) => {
             insertQuery = `INSERT INTO expenses (employee_id, company_id, expense_type, amount, reason, expense_date, document, added_by, rm_id, admin_id, rm_status, admin_status, status, created_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`;
 
-            db.query(insertQuery, [decodedUserData.id, decodedUserData.company_id, expense_type, amount, reason || '', expense_date, documentJson, decodedUserData?.id || 0, RmIdValue || 0, 0, '0', '0', 1], (err, result) => {
+            db.query(insertQuery, [employee_id || decodedUserData.id, decodedUserData.company_id, expense_type, amount, reason || '', expense_date, documentJson, decodedUserData?.id || 0, RmIdValue || 0, 0, '0', '0', 1], (err, result) => {
                 if (err) {
                     return res.status(500).json({ status: false, message: 'DB error', error: err });
                 }
