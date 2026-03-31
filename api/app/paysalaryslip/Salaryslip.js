@@ -218,20 +218,12 @@ router.get('/api/HtmlView', async (req, res) => {
     <html lang="en">
     <head>
         <title>Payslip - ${salaryData.employee.name}</title>
+        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Noto+Sans:wght@400;500;600&display=swap" rel="stylesheet">
         <style>
-            @font-face {
-                font-family: 'Poppins';
-                src: url('${serverAddress}/uploads/fonts/poppins/Poppins-Regular.ttf') format('truetype');
-                font-weight: 400;
-                font-style: normal;
-            }
-
-            @font-face {
-                font-family: 'PoppinsMedium';
-                src: url('${serverAddress}/uploads/fonts/poppins/Poppins-Medium.ttf') format('truetype');
-                font-weight: 600;
-                font-style: normal;
-            }
+        body {
+  font-family: "Poppins", "Noto Sans", "Segoe UI", sans-serif;
+}
+            
             
             html {
                 -webkit-print-color-adjust: exact;
@@ -1056,6 +1048,19 @@ router.post('/api/HtmlViewToJpg', async (req, res) => {
             ]
         });
 
+        // @font-face {
+        //         font-family: 'Poppins';
+        //         src: url('${serverAddress}/uploads/fonts/poppins/Poppins-Regular.ttf') format('truetype');
+        //         font-weight: 400;
+        //         font-style: normal;
+        //     }
+
+        //     @font-face {
+        //         font-family: 'PoppinsMedium';
+        //         src: url('${serverAddress}/uploads/fonts/poppins/Poppins-Medium.ttf') format('truetype');
+        //         font-weight: 600;
+        //         font-style: normal;
+        //     }
         const page = await browser.newPage();
 
         await page.setViewport({
