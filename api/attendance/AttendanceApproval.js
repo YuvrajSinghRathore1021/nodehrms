@@ -3,9 +3,6 @@ const router = express.Router();
 const db = require('../../DB/ConnectionSql');
 const { AdminCheck } = require('../../model/functlity/AdminCheck');
 
-
-
-
 const decodeUserData = (userData) => {
     try {
         const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
@@ -14,6 +11,7 @@ const decodeUserData = (userData) => {
         return null;
     }
 };
+
 // app cheak A / Web Cheak A
 router.get('/api/companyEmployeeName', async (req, res) => {
     const { userData, searchData = '', type = "" } = req.query;
@@ -129,6 +127,8 @@ router.get('/api/companyEmployeeName', async (req, res) => {
         });
     });
 });
+
+
 // app cheak A / Web Cheak A
 router.post('/api/companyEmployeeName', async (req, res) => {
     const { userData, searchData = '', type = "" } = req.body;
@@ -242,6 +242,5 @@ router.post('/api/companyEmployeeName', async (req, res) => {
         });
     });
 });
-
 
 module.exports = router;

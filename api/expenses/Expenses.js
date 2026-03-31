@@ -5,11 +5,9 @@ const db = require('../../DB/ConnectionSql');
 const { AdminCheck } = require('../../model/functlity/AdminCheck');
 router.use(cors());
 
-// // app cheak A / web cheak A
+// // // // // app cheak A / web cheak A
 // router.post('/api/getExpenses', async (req, res) => {
-
 //     const { userData, limit = 10, page = 1, search = '' } = req.body;
-
 //     let decodedUserData = null;
 //     if (userData) {
 //         try {
@@ -115,7 +113,6 @@ router.use(cors());
 //         console.error('Error:', error);
 //         return res.status(500).json({ status: false, error: 'Server error' });
 //     }
-
 // });
 
 router.post('/api/getExpenses', async (req, res) => {
@@ -131,6 +128,8 @@ router.post('/api/getExpenses', async (req, res) => {
         date_to = null
     } = req.body;
 
+    // //console.log(req.body)
+    
     let decodedUserData = null;
     if (userData) {
         try {
@@ -144,6 +143,7 @@ router.post('/api/getExpenses', async (req, res) => {
     if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
         return res.status(400).json({ status: false, error: 'Invalid or missing employee credentials' });
     }
+    const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
     let employee_idNew = employee_id || decodedUserData.id;
     const parsedLimit = parseInt(limit, 10);
     const parsedPage = parseInt(page, 10);
@@ -158,7 +158,22 @@ router.post('/api/getExpenses', async (req, res) => {
         const placeholders = employeeIdArray.map(() => '?').join(',');
         employeeIdCondition = ` AND e.employee_id IN (${placeholders})`;
         queryParams.push(...employeeIdArray);
-    } else {
+    }
+
+    // let employeeIdArray = [];
+
+    // if (employee_idNew && employee_idNew !== '') {
+    //     try {
+    //         employeeIdArray = JSON.parse(employee_idNew);
+    //     } catch (err) {
+    //         employeeIdArray = employee_idNew.split(',').map(id => parseInt(id));
+    //     }
+
+    //     const placeholders = employeeIdArray.map(() => '?').join(',');
+    //     employeeIdCondition = ` AND e.employee_id IN (${placeholders})`;
+    //     queryParams.push(...employeeIdArray);
+    // }
+    else {
         // If no employees selected, return empty results
         return res.json({
             status: true,
@@ -200,7 +215,7 @@ router.post('/api/getExpenses', async (req, res) => {
     }
 
     // Expense type filter
-    if (expense_type && expense_type !== '') {
+    if (expense_type && expense_type != '' && expense_type != 'all') {
         query += ` AND e.expense_type = ?`;
         queryParams.push(expense_type);
     }
@@ -225,6 +240,10 @@ router.post('/api/getExpenses', async (req, res) => {
         )`;
         const searchLike = `%${search}%`;
         queryParams.push(searchLike, searchLike, searchLike, searchLike, searchLike);
+    }
+    if (!isAdmin) {
+        query += ` AND (e.rm_id = ? or e.employee_id = ?)`;
+        queryParams.push(decodedUserData.id, decodedUserData.id);
     }
 
     query += ` ORDER BY e.id DESC LIMIT ? OFFSET ?`;
@@ -257,7 +276,7 @@ router.post('/api/getExpenses', async (req, res) => {
             }
         }
 
-        if (expense_type && expense_type !== '') {
+        if (expense_type && expense_type !== '' && expense_type != 'all') {
             countQuery += ` AND e.expense_type = ?`;
             countParams.push(expense_type);
         }
@@ -287,7 +306,7 @@ router.post('/api/getExpenses', async (req, res) => {
 
         let expensesWithSrnu = results.map((Expenses, index) => ({
             srnu: offset + index + 1,
-            action_status: actionFound(Expenses, decodedUserData.id),
+            action_status: actionFound(Expenses, decodedUserData.id, isAdmin),
             employee_name: Expenses.employee_name || '',
             rm_name: Expenses.rm_name || '',
             admin_name: Expenses.admin_name || '',
@@ -312,15 +331,18 @@ router.post('/api/getExpenses', async (req, res) => {
 
 // // Update your getExpenses endpoint to support 
 
-function actionFound(action, employeeId = 0) {
+function actionFound(action, employeeId = 0, isAdmin = false) {
     // // get approve next // admin  // 0 =pending, 1=approved, 2=rejected
     if (action.employee_id == employeeId) {
         return `view`;
-    } else if (action.rm_id == 0 && action.admin_id == 0) {
+    } else if (action.rm_id > 0 && action.rm_status == 0 && action.admin_id == 0 && action.rm_id != employeeId) {
+        return `view`;
+    }
+    else if (action.rm_id == 0 && action.admin_id == 0 && action.employee_id != employeeId && isAdmin) {
         return `admin`;
-    } else if (action.rm_id > 0 && action.rm_status == 1 && action.admin_status == 0) {
+    } else if (action.rm_id > 0 && action.rm_status == 1 && action.admin_status == 0 && action.employee_id != employeeId && isAdmin) {
         return `admin`;
-    } else if (action.rm_id > 0 && action.rm_status == 1 && action.admin_id > 0) {
+    } else if (action.rm_id > 0 && action.rm_status == 1 && action.admin_id > 0 && action.admin_status == 0 && action.employee_id != employeeId && isAdmin) {
         return `admin`;
     } //    rm 
     else if (action.rm_id > 0 && action.rm_status == 0 && action.admin_id == 0) {
@@ -334,8 +356,6 @@ function actionFound(action, employeeId = 0) {
     } else if (action.admin_status == 1 || action.admin_status == 2) {
         return `view`;
     }
-
-
     return ' ';
 }
 
@@ -551,6 +571,7 @@ router.post('/amountCount', async (req, res) => {
     if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and company ID are required' });
     }
+    const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
 
     // Handle multiple employees
     let employeeIdCondition = '';
@@ -629,6 +650,10 @@ router.post('/amountCount', async (req, res) => {
         )`;
         const searchLike = `%${search}%`;
         queryParams.push(searchLike, searchLike, searchLike, searchLike, searchLike);
+    }
+    if (!isAdmin) {
+        query += ` AND (e.rm_id = ? or e.employee_id = ?)`;
+        queryParams.push(decodedUserData.id, decodedUserData.id);
     }
 
     try {

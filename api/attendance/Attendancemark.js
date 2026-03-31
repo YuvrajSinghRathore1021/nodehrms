@@ -166,11 +166,11 @@ router.post('/Attendancemark', async (req, res) => {
                 return res.status(500).json({ status: false, message: 'Failed to mark attendance. Please try again.', error: attendanceCheckInsert });
             } else {
 
-                const resultEmpin = await getEmployeeProfile(getEmployeeData);
-
+                // const resultEmpin = await getEmployeeProfile(getEmployeeData);
                 // setTimeout(() => {
                     // req.io.to(empId.toString()).emit("profileResponse", resultEmpin);
                 // }, 1000);
+
                 return res.status(200).json({ status: true, message: `Attendance marked as 'in' at ${formattedTime}.` });
             }
 
@@ -367,10 +367,12 @@ router.post('/Attendancemark', async (req, res) => {
 
             // After marking 'out', calculate total break duration
             await calculateAndUpdateTotalBreakDuration(empId, companyId);
-            const resultEmpout = await getEmployeeProfile(getEmployeeData);
+            // const resultEmpout = await getEmployeeProfile(getEmployeeData);
+           
             // setTimeout(() => {
                 // req.io.to(empId.toString()).emit("profileResponse", resultEmpout);
             // }, 1000);
+
             return res.status(200).json({ status: true, message: `Attendance marked as 'out' at ${formattedTime}. Duration: ${duration}.` });
 
         } else if (type === 'Start_break') {

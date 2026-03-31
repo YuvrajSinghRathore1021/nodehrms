@@ -478,6 +478,8 @@ router.get('/api/attendance', async (req, res) => {
         const employeesAttendanceData = [];
 
         for (const employee of empResults) {
+            let totalMinutes = 0;
+            let totalWorkingHours = 0;
             const [WorkWeek] = await db.promise().query(
                 `SELECT id, mon1, tue1, wed1, thu1, fri1, sat1, sun1, mon2, tue2, wed2, thu2, fri2, sat2, sun2, 
                 mon3, tue3, wed3, thu3, fri3, sat3, sun3, mon4, tue4, wed4, thu4, fri4, sat4, sun4, 
@@ -491,11 +493,12 @@ router.get('/api/attendance', async (req, res) => {
 
             const [attendanceResults] = await db.promise().query(`
                 SELECT attendance_id,status, check_in_time, check_out_time, attendance_date,approval_status,attendance_status
-               ,short_leave,short_leave_type,short_leave_reason,late_coming_leaving,approval_status,attendance_status FROM attendance
+               ,short_leave,short_leave_type,short_leave_reason,late_coming_leaving,approval_status,attendance_status,duration FROM attendance
                 WHERE employee_id = ? AND YEAR(attendance_date) = ? AND MONTH(attendance_date) = ?`,
                 [employee.id, year, month]
             );
 
+            ////// duration like 0 hour 23 minute
 
             const monthStr = String(month).padStart(2, '0'); // ensures "08" instead of "8"
             const monthStart = `${year}-${monthStr}-01`;
@@ -527,9 +530,16 @@ router.get('/api/attendance', async (req, res) => {
 
 
                 const attendance = attendanceResults.find(a => {
+                    if (a && a.duration) {
+                        totalMinutes += parseDurationToMinutes(a.duration);
+                    }
                     const attDate = new Date(a.attendance_date);
                     return attDate.getDate() == dayNo && attDate.getMonth() == month - 1;
                 });
+                const totalHours = Math.floor(totalMinutes / 60);
+                const remainingMinutes = totalMinutes % 60;
+
+                totalWorkingHours = `${totalHours} hour ${remainingMinutes} minute`;
                 const formattedDate = new Date(date).toISOString().split("T")[0];
                 const isHoliday = holidays[formattedDate];
                 // converts "2025-08-01T00:00:00.000Z" → "2025-08-01"
@@ -669,7 +679,8 @@ router.get('/api/attendance', async (req, res) => {
                     name: employee.first_name,
                     first_name: employee.first_name,
                     userId: employee.employee_id,
-                    Id: employee.id
+                    Id: employee.id,
+                    total_working_hours: totalWorkingHours,
                 },
                 monthly_attendance_logs: monthlyAttendanceLogs
             });
@@ -719,6 +730,21 @@ const lwpcheck = (attDate, status, lockDate) => {
     }
 
     return status;
+};
+
+const parseDurationToMinutes = (duration) => {
+    if (!duration) return 0;
+
+    let hours = 0;
+    let minutes = 0;
+
+    const hourMatch = duration.match(/(\d+)\s*hour/);
+    const minuteMatch = duration.match(/(\d+)\s*minute/);
+
+    if (hourMatch) hours = parseInt(hourMatch[1]);
+    if (minuteMatch) minutes = parseInt(minuteMatch[1]);
+
+    return (hours * 60) + minutes;
 };
 
 // app cheak A / web cheak A
