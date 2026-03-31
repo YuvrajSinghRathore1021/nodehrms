@@ -471,8 +471,8 @@ router.get('/api/HtmlView', async (req, res) => {
                     ` : ''}
                     <li style="background-color: #CA282C; color: white;">
                         <span>TOTAL DEDUCTIONS</span>
-                        <span class="amount">₹${deductionsTotal.toFixed(2)}</span>
-                        <span class="amount">₹${deductionsTotalYTD.toFixed(2)}</span>
+                        <span class="poppins-regular amount">₹${deductionsTotal.toFixed(2)}</span>
+                        <span class=" poppins-regular amount">₹${deductionsTotalYTD.toFixed(2)}</span>
                     </li>
                 </ul>
             </div>
@@ -481,7 +481,7 @@ router.get('/api/HtmlView', async (req, res) => {
                 <div class="poppins-medium"
                     style="background-color: #CA282C;color: white;padding:15px 20px 15px 20px; border-top-left-radius: 20px;border-bottom-right-radius: 20px;gap: 40px; display: flex;">
                     <span>NET PAY</span>
-                    <span>₹${netPay.toFixed(2)}</span>
+                    <span style="font-family: 'Noto Sans', sans-serif;">₹${netPay.toFixed(2)}</span>
                  
                 </div>
             </div>
