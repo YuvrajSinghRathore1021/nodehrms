@@ -16,19 +16,19 @@ const BATCH_INTERVAL = 5000; // 5 min
 const MAX_BUFFER_SIZE = 500; // safety limit
 const QUEUE_PREFIX = "location_queue:";
 
-// // localhost
-const server = http.createServer(app);
+// // // localhost
+// const server = http.createServer(app);
 
-// // live 
-// const fs = require('fs');
-// const https = require('https');
+// live 
+const fs = require('fs');
+const https = require('https');
 
-// const sslOptions = {
-//     key: fs.readFileSync('./ssl/server.key'),
-//     cert: fs.readFileSync('./ssl/server.cert')
-// };
+const sslOptions = {
+    key: fs.readFileSync('./ssl/server.key'),
+    cert: fs.readFileSync('./ssl/server.cert')
+};
 
-// const server = https.createServer(sslOptions, app);
+const server = https.createServer(sslOptions, app);
 
 
 
@@ -493,16 +493,16 @@ process.on("unhandledRejection", err => {
 });
 
 
-// //================== SERVER START  Local==================
-server.listen(2200, "0.0.0.0", () => {
-    console.log("🚀 Server running on http://localhost:2100");
-});
-
-// // ///================== SERVER START  Live==================
-// const PORT = process.env.PORT || 2100;
-// server.listen(PORT, '::', () => {
-//     console.log(`✅ HTTPS Server running at https://0.0.0.0:${PORT}`);
+// // //================== SERVER START  Local==================
+// server.listen(2200, "0.0.0.0", () => {
+//     console.log("🚀 Server running on http://localhost:2100");
 // });
+
+// ///================== SERVER START  Live==================
+const PORT = process.env.PORT || 2100;
+server.listen(PORT, '::', () => {
+    console.log(`✅ HTTPS Server running at https://0.0.0.0:${PORT}`);
+});
 
 function getISTDateTime() {
     return new Date().toLocaleString("sv-SE", {
