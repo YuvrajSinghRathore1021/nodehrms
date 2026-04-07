@@ -6,9 +6,86 @@ const db = require('../../DB/ConnectionSql');
 const { AdminCheck } = require('../../model/functlity/AdminCheck');
 
 // Rules
-// web cheak A
+// /// web cheak A
+// router.post('/api/attendancerulesEdit', async (req, res) => {
+//     const { userData,
+//         rule_name,
+//         rule_description,
+//         in_time,
+//         out_time,
+//         max_working_hours,
+//         half_day,
+//         total_break_duration,
+//         overtime_rate,
+//         max_overtime_hours,
+//         leave_approval_required,
+//         rule_id, out_time_required, working_hours_required, last_in_time, last_out_time
+//     } = req.body;
+//     // ,penalty_rule_applied,late_coming_penalty,early_leaving_penalty
+//     let penalty_rule_applied = req.body.penalty_rule_applied == true || req.body.penalty_rule_applied == "true" ? 1 : 0;
+//     let sandwich_leave_applied = req.body.sandwich_leave_applied == true || req.body.sandwich_leave_applied == "true" ? 1 : 0;
+//     let late_coming_penalty = req.body.late_coming_penalty == true || req.body.late_coming_penalty == "true" ? 1 : 0;
+//     let early_leaving_penalty = req.body.early_leaving_penalty == true || req.body.early_leaving_penalty == "true" ? 1 : 0;
+//     let in_grace_period_minutes = req.body.in_grace_period_minutes == 'null' || req.body.in_grace_period_minutes == '' ? 0 : req.body.in_grace_period_minutes;
+//     let out_grace_period_minutes = req.body.out_grace_period_minutes == 'null' || req.body.out_grace_period_minutes == '' ? 0 : req.body.out_grace_period_minutes;
+//     let late_coming_allowed_days = req.body.late_coming_allowed_days == 'null' || req.body.late_coming_allowed_days == '' ? 0 : req.body.late_coming_allowed_days;
+//     let late_coming_penalty_type = req.body.late_coming_penalty_type == 'null' || req.body.late_coming_penalty_type == '' ? 'half-day' : req.body.late_coming_penalty_type;
+//     let early_leaving_penalty_type = req.body.early_leaving_penalty_type == 'null' || req.body.early_leaving_penalty_type == '' ? 'half-day' : req.body.early_leaving_penalty_type;
+//     let early_leaving_allowed_days = req.body.early_leaving_allowed_days == 'null' || req.body.early_leaving_allowed_days == '' ? 0 : req.body.early_leaving_allowed_days;
+
+//     let decodedUserData = null;
+
+//     if (userData) {
+//         try {
+//             const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
+//             decodedUserData = JSON.parse(decodedString);
+//         } catch (error) {
+//             // decodedUserData=userData;
+//             return res.status(400).json({ status: false, error: 'Invalid userData' });
+//         }
+//     }
+
+//     const company_id = decodedUserData.company_id;
+//     // Server-side validation
+//     if (!company_id || !rule_name || !in_time || !out_time || max_working_hours <= 0 || overtime_rate <= 0 || max_overtime_hours < 0) {
+//         return res.status(400).json({ status: false, message: 'Invalid input data' });
+//     }
+//     const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
+//     if (isAdmin === false) {
+//         return res.status(200).json({
+//             status: false,
+//             error: 'You do not have access to this functionality', message: 'You do not have access to this functionality'
+//         });
+//     }
+
+//     const query = `UPDATE attendance_rules SET  
+//    rule_name=?, rule_description=?, in_time=?, out_time=?, max_working_hours=?, 
+//   in_grace_period_minutes=?, out_grace_period_minutes=?, half_day=?, total_break_duration=?, 
+//   overtime_rate=?, max_overtime_hours=?, leave_approval_required=? ,penalty_rule_applied=?,sandwich_leave_applied=?,
+//         late_coming_penalty=?,late_coming_allowed_days=?,late_coming_penalty_type =?,early_leaving_penalty=?,early_leaving_allowed_days=?,
+//         early_leaving_penalty_type=?,out_time_required=?,working_hours_required=? ,last_in_time=?,last_out_time=? WHERE company_id=? And rule_id=?
+// `;
+
+//     const values = [
+//         rule_name, rule_description, in_time, out_time, max_working_hours,
+//         in_grace_period_minutes, out_grace_period_minutes, half_day, total_break_duration,
+//         overtime_rate, max_overtime_hours, leave_approval_required, penalty_rule_applied, sandwich_leave_applied,
+//         late_coming_penalty, late_coming_allowed_days, late_coming_penalty_type, early_leaving_penalty, early_leaving_allowed_days,
+//         early_leaving_penalty_type, out_time_required, working_hours_required, last_in_time, last_out_time, company_id, rule_id
+//     ];
+
+//     db.query(query, values, (err, result) => {
+//         if (err) {
+//             console.error('Error inserting data: ' + err.stack);
+//             return res.status(500).json({ status: false, message: 'Database error' });
+//         }
+//         res.status(200).json({ status: true, message: 'Data UPDATE successfully', result });
+//     });
+// });
+
 router.post('/api/attendancerulesEdit', async (req, res) => {
-    const { userData,
+    const {
+        userData,
         rule_name,
         rule_description,
         in_time,
@@ -19,19 +96,60 @@ router.post('/api/attendancerulesEdit', async (req, res) => {
         overtime_rate,
         max_overtime_hours,
         leave_approval_required,
-        rule_id, out_time_required, working_hours_required, last_in_time, last_out_time
+        rule_id,
+        out_time_required,
+        working_hours_required,
+        last_in_time,
+        last_out_time,
+        // New fields
+        attendance_type,
+        shift_type,
+        in_time_required,
+        allow_break,
+        allow_overtime,
+        monthly_hours
     } = req.body;
-    // ,penalty_rule_applied,late_coming_penalty,early_leaving_penalty
+
+    // Convert boolean/string values to proper format
     let penalty_rule_applied = req.body.penalty_rule_applied == true || req.body.penalty_rule_applied == "true" ? 1 : 0;
     let sandwich_leave_applied = req.body.sandwich_leave_applied == true || req.body.sandwich_leave_applied == "true" ? 1 : 0;
     let late_coming_penalty = req.body.late_coming_penalty == true || req.body.late_coming_penalty == "true" ? 1 : 0;
     let early_leaving_penalty = req.body.early_leaving_penalty == true || req.body.early_leaving_penalty == "true" ? 1 : 0;
-    let in_grace_period_minutes = req.body.in_grace_period_minutes == 'null' || req.body.in_grace_period_minutes == '' ? 0 : req.body.in_grace_period_minutes;
-    let out_grace_period_minutes = req.body.out_grace_period_minutes == 'null' || req.body.out_grace_period_minutes == '' ? 0 : req.body.out_grace_period_minutes;
-    let late_coming_allowed_days = req.body.late_coming_allowed_days == 'null' || req.body.late_coming_allowed_days == '' ? 0 : req.body.late_coming_allowed_days;
-    let late_coming_penalty_type = req.body.late_coming_penalty_type == 'null' || req.body.late_coming_penalty_type == '' ? 'half-day' : req.body.late_coming_penalty_type;
-    let early_leaving_penalty_type = req.body.early_leaving_penalty_type == 'null' || req.body.early_leaving_penalty_type == '' ? 'half-day' : req.body.early_leaving_penalty_type;
-    let early_leaving_allowed_days = req.body.early_leaving_allowed_days == 'null' || req.body.early_leaving_allowed_days == '' ? 0 : req.body.early_leaving_allowed_days;
+
+    // Handle allow_break and allow_overtime
+    let allow_break_value = allow_break == true || allow_break == "true" ? 1 : 0;
+    let allow_overtime_value = allow_overtime == true || allow_overtime == "true" ? 1 : 0;
+
+    // Handle required fields (1=required, 0=not required)
+    let in_time_required_value = in_time_required == "1" || in_time_required == 1 ? 1 : 0;
+    let out_time_required_value = out_time_required == "1" || out_time_required == 1 ? 1 : 0;
+    let working_hours_required_value = working_hours_required == "1" || working_hours_required == 1 ? 1 : 0;
+
+    // Handle grace periods and allowed days with null/empty checks
+    let in_grace_period_minutes = req.body.in_grace_period_minutes == 'null' || req.body.in_grace_period_minutes == '' || req.body.in_grace_period_minutes == undefined ? 0 : req.body.in_grace_period_minutes;
+    let out_grace_period_minutes = req.body.out_grace_period_minutes == 'null' || req.body.out_grace_period_minutes == '' || req.body.out_grace_period_minutes == undefined ? 0 : req.body.out_grace_period_minutes;
+    let late_coming_allowed_days = req.body.late_coming_allowed_days == 'null' || req.body.late_coming_allowed_days == '' || req.body.late_coming_allowed_days == undefined ? 0 : req.body.late_coming_allowed_days;
+    let early_leaving_allowed_days = req.body.early_leaving_allowed_days == 'null' || req.body.early_leaving_allowed_days == '' || req.body.early_leaving_allowed_days == undefined ? 0 : req.body.early_leaving_allowed_days;
+
+    // Handle penalty types with defaults
+    let late_coming_penalty_type = req.body.late_coming_penalty_type == 'null' || req.body.late_coming_penalty_type == '' || req.body.late_coming_penalty_type == undefined ? 'half-day' : req.body.late_coming_penalty_type;
+    let early_leaving_penalty_type = req.body.early_leaving_penalty_type == 'null' || req.body.early_leaving_penalty_type == '' || req.body.early_leaving_penalty_type == undefined ? 'half-day' : req.body.early_leaving_penalty_type;
+
+    // Handle time fields - set to NULL if not provided or if required is false
+    let in_time_value = (in_time_required_value === 1 && in_time) ? in_time : null;
+    let last_in_time_value = (in_time_required_value === 1 && last_in_time) ? last_in_time : null;
+    let out_time_value = (out_time_required_value === 1 && out_time) ? out_time : null;
+    let last_out_time_value = (out_time_required_value === 1 && last_out_time) ? last_out_time : null;
+
+    // Handle break duration - set to NULL if allow_break is false
+    let total_break_duration_value = (allow_break_value === 1 && total_break_duration) ? total_break_duration : null;
+
+    // Handle overtime fields - set to NULL if allow_overtime is false
+    let overtime_rate_value = (allow_overtime_value === 1 && overtime_rate) ? overtime_rate : null;
+    let max_overtime_hours_value = (allow_overtime_value === 1 && max_overtime_hours) ? max_overtime_hours : null;
+
+    // Handle monthly hours - set to NULL if not provided
+    let monthly_hours_value = monthly_hours ? monthly_hours : null;
 
     let decodedUserData = null;
 
@@ -40,49 +158,157 @@ router.post('/api/attendancerulesEdit', async (req, res) => {
             const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
             decodedUserData = JSON.parse(decodedString);
         } catch (error) {
-            // decodedUserData=userData;
             return res.status(400).json({ status: false, error: 'Invalid userData' });
         }
     }
 
     const company_id = decodedUserData.company_id;
-    // Server-side validation
-    if (!company_id || !rule_name || !in_time || !out_time || max_working_hours <= 0 || overtime_rate <= 0 || max_overtime_hours < 0) {
-        return res.status(400).json({ status: false, message: 'Invalid input data' });
+
+    // Server-side validation - only validate required fields based on settings
+    if (!company_id || !rule_name) {
+        return res.status(400).json({ status: false, message: 'Invalid input data: Company ID and Rule Name are required' });
     }
+
+    // Validate time fields only if they are required
+    if (in_time_required_value === 1 && (!in_time || in_time === '')) {
+        return res.status(400).json({ status: false, message: 'In Time is required when In Time Required is set to Yes' });
+    }
+
+    if (out_time_required_value === 1 && (!out_time || out_time === '')) {
+        return res.status(400).json({ status: false, message: 'Out Time is required when Out Time Required is set to Yes' });
+    }
+
+    // Validate working hours if required
+    if (working_hours_required_value === 1 && (!max_working_hours || max_working_hours <= 0)) {
+        return res.status(400).json({ status: false, message: 'Max Working Hours is required and must be greater than 0' });
+    }
+
+    // Validate break fields if break is allowed
+    if (allow_break_value === 1 && (!total_break_duration || total_break_duration <= 0)) {
+        return res.status(400).json({ status: false, message: 'Total Break Duration is required when Allow Break is enabled' });
+    }
+
+    // Validate overtime fields if overtime is allowed
+    if (allow_overtime_value === 1) {
+        if (!overtime_rate || overtime_rate <= 0) {
+            return res.status(400).json({ status: false, message: 'Overtime Rate is required and must be greater than 0 when Allow Overtime is enabled' });
+        }
+        if (!max_overtime_hours || max_overtime_hours < 0) {
+            return res.status(400).json({ status: false, message: 'Max Overtime Hours is required when Allow Overtime is enabled' });
+        }
+    }
+
+    // Validate monthly hours for regular/flexible attendance
+    if ((attendance_type === 'regular' || attendance_type === 'flexible') && (!monthly_hours || monthly_hours <= 0)) {
+        return res.status(400).json({ status: false, message: 'Monthly Hours is required for Regular and Flexible attendance types' });
+    }
+
     const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
     if (isAdmin === false) {
         return res.status(200).json({
             status: false,
-            error: 'You do not have access to this functionality', message: 'You do not have access to this functionality'
+            error: 'You do not have access to this functionality',
+            message: 'You do not have access to this functionality'
         });
     }
 
+    // Updated query with all new fields
     const query = `UPDATE attendance_rules SET  
-   rule_name=?, rule_description=?, in_time=?, out_time=?, max_working_hours=?, 
-  in_grace_period_minutes=?, out_grace_period_minutes=?, half_day=?, total_break_duration=?, 
-  overtime_rate=?, max_overtime_hours=?, leave_approval_required=? ,penalty_rule_applied=?,sandwich_leave_applied=?,
-        late_coming_penalty=?,late_coming_allowed_days=?,late_coming_penalty_type =?,early_leaving_penalty=?,early_leaving_allowed_days=?,
-        early_leaving_penalty_type=?,out_time_required=?,working_hours_required=? ,last_in_time=?,last_out_time=? WHERE company_id=? And rule_id=?
-`;
+        rule_name = ?,
+        rule_description = ?,
+        in_time = ?,
+        out_time = ?,
+        max_working_hours = ?,
+        in_grace_period_minutes = ?,
+        out_grace_period_minutes = ?,
+        half_day = ?,
+        total_break_duration = ?,
+        overtime_rate = ?,
+        max_overtime_hours = ?,
+        leave_approval_required = ?,
+        penalty_rule_applied = ?,
+        sandwich_leave_applied = ?,
+        late_coming_penalty = ?,
+        late_coming_allowed_days = ?,
+        late_coming_penalty_type = ?,
+        early_leaving_penalty = ?,
+        early_leaving_allowed_days = ?,
+        early_leaving_penalty_type = ?,
+        out_time_required = ?,
+        working_hours_required = ?,
+        last_in_time = ?,
+        last_out_time = ?,
+        attendance_type = ?,
+        shift_type = ?,
+        in_time_required = ?,
+        allow_break = ?,
+        allow_overtime = ?,
+        monthly_hours = ?
+        WHERE company_id = ? AND rule_id = ?
+    `;
 
     const values = [
-        rule_name, rule_description, in_time, out_time, max_working_hours,
-        in_grace_period_minutes, out_grace_period_minutes, half_day, total_break_duration,
-        overtime_rate, max_overtime_hours, leave_approval_required, penalty_rule_applied, sandwich_leave_applied,
-        late_coming_penalty, late_coming_allowed_days, late_coming_penalty_type, early_leaving_penalty, early_leaving_allowed_days,
-        early_leaving_penalty_type, out_time_required, working_hours_required, last_in_time, last_out_time, company_id, rule_id
+        rule_name,
+        rule_description,
+        in_time_value,
+        out_time_value,
+        max_working_hours,
+        in_grace_period_minutes,
+        out_grace_period_minutes,
+        half_day,
+        total_break_duration_value,
+        overtime_rate_value,
+        max_overtime_hours_value,
+        leave_approval_required,
+        penalty_rule_applied,
+        sandwich_leave_applied,
+        late_coming_penalty,
+        late_coming_allowed_days,
+        late_coming_penalty_type,
+        early_leaving_penalty,
+        early_leaving_allowed_days,
+        early_leaving_penalty_type,
+        out_time_required_value,
+        working_hours_required_value,
+        last_in_time_value,
+        last_out_time_value,
+        attendance_type || null, // Set to NULL if empty
+        shift_type || null, // Set to NULL if empty
+        in_time_required_value,
+        allow_break_value,
+        allow_overtime_value,
+        monthly_hours_value,
+        company_id,
+        rule_id
     ];
 
     db.query(query, values, (err, result) => {
         if (err) {
-            console.error('Error inserting data: ' + err.stack);
-            return res.status(500).json({ status: false, message: 'Database error' });
+            console.error('Error updating data: ' + err.stack);
+            return res.status(500).json({ status: false, message: 'Database error', error: err.message });
         }
-        res.status(200).json({ status: true, message: 'Data UPDATE successfully', result });
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ status: false, message: 'Rule not found or no changes made' });
+        }
+
+        res.status(200).json({
+            status: true,
+            message: 'Data updated successfully',
+            result,
+            data: {
+                rule_id,
+                rule_name,
+                attendance_type,
+                shift_type,
+                in_time_required: in_time_required_value,
+                out_time_required: out_time_required_value,
+                allow_break: allow_break_value,
+                allow_overtime: allow_overtime_value
+            }
+        });
     });
 });
-
 
 // web cheak A
 router.get('/api/fetchDetails', async (req, res) => {
@@ -109,15 +335,20 @@ router.get('/api/fetchDetails', async (req, res) => {
     let queryParams = [];
 
     query = `
-        SELECT 
-            rule_id, company_id, rule_name, rule_description, 
-            in_time, out_time, max_working_hours, in_grace_period_minutes, 
-            out_grace_period_minutes, half_day, total_break_duration, 
-            overtime_rate, max_overtime_hours, sandwich_leave_applied,last_in_time,last_out_time
-            leave_approval_required, created_at , penalty_rule_applied, late_coming_penalty, late_coming_allowed_days, in_grace_period_minutes, late_coming_penalty_type, early_leaving_penalty, early_leaving_allowed_days, out_grace_period_minutes, early_leaving_penalty_type
-        ,out_time_required,working_hours_required FROM attendance_rules 
+        SELECT * FROM attendance_rules 
         WHERE 1=1
     `;
+    // query = `
+    //     SELECT 
+    //         rule_id, company_id, rule_name, rule_description, 
+    //         in_time, out_time, max_working_hours, in_grace_period_minutes, 
+    //         out_grace_period_minutes, half_day, total_break_duration, 
+    //         overtime_rate, max_overtime_hours, sandwich_leave_applied,last_in_time,last_out_time
+    //         leave_approval_required, created_at , penalty_rule_applied, late_coming_penalty, late_coming_allowed_days, in_grace_period_minutes, late_coming_penalty_type, early_leaving_penalty, early_leaving_allowed_days, out_grace_period_minutes, early_leaving_penalty_type
+    //     ,out_time_required,working_hours_required 
+    //     FROM attendance_rules 
+    //     WHERE 1=1
+    // `;
 
     // If the user is not an admin, restrict results based on the user's attendance rule ID
 

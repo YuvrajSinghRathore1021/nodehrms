@@ -530,12 +530,14 @@ router.get('/api/attendance', async (req, res) => {
 
 
                 const attendance = attendanceResults.find(a => {
-                    if (a && a.duration) {
-                        totalMinutes += parseDurationToMinutes(a.duration);
-                    }
                     const attDate = new Date(a.attendance_date);
                     return attDate.getDate() == dayNo && attDate.getMonth() == month - 1;
                 });
+
+                // ✅ duration yaha add karo (sirf 1 baar)
+                if (attendance && attendance.duration) {
+                    totalMinutes += parseDurationToMinutes(attendance.duration);
+                }
                 const totalHours = Math.floor(totalMinutes / 60);
                 const remainingMinutes = totalMinutes % 60;
 
@@ -734,7 +736,7 @@ const lwpcheck = (attDate, status, lockDate) => {
 
 const parseDurationToMinutes = (duration) => {
     if (!duration) return 0;
-
+    console.log("Parsing duration:", duration);
     let hours = 0;
     let minutes = 0;
 

@@ -18,14 +18,12 @@ const db = require('../../DB/ConnectionSql');
 //             }); 
 //         }
 //     }
-
 //     // Validate company_id
 //     if (!decodedUserData || !decodedUserData.company_id) {
 //         return res.status(400).json({
 //             status: false, error: 'Company ID is required', message: 'Company ID is required'
 //         });
 //     }
-
 //     const company_id = decodedUserData.company_id;
 //     try {
 //         let result;
@@ -145,6 +143,7 @@ const db = require('../../DB/ConnectionSql');
 //         return res.status(500).json({ status: false, message: 'Internal Server Error', error: err });
 //     }
 // });
+
 
 // web cheak A
 router.post('/attendanceEdit', async (req, res) => {
