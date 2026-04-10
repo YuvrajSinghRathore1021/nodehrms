@@ -3,7 +3,6 @@ const { AdminCheck } = require('../model/functlity/AdminCheck');
 
 exports.getEmployeeProfile = async ({ userData, CheckId, reload = false }) => {
     try {
-
         let decodedUserData = null;
         if (!userData) throw new Error("userData is missing");
         try {

@@ -8,21 +8,14 @@ const { assign } = require('nodemailer/lib/shared');
 // web check y
 router.get('/api/fetchDetails', async (req, res) => {
     const { userData, UserId } = req.query;
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    }
+     
+     
 
-    if (!decodedUserData || !decodedUserData.id) {
+    if ( !req?.user?.id) {
         return res.status(400).json({ status: false, error: 'Employee ID is required' });
     }
 
-    const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
+    const isAdmin = await AdminCheck(req?.user?.id, req?.user?.company_id);
 
     let query;
     let queryParams = [];
@@ -48,8 +41,8 @@ router.get('/api/fetchDetails', async (req, res) => {
         });
 
     } else {
-        // decodedUserData.company_id
-        queryParams.push(decodedUserData.company_id)
+        // req?.user?.company_id
+        queryParams.push(req?.user?.company_id)
         query += ' AND company_id = ?';
         // Execute the query to fetch attendance rules
         db.query(query, queryParams, (err, results) => {
@@ -73,27 +66,20 @@ router.get('/api/fetchDetails', async (req, res) => {
 // web cheak A
 router.post('/api/fetchUserWorkWeekDetails', async (req, res) => {
     const { userData, CheckId } = req.body;
-    let decodedUserData = null;
+     
 
     // Decode userData
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    }
+     
 
     // Validate company_id
-    if (!decodedUserData.company_id) {
+    if (!req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Company ID is missing or invalid' });
     }
     let id = '';
     if (CheckId && CheckId !== null && CheckId !== undefined && CheckId !== '' && CheckId !== 'null' && CheckId !== 'undefined') {
         id = CheckId;
     } else {
-        id = decodedUserData.id;
+        id = req?.user?.id;
     }
     // SINGLE QUERY using INNER JOIN
     const query = `
@@ -103,7 +89,7 @@ router.post('/api/fetchUserWorkWeekDetails', async (req, res) => {
         WHERE e.id = ? AND e.company_id = ?
     `;
 
-    db.query(query, [id, decodedUserData.company_id], (err, results) => {
+    db.query(query, [id, req?.user?.company_id], (err, results) => {
         if (err) {
             return res.status(500).json({
                 status: false,
@@ -128,21 +114,14 @@ router.post('/api/fetchUserWorkWeekDetails', async (req, res) => {
 // web cheak A
 router.get('/api/fetchType', async (req, res) => {
     const { userData, type } = req.query;
-    let decodedUserData = null;
+     
     // Decode userData
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    }
-    // Validate decoded userData
-    if (!decodedUserData || !decodedUserData.id) {
+     
+     
+    if ( !req?.user?.id) {
         return res.status(400).json({ status: false, error: 'Employee ID is required' });
     }
-    const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
+    const isAdmin = await AdminCheck(req?.user?.id, req?.user?.company_id);
     // if (isAdmin === false) {
     //     return res.status(200).json({
     //         status: false,
@@ -154,7 +133,7 @@ router.get('/api/fetchType', async (req, res) => {
     // Determine the query based on type
     let query;
     let queryParams = '';
-    queryParams = [decodedUserData.company_id];
+    queryParams = [req?.user?.company_id];
     query = `SELECT id, rule_name,description,status FROM work_week WHERE company_id = ?`;
     db.query(query, queryParams, (err, results) => {
         if (err) {
@@ -176,23 +155,16 @@ router.get('/api/fetchType', async (req, res) => {
 // app cheak A / web cheak A
 router.post('/api/AddType', async (req, res) => {
     const { name, userData } = req.body;
-    let decodedUserData = null;
+     
 
     // Decode userData
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    }
+     
 
-    const company_id = decodedUserData.company_id;
+    const company_id = req?.user?.company_id;
     if (!name || !company_id) {
         return res.status(400).json({ status: false, error: 'name, company ID are required' });
     }
-    const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
+    const isAdmin = await AdminCheck(req?.user?.id, req?.user?.company_id);
     if (isAdmin === false) {
         return res.status(200).json({
             status: false,
@@ -223,23 +195,16 @@ router.post('/api/work_weekEdit', async (req, res) => {
     }
     // console.log(Week);
 
-    let decodedUserData = null;
+     
 
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    }
+     
 
-    const company_id = decodedUserData?.company_id;
+    const company_id = req?.user?.company_id;
     if (!company_id || !rule_name) {
         return res.status(400).json({ status: false, message: 'Invalid input data' });
     }
 
-    const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
+    const isAdmin = await AdminCheck(req?.user?.id, req?.user?.company_id);
     if (isAdmin === false) {
         return res.status(200).json({
             status: false,
@@ -293,28 +258,19 @@ router.post('/api/work_weekEdit', async (req, res) => {
 router.post('/api/Deleteapi', async (req, res) => {
     return res.json({ status: true, message: 'Coming soon' });
     const { id, userData } = req.body;
-    let decodedUserData = null;
+     
 
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    } else {
-        return res.status(400).json({ status: false, error: 'Invalid userData' });
-    }
+      
 
-    const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
+    const isAdmin = await AdminCheck(req?.user?.id, req?.user?.company_id);
     if (isAdmin === false) {
         return res.status(200).json({
             status: false,
             error: 'You do not have access to this functionality', message: 'You do not have access to this functionality'
         });
     }
-    // console.log(decodedUserData);
-    if (!decodedUserData.company_id) {
+
+    if (!req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Company ID is missing or invalid' });
     }
     if (!id) {
@@ -325,7 +281,7 @@ router.post('/api/Deleteapi', async (req, res) => {
     let values;
 
     query = 'DELETE FROM work_week WHERE id=? AND company_id=?';
-    values = [id, decodedUserData.company_id];
+    values = [id, req?.user?.company_id];
 
     db.query(query, values, (err, results) => {
         if (err) {
@@ -343,16 +299,8 @@ router.get('/api/data', async (req, res) => {
     const { userData, search = "", departmentId = 0, subDepartmentid = 0, employeeStatus = 1 } = req.query;
     let Search = search;
 
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData format' });
-        }
-    }
-    const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
+     
+         const isAdmin = await AdminCheck(req?.user?.id, req?.user?.company_id);
     if (isAdmin === false) {
         return res.status(200).json({
             status: false,
@@ -363,7 +311,7 @@ router.get('/api/data', async (req, res) => {
     const page = parseInt(req.query.page, 10) || 1;
     const offset = (page - 1) * limit;
 
-    if (!decodedUserData || !decodedUserData.id) {
+    if ( !req?.user?.id) {
         return res.status(400).json({ status: false, error: 'Employee ID is required' });
     }
     // Build the base query
@@ -373,7 +321,7 @@ router.get('/api/data', async (req, res) => {
         LEFT JOIN work_week AS b ON a.work_week_id = b.id
         WHERE a.company_id = ?`;
 
-    let queryParams = [decodedUserData.company_id];
+    let queryParams = [req?.user?.company_id];
     if (Search) {
         query += ` AND (a.first_name LIKE ? or a.last_name=? or a.employee_id=?)`;
         queryParams.push(`%${Search}%`, `%${Search}%`, `%${Search}%`);
@@ -411,7 +359,7 @@ router.get('/api/data', async (req, res) => {
         }));
         // Get total count of records (for pagination)
         let countQuery = 'SELECT COUNT(id) AS total FROM employees WHERE company_id = ?';
-        let countQueryParams = [decodedUserData.company_id];
+        let countQueryParams = [req?.user?.company_id];
 
         if (Search) {
             countQuery += ' AND (first_name LIKE ? or last_name=? or employee_id=?)';
@@ -454,27 +402,17 @@ router.get('/api/data', async (req, res) => {
 // app cheak A / web cheak A
 router.post('/api/Update', async (req, res) => {
     const { id, rule_id, userData } = req.body;
-    let decodedUserData = null;
+     
 
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    } else {
-        return res.status(400).json({ status: false, error: 'Invalid userData' });
-
-    } const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
+       const isAdmin = await AdminCheck(req?.user?.id, req?.user?.company_id);
     if (isAdmin === false) {
         return res.status(200).json({
             status: false,
             error: 'You do not have access to this functionality', message: 'You do not have access to this functionality'
         });
     }
-    // console.log(decodedUserData);
-    if (!decodedUserData.company_id) {
+   
+    if (!req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Company ID is missing or invalid' });
     }
 
@@ -485,7 +423,7 @@ router.post('/api/Update', async (req, res) => {
     let query;
     let values;
     query = 'UPDATE employees SET work_week_id=? WHERE id=? AND company_id=?';
-    values = [rule_id, id, decodedUserData.company_id];
+    values = [rule_id, id, req?.user?.company_id];
 
     db.query(query, values, (err, results) => {
         if (err) {

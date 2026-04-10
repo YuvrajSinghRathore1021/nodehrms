@@ -6,10 +6,12 @@ const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
 const db = require('../../DB/ConnectionSql');
-const { Console } = require('console');
 router.use(cors());
 const uploadsDir = path.join(__dirname, '../../uploads/logo/');
 const { AdminCheck } = require('../../model/functlity/AdminCheck');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+
 
 // Create uploads directory if it doesn't exist
 if (!fs.existsSync(uploadsDir)) {
@@ -39,8 +41,63 @@ const upload = multer({
     }
 });
 
-// Route to handle company submissions
+// CompanySwitch
+router.post('/company_switch', (req, res) => {
+    let id = req.user?.id;
+    const { switch_id, switch_company_id } = req.body;
 
+    const query = `SELECT id,company_id,employee_id,password FROM employees WHERE employee_status = 1 AND status = 1 AND delete_status = 0  And login_status=1  and id=?`;
+    db.query(query, [id], (err, results) => {
+        if (err) {
+            console.error('Database error:', err);
+            return res.status(500).json({ status: false, message: 'An error occurred while querying the database' });
+        }
+
+        if (results.length === 0) {
+            return res.status(401).json({ status: false, message: 'Invalid username' });
+        }
+        if (results.length > 1) {
+            return res.status(401).json({
+                status: false,
+                message: "Your account is not accessible. Please try another login method or contact HR/Admin."
+            });
+        }
+
+        const user = results[0];
+        let defaultPassword = "sysboat@7773@";
+
+        // Compare hashed password
+        bcrypt.compare(defaultPassword, user.password, (compareErr, isMatch) => {
+            if (compareErr) {
+                console.error('Error comparing passwords:', compareErr);
+                return res.status(500).json({ status: false, message: 'An error occurred while verifying credentials' });
+            }
+
+
+            let JWTSECRET = process.env.JWT_SECRET || 'yuvi';
+            // Generate JWT token
+            if (!JWTSECRET) {
+                return res.status(500).json({ status: false, message: 'Server configuration error: JWT_SECRET not set' });
+            }
+
+            let tokenTime = '180d'; // 180 days = 6 months approx.
+            if (user.company_id != switch_company_id) {
+                tokenTime = '2h';
+            }
+            const token = jwt.sign(
+                { id: user.id, company_id: user.company_id, employee_id: user.employee_id, switch_id: switch_id, switch_company_id: switch_company_id },
+                JWTSECRET,
+                { expiresIn: tokenTime }
+            );
+
+            res.json({ status: true, message: 'Company & employees switched successfully', Data: user, token });
+
+        });
+    });
+});
+
+
+// Route to handle company submissions
 // web cheak A
 router.post('/api/Add', async (req, res) => {
     const { company_name, owner_name, industry, headquarters, website, phone_number, email, address, member } = req.body;
@@ -168,25 +225,16 @@ router.post('/api/Edit', async (req, res) => {
 /// check web y
 router.post('/api/UploadLogo', async (req, res) => {
     const { userData, logo } = req.body;
-    let decodedUserData = null;
 
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    }
 
-    if (!decodedUserData || !decodedUserData?.company_id) {
+    if (!req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Company ID is required' });
     }
 
 
     const filePath = logo ? logo : null;
 
-    db.query('SELECT logo FROM companies WHERE id = ?', [decodedUserData.company_id], (err, results) => {
+    db.query('SELECT logo FROM companies WHERE id = ?', [req?.user?.company_id], (err, results) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ status: false, message: 'Failed to fetch current logo.' });
@@ -197,7 +245,7 @@ router.post('/api/UploadLogo', async (req, res) => {
         const currentLogo = results[0].logo;
         const logoToUse = filePath || currentLogo;
 
-        db.query('UPDATE companies SET logo = ? WHERE id = ?', [logoToUse, decodedUserData.company_id], (err) => {
+        db.query('UPDATE companies SET logo = ? WHERE id = ?', [logoToUse, req?.user?.company_id], (err) => {
             if (err) {
                 console.error(err);
                 return res.status(500).json({ status: false, message: 'Failed to update company logo.' });
@@ -217,26 +265,19 @@ router.post('/api/UploadLogo', async (req, res) => {
 // web cheak A
 router.get('/api/data', (req, res) => {
     const { userData, type, search } = req.query;
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    }
+
+
     const limit = parseInt(req.query.limit, 10) || 10;
     const page = parseInt(req.query.page, 10) || 1;
     const offset = (page - 1) * limit;
     let companyId = req?.user?.company_id;
 
-    if (!decodedUserData || !decodedUserData.id) {
+    if (!req?.user?.id) {
         return res.status(400).json({ status: false, error: 'Employee ID is required' });
     }
     let query = 'SELECT a.id, a.company_name, a.owner_name,a.member, a.logo, a.industry, a.headquarters, a.website, a.phone_number, a.email, a.address_id,a.address FROM companies a WHERE ';
     let queryParams = [];
-    if (companyId == 6) {
+    if (companyId == 6 || req?.user?.user_company_id == 6) {
         query += ' 1=1 ';
     } else {
         query += ' a.id = ? ';
@@ -296,26 +337,15 @@ router.get('/api/data', (req, res) => {
 // web check A
 router.get('/api/fetchDetails', (req, res) => {
     const { userData, type } = req.query;
-    let decodedUserData = null;
-    // Decode userData
 
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    }
-
-    // Validate decoded userData
-    if (!decodedUserData || !decodedUserData?.company_id) {
+    // Validate 
+    if (!req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Company ID is required' });
     }
 
     // Determine the query based on type
     let query;
-    let queryParams = [decodedUserData.company_id];
+    let queryParams = [req?.user?.company_id];
     if (type === 'Overview') {
         query = `SELECT id, company_name, logo, industry, website, phone_number, email, address_id, domain_name, brand_name FROM companies WHERE id = ?`;
     } else if (type === 'Address') {
@@ -376,23 +406,15 @@ router.post('/api/Update', upload.none(), (req, res) => {
 // web cheak A
 router.get('/api/AddressDetails', (req, res) => {
     const { userData } = req.query;
-    let decodedUserData = null;
 
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData format' });
-        }
-    }
 
-    // Validate decoded userData
-    if (!decodedUserData || !decodedUserData?.company_id) {
+
+
+    if (!req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Company ID is required' });
     }
 
-    const companyId = decodedUserData.company_id;
+    const companyId = req?.user?.company_id;
 
     // Queries for each address type
     const queries = {
@@ -472,20 +494,11 @@ const checkIfAddressExists = (companyId, type) => {
 // web cheak A
 router.post('/api/AddressUpdate', (req, res) => {
     const { id, activeSection, type, address_line1, address_line2, city, state, country, userData, pincode } = req.body;
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(403).json({ status: false, error: 'Invalid userData format' });
-        }
-    }
-    // Validate decoded userData
-    if (!decodedUserData || !decodedUserData?.company_id) {
+
+    if (!req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Company ID is required' });
     }
-    const company_id = decodedUserData.company_id;
+    const company_id = req?.user?.company_id;
     if (!activeSection || !company_id || !type || !address_line1 || !city || !state || !country || !pincode) {
         return res.status(400).json({ status: false, message: 'Missing required fields' });
     }
@@ -525,17 +538,10 @@ router.post('/api/AddressUpdate', (req, res) => {
 // app cheak A
 router.post('/api/DepartmentDetails', (req, res) => {
     const { userData, type, UserId } = req.body;
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    }
-    // Validate decoded userData
-    const company_id = decodedUserData.company_id;
+
+
+
+    const company_id = req?.user?.company_id;
     if (!company_id) {
         return res.status(400).json({ status: false, error: 'Company ID is missing or invalid' });
     }
@@ -575,24 +581,13 @@ router.post('/api/DepartmentDetails', (req, res) => {
 // app cheak A
 router.post('/api/AddDepartment', (req, res) => {
     const { name, userData, type } = req.body;
-    let decodedUserData = null;
 
-    // Decode userData
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    }
-    const company_id = decodedUserData.company_id;
+    const company_id = req?.user?.company_id;
     if (!name || !company_id || !type) {
         return res.status(400).json({ status: false, error: 'Department name, company ID, and type are required' });
     }
 
     // Insert the new department into the database
-
     db.query(
         'INSERT INTO departments (name, company_id, type) VALUES (?, ?, ?)',
         [name, company_id, type],
@@ -610,18 +605,11 @@ router.post('/api/AddDepartment', (req, res) => {
 // app cheak A
 router.post('/api/EditDepartment', (req, res) => {
     const { name, userData, type, Id, parent_id = 0 } = req.body;
-    let decodedUserData = null;
+
 
     // Decode userData
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    }
-    const company_id = decodedUserData.company_id;
+
+    const company_id = req?.user?.company_id;
     if (!name || !company_id || !type) {
         return res.status(400).json({ status: false, error: 'Department name, company ID, and type are required' });
     }
@@ -644,18 +632,11 @@ router.post('/api/EditDepartment', (req, res) => {
 // app cheak A
 router.post('/api/AddSubDepartment', (req, res) => {
     const { name, userData, parent_id, type } = req.body;
-    let decodedUserData = null;
+
     // Decode userData
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    }
-    // Validate decoded userData
-    const company_id = decodedUserData.company_id;
+
+
+    const company_id = req?.user?.company_id;
 
     // Validate input
     if (!name || !company_id || !parent_id || !type) {
@@ -679,19 +660,8 @@ router.post('/api/AddSubDepartment', (req, res) => {
 // web cheak A
 router.post('/api/departmentDelete', (req, res) => {
     const { userData, id } = req.body;
-    let decodedUserData = null;
-    // Decode userData
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    }
-    // Validate decoded userData
-    const company_id = decodedUserData.company_id;
 
+    const company_id = req?.user?.company_id;
     // Validate input
     if (!company_id || !id) {
         return res.status(400).json({ status: false, error: ' All Filds are required' });
@@ -726,17 +696,10 @@ router.post('/api/DesignationDetails', (req, res) => {
 
     const { userData, type, UserId } = req.body;
 
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    }
-    // Validate decoded userData
-    const company_id = decodedUserData.company_id;
+
+
+
+    const company_id = req?.user?.company_id;
     if (!company_id) {
         return res.status(400).json({ status: false, error: 'Company ID is missing or invalid' });
     }
@@ -767,20 +730,9 @@ router.post('/api/DesignationDetails', (req, res) => {
 });
 // app cheak A
 router.post('/api/Designation', (req, res) => {
-
     const { userData } = req.body;
 
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    }
-    // Validate decoded userData
-    const company_id = decodedUserData.company_id;
+    const company_id = req?.user?.company_id;
     if (!company_id) {
         return res.status(400).json({ status: false, error: 'Company ID is missing or invalid' });
     }
@@ -821,17 +773,10 @@ router.post('/api/DesignationUpdate', async (req, res) => {
 
     let DesignationOld = oldDesignation || 'null';
 
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    }
 
-    if (!decodedUserData || !decodedUserData?.company_id) {
+
+
+    if (!req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Company ID is missing or invalid' });
     }
 
@@ -851,7 +796,7 @@ router.post('/api/DesignationUpdate', async (req, res) => {
         AND (id IN (${idPlaceholders}) And designation = ?)
     `;
 
-    const UpdateValues = [Designation, decodedUserData.company_id, ...parsed, DesignationOld];
+    const UpdateValues = [Designation, req?.user?.company_id, ...parsed, DesignationOld];
 
     db.query(UpdateQuery, UpdateValues, (err, result) => {
         if (err) {
@@ -872,25 +817,15 @@ router.post('/api/DesignationUpdate', async (req, res) => {
 // get logo 
 // web cheak A
 router.post('/api/GetCompanyLogo', async (req, res) => {
-
     const { userData } = req.body;
-    let decodedUserData = null;
 
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    }
-    if (!decodedUserData?.company_id) {
+    if (!req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Company ID is missing or invalid' });
     }
 
     db.query(
         'SELECT logo,company_name FROM companies WHERE id = ?',
-        [decodedUserData.company_id],
+        [req?.user?.company_id],
         (err, results) => {
             if (err) {
                 return res.status(500).json({
@@ -915,27 +850,19 @@ router.post('/api/GetCompanyLogo', async (req, res) => {
 // app cheak A / web cheak A
 router.post('/employee-hierarchyTeam', (req, res) => {
     const { userData } = req.body;
+
     let CheckId = req.body.CheckId || null;
     if (!CheckId || CheckId === 'undefined' || CheckId === 'null') {
         CheckId = null;
     }
 
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: "Invalid userData" });
-        }
-    }
-    if (!decodedUserData?.company_id) {
+    if (!req?.user?.company_id) {
         return res
             .status(400)
             .json({ status: false, error: "Company ID is missing or invalid" });
     }
-    const id = CheckId || decodedUserData.id;
-    const company_id = decodedUserData.company_id;
+    const id = CheckId || req?.user?.id;
+    const company_id = req?.user?.company_id;
     db.query(
         'SELECT id, type,profile_image, company_id,   CONCAT(first_name, " ", last_name,"-",employee_id) AS first_name, reporting_manager FROM employees WHERE company_id = ? and status=1',
         [company_id],
@@ -1005,18 +932,8 @@ router.get("/Branchfetch", (req, res) => {
     const offset = (page - 1) * limit;
 
     const { userData } = req.query;
-    let decodedUserData = null;
 
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: "Invalid userData" });
-        }
-    }
-
-    if (!decodedUserData?.company_id) {
+    if (!req?.user?.company_id) {
         return res
             .status(400)
             .json({ status: false, error: "Company ID is missing or invalid" });
@@ -1032,13 +949,12 @@ router.get("/Branchfetch", (req, res) => {
 
     db.query(
         branchesQuery,
-        [decodedUserData.company_id, limit, offset],
+        [req?.user?.company_id, limit, offset],
         (err, branches) => {
             if (err) {
                 console.error("Error fetching branches:", err);
                 return res.status(500).json({ status: false, error: "Server error" });
             }
-
             if (branches.length === 0) {
                 return res.json({ status: true, records: [], total: 0, page, limit });
             }
@@ -1052,13 +968,12 @@ router.get("/Branchfetch", (req, res) => {
           AND branch_id IN (${branchIds.map(() => "?").join(",")}) AND status = 1 AND delete_status = 0;
       `;
 
-            db.query(empQuery, [decodedUserData.company_id, ...branchIds], (empErr, employees) => {
+            db.query(empQuery, [req?.user?.company_id, ...branchIds], (empErr, employees) => {
                 // console.log(employees)
                 if (empErr) {
                     console.error("Error fetching employees:", empErr);
                     return res.status(500).json({ status: false, error: "Server error" });
                 }
-
                 // Group employees by branch_id
                 const empMap = {};
                 employees.forEach((emp) => {
@@ -1075,14 +990,12 @@ router.get("/Branchfetch", (req, res) => {
 
                 // Count total branches
                 const countQuery = `SELECT COUNT(id) as total FROM branches WHERE company_id=?`;
-                db.query(countQuery, [decodedUserData.company_id], (countErr, countResults) => {
+                db.query(countQuery, [req?.user?.company_id], (countErr, countResults) => {
                     if (countErr) {
                         console.error("Error fetching total branches:", countErr);
                         return res.status(500).json({ status: false, error: "Server error" });
                     }
-
                     const total = countResults[0].total;
-
                     res.json({
                         status: true,
                         records: recordsWithEmployees,
@@ -1102,21 +1015,14 @@ router.post("/BranchUpdate", async (req, res) => {
 
 
     // Decode userData
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: "Invalid userData" });
-        }
-    }
+
+
     if (!id) {
         return res.status(400).json({ status: false, message: "ID is required to update branch." });
     }
 
 
-    if (!decodedUserData?.company_id) {
+    if (!req?.user?.company_id) {
         return res.status(400).json({ status: false, error: "Company ID is missing or invalid" });
     }
 
@@ -1126,7 +1032,7 @@ router.post("/BranchUpdate", async (req, res) => {
             `UPDATE branches 
              SET name=?, location_status=?, latitude=?, longitude=?, radius=?, ip=?, ip_status=? ,is_admin=?
              ,location_required=? ,location_break =? WHERE id = ? AND company_id=?`,
-            [name, location_status, latitude, longitude, radius, ip, ip_status, is_admin, location_required, location_break, id, decodedUserData.company_id]
+            [name, location_status, latitude, longitude, radius, ip, ip_status, is_admin, location_required, location_break, id, req?.user?.company_id]
         );
 
         if (updateResult.affectedRows === 0) {
@@ -1168,7 +1074,7 @@ router.post("/BranchUpdate", async (req, res) => {
             // Fetch old employee IDs for this branch
             const [oldEmpResults] = await db.promise().query(
                 "SELECT id FROM employees WHERE branch_id = ? AND company_id = ?",
-                [id, decodedUserData.company_id]
+                [id, req?.user?.company_id]
             );
             const oldEmployeeIds = oldEmpResults.map(row => row.id);
 
@@ -1179,14 +1085,14 @@ router.post("/BranchUpdate", async (req, res) => {
             if (toRemove.length > 0) {
                 await db.promise().query(
                     "UPDATE employees SET branch_id = 0 WHERE id IN (?) AND company_id = ?",
-                    [toRemove, decodedUserData.company_id]
+                    [toRemove, req?.user?.company_id]
                 );
             }
 
             if (toAdd.length > 0) {
                 await db.promise().query(
                     "UPDATE employees SET branch_id = ? WHERE id IN (?) AND company_id = ?",
-                    [id, toAdd, decodedUserData.company_id]
+                    [id, toAdd, req?.user?.company_id]
                 );
             }
         }
@@ -1208,20 +1114,13 @@ router.post("/BranchUpdate", async (req, res) => {
 router.post("/BranchAdd", (req, res) => {
     const { name, latitude, longitude, radius, location_required, location_break, userData, ip, ip_status, location_status, is_admin } = req.body;
 
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, message: "Invalid userData format." });
-        }
-    }
-    if (!decodedUserData || !decodedUserData?.company_id) {
+
+
+    if (!req?.user?.company_id) {
         return res.status(400).json({ status: false, message: "Company ID is missing or invalid." });
     }
 
-    const companyId = decodedUserData.company_id;
+    const companyId = req?.user?.company_id;
     db.query(
         "INSERT INTO branches (name,location_status, latitude, longitude, radius , company_id,ip,ip_status,is_admin,location_required,location_break) VALUES (?,?,?,?,?,?, ?, ?,?,?,?)",
         [name, location_status, latitude, longitude, radius, companyId, ip, ip_status, is_admin, location_required, location_break],
@@ -1253,16 +1152,9 @@ router.post("/BranchAdd", (req, res) => {
 router.post('/assign-manager-bulk', async (req, res) => {
     const { employeeId, userData, managerId } = req.body;
 
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    }
-    if (!decodedUserData || !decodedUserData.id) {
+
+
+    if (!req?.user?.id) {
         return res.status(400).json({ status: false, error: 'Employee ID is required' });
     }
     if (!employeeId || !managerId) {
@@ -1296,7 +1188,7 @@ router.post('/assign-manager-bulk', async (req, res) => {
 
     db.query(
         'UPDATE employees SET reporting_manager = ? WHERE id IN (?) and company_id=?',
-        [managerId, employeeIdsArray, decodedUserData.company_id],
+        [managerId, employeeIdsArray, req?.user?.company_id],
         (err) => {
             if (err) {
                 console.error(err);
@@ -1319,23 +1211,16 @@ router.post('/assign-manager-bulk', async (req, res) => {
 router.post("/branchName", async (req, res) => {
 
     const { userData } = req.body;
-    let decodedUserData = null;
 
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: "Invalid userData" });
-        }
-    }
 
-    if (!decodedUserData?.company_id) {
+
+
+    if (!req?.user?.company_id) {
         return res
             .status(400)
             .json({ status: false, error: "Company ID is missing or invalid" });
     }
-    const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
+    const isAdmin = await AdminCheck(req?.user?.id, req?.user?.company_id);
     // Fetch branches with pagination
     let branchesQuery = `SELECT id,name FROM branches WHERE company_id = ? and status=1 `;
     if (isAdmin == true) {
@@ -1345,7 +1230,7 @@ router.post("/branchName", async (req, res) => {
     }
     branchesQuery += ' ORDER BY name ASC ';
 
-    db.query(branchesQuery, [decodedUserData.company_id], (err, branches) => {
+    db.query(branchesQuery, [req?.user?.company_id], (err, branches) => {
         if (err) {
             console.error("Error fetching branches:", err);
             return res.status(500).json({ status: false, error: "Server error" });
@@ -1355,7 +1240,7 @@ router.post("/branchName", async (req, res) => {
             return res.json({ status: true, records: [], oldBranch: [] });
         }
 
-        db.query('SELECT b.id,  b.name FROM branches as b INNER JOIN employees as e on b.id=e.branch_id WHERE e.company_id=? and e.id=?', [decodedUserData?.company_id, decodedUserData?.id], (err, oldBranch) => {
+        db.query('SELECT b.id,  b.name FROM branches as b INNER JOIN employees as e on b.id=e.branch_id WHERE e.company_id=? and e.id=?', [req?.user?.company_id, req?.user?.id], (err, oldBranch) => {
             if (err) {
                 console.error("Error fetching branches:", err);
                 return res.status(500).json({ status: false, error: "Server error" });
@@ -1377,19 +1262,12 @@ router.post("/branchName", async (req, res) => {
 router.post('/changeBranch', async (req, res) => {
     const { userData, branchId } = req.body;
 
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    }
-    if (!decodedUserData || !decodedUserData.id) {
+
+
+    if (!req?.user?.id) {
         return res.status(400).json({ status: false, error: 'Employee ID is required' });
     }
-    let employeeId = decodedUserData.id;
+    let employeeId = req?.user?.id;
     // Check for required fields
     if (!employeeId || !branchId) {
         return res.status(400).json({ status: false, message: 'All fields are required.' });
@@ -1399,7 +1277,7 @@ router.post('/changeBranch', async (req, res) => {
     // Fetch the current logo from the database
     db.query(
         'UPDATE employees SET branch_id = ? WHERE id = ? and company_id=?',
-        [branchId, employeeId, decodedUserData.company_id],
+        [branchId, employeeId, req?.user?.company_id],
         (err) => {
             if (err) {
                 console.error(err);

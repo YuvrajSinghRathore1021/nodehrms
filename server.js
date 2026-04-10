@@ -22,15 +22,11 @@ const QUEUE_PREFIX = "location_queue:";
 // live 
 const fs = require('fs');
 const https = require('https');
-
 const sslOptions = {
     key: fs.readFileSync('./ssl/server.key'),
     cert: fs.readFileSync('./ssl/server.cert')
 };
-
 const server = https.createServer(sslOptions, app);
-
-
 
 
 // ================== SOCKET + REDIS ==================
@@ -121,12 +117,22 @@ const authenticateToken = (req, res, next) => {
     if (!token) {
         return res.status(403).json({ status: false, message: "Token not found" });
     }
-
+    // console.log(req.body);
     jwt.verify(token, JWT_SECRET, (err, user) => {
         if (err) {
             return res.status(403).json({ status: false, message: "Invalid token" });
         }
-        req.user = user;
+
+        let newUser = {
+            id: user?.switch_id || user?.id || 0,
+            company_id: user?.switch_company_id || user?.company_id || 0,
+            employee_id: user?.employee_id || null,
+            user_id: user?.id || 0,
+            user_company_id: user?.company_id || 0,
+            iat: user?.iat || null,
+            exp: user?.exp || null
+        }
+        req.user = newUser;
         next();
     });
 };
@@ -187,10 +193,22 @@ const Upload = require('./api/uploadFunclity/upload');
 const notificationRoutes = require("./api/firebase/firebasenotification");
 
 //////url
+// un-authentication 
 app.use("/api/notification", notificationRoutes);
+app.use('/excelexports', excelexports);
+app.use('/upload', Upload);
+app.use('/Excel', ExcelEmployee);
+app.use('/PDFdow', Salaryslip);
+app.use('/userapi', loginSinup);
+app.use('/Datatable', Datatable);
+app.use('/uplodefile', uplodefile);
+app.use('/sendMail', Mail);
+app.use('/Notification', Notification);
+
+// authenticateToken api
 app.use('/Company', authenticateToken, CompanyAdd); ////->done
-app.use('/Blog', Blog);
-// app.use('/Blog', authenticateToken, Blog); ////->done
+app.use('/Blog', authenticateToken, Blog); ////->done
+app.use('/AttendanceApp', authenticateToken, AttendanceApp);////->done
 app.use('/Admin', authenticateToken, AdminPage); ////->done
 app.use('/Attendance', authenticateToken, Attendance);////->done
 app.use('/Attendancemark', authenticateToken, Attendancemark); ////->done
@@ -207,7 +225,7 @@ app.use('/Urls', authenticateToken, Urls);//// ->done
 app.use('/rulesapi', authenticateToken, Rulesapi); ////->done
 app.use('/logshandel', authenticateToken, logshandel); ///->done
 app.use('/DetailsUpload', authenticateToken, DetailsUpload);////->done
-app.use('/excelexports', excelexports);
+
 // pay roll 
 app.use('/payrollRule', authenticateToken, payrollRule);////->done
 app.use('/pay', authenticateToken, pay);////->done
@@ -215,31 +233,26 @@ app.use('/penaltie', authenticateToken, penaltie);////->done
 app.use('/dashboard', authenticateToken, Dashboard);////->done
 app.use('/menu', authenticateToken, Menu);
 // // app api Start
-app.use('/AttendanceApp', AttendanceApp);////->done
+
 app.use('/LeaveApp', authenticateToken, LeaveApp);////->done
 app.use('/HolidayApiApp', authenticateToken, HolidayApi);////->done
 app.use('/Profile', authenticateToken, Profile);////->done
 app.use('/WorkWeekApp', authenticateToken, WorkWeek);////->done
 app.use('/Employeesdetails', authenticateToken, Employeesdetails);////->done
-app.use('/upload', Upload);
+
 // app.use('/Excel', authenticateToken, ExcelEmployee);
-app.use('/Excel', ExcelEmployee);
+
 app.use('/Face', authenticateToken, FaceUplode);
 // app.use('/facerecognition', authenticateToken, facerecognition);
-app.use('/PDFdow', Salaryslip);
+
 // app.use('/PDFdow', authenticateToken, Salaryslip);
 app.use('/Reports', authenticateToken, Reports);
-// No authentication for userapi
-app.use('/userapi', loginSinup);
-app.use('/Datatable', Datatable);
-app.use('/uplodefile', uplodefile);
+
 
 app.use('/NotificationApi', authenticateToken, NotificationApi);
 //Authentication
 app.use('/authentication', authenticateToken, Authentication);
-// sendMail
-app.use('/sendMail', Mail);
-app.use('/Notification', Notification);
+
 app.use('/uploads', express.static(path.join(__dirname, './uploads')));
 // try
 app.use('/EmployeeLocation', authenticateToken, EmployeeLocationTracking);

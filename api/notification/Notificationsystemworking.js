@@ -16,16 +16,11 @@ router.post('/send', (req, res) => {
         return res.status(400).json({ status: false, error: "Missing userData or receiver_id" });
     }
 
-    let decodedUserData = null;
 
-    try {
-        const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-        decodedUserData = JSON.parse(decodedString);
-    } catch (error) {
-        return res.status(400).json({ status: false, error: "Invalid userData" });
-    }
 
-    if (!decodedUserData.id || !decodedUserData.company_id) {
+
+
+    if (!req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
     }
 
@@ -37,8 +32,8 @@ router.post('/send', (req, res) => {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
 
     db.query(sql, [
-        decodedUserData.company_id,
-        decodedUserData.id,
+        req?.user?.company_id,
+        req?.user?.id,
         receiverIdStr,
         page_url,
         img_url,
@@ -50,8 +45,8 @@ router.post('/send', (req, res) => {
 
         const notification = {
             id: result.insertId,
-            company_id: decodedUserData.company_id,
-            sender_id: decodedUserData.id,
+            company_id: req?.user?.company_id,
+            sender_id: req?.user?.id,
             receiver_id: receiverIdStr,
             page_url,
             img_url,
@@ -81,22 +76,12 @@ router.post('/send', (req, res) => {
 
 router.post('/NotificationGet', (req, res) => {
     const { userData, notification_type = '' } = req.body;
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: "Invalid userData" });
-        }
-    } else {
-        return res.status(400).json({ status: false, error: "Missing userData" });
-    }
 
-    if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+
+    if (!req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
     }
-    db.query("SELECT * FROM notifications WHERE FIND_IN_SET(?, receiver_id) and notification_type =? ORDER BY created_at DESC", [decodedUserData.id, notification_type], (err, results) => {
+    db.query("SELECT * FROM notifications WHERE FIND_IN_SET(?, receiver_id) and notification_type =? ORDER BY created_at DESC", [req?.user?.id, notification_type], (err, results) => {
         if (err) return res.status(500).send(err);
 
         return res.status(200).json({ status: true, data: results, message: 'Notification fetched successfully' });
@@ -117,23 +102,16 @@ router.post('/read', (req, res) => {
 router.post('/SendLocation', (req, res) => {
     const { userData, latitude, longitude } = req.body;
 
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    }
 
-    if (!decodedUserData || !decodedUserData.company_id || !decodedUserData.id) {
+
+
+    if (!req?.user?.company_id || !req?.user?.id) {
         return res.status(400).json({ status: false, error: 'company_id and id required' });
     }
 
 
-    let employee_id = decodedUserData.id;
-    let company_id = decodedUserData.company_id;
+    let employee_id = req?.user?.id;
+    let company_id = req?.user?.company_id;
 
     const timestamp = new Date();
     const sqlCheckEmp = `SELECT profile_image,CONCAT(first_name,' ',last_name) as name FROM employees WHERE company_id=? And id = ?`;

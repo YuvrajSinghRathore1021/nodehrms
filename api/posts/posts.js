@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../../DB/ConnectionSql');
-const decodeUserData = require("../../model/decodeUserData");
+const { where } = require('@tensorflow/tfjs');
 
 // ==================== ROUTES ====================
 
@@ -11,14 +11,9 @@ router.post('/postView', async (req, res) => {
         const { userData, category, company, search, priority, pinned, page = 1, limit = 10,
             sortBy = 'pinned DESC, published_date DESC' } = req.body;
 
-        let decodedUserData = null;
-        if (userData) {
-            decodedUserData = decodeUserData(userData);
-            if (!decodedUserData) {
-                return res.status(400).json({ status: false, message: 'Invalid userData', error: 'Invalid userData' });
-            }
-        }
-        if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+
+
+        if (!req?.user?.id || !req?.user?.company_id) {
             return res.status(400).json({ status: false, message: 'Employee ID is required', error: 'Employee ID is required' });
         }
 
@@ -65,9 +60,9 @@ router.post('/postView', async (req, res) => {
             params.push(searchTerm, searchTerm, searchTerm);
         }
 
-        if (decodedUserData?.company_id != 6) {
+        if (req?.user?.company_id != 6) {
             query += ' AND p.company_id = ?';
-            params.push(decodedUserData?.company_id);
+            params.push(req?.user?.company_id);
         }
 
         // Get total count for pagination
@@ -225,14 +220,9 @@ router.post('/posts', async (req, res) => {
             employeesId = 0,
             userData
         } = req.body;
-        let decodedUserData = null;
-        if (userData) {
-            decodedUserData = decodeUserData(userData);
-            if (!decodedUserData) {
-                return res.status(400).json({ status: false, message: 'Invalid userData', error: 'Invalid userData' });
-            }
-        }
-        if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+
+
+        if (!req?.user?.id || !req?.user?.company_id) {
             return res.status(400).json({ status: false, message: 'Employee ID is required', error: 'Employee ID is required' });
         }
         // Validation
@@ -262,7 +252,7 @@ router.post('/posts', async (req, res) => {
              featured_image, gallery_images, published_date,receiver_id,sender_id)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURDATE(),?,?)
         `, [title, excerpt, content, category, companyId, author, priority, pinned,
-            image || null, galleryImagesJson, employeesId, decodedUserData.id]);
+            image || null, galleryImagesJson, employeesId, req?.user?.id]);
 
         res.status(201).json({
             status: 1,
@@ -294,14 +284,9 @@ router.post('/posts/:id', async (req, res) => {
             userData
         } = req.body;
 
-        let decodedUserData = null;
-        if (userData) {
-            decodedUserData = decodeUserData(userData);
-            if (!decodedUserData) {
-                return res.status(400).json({ status: false, message: 'Invalid userData', error: 'Invalid userData' });
-            }
-        }
-        if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+
+
+        if (!req?.user?.id || !req?.user?.company_id) {
             return res.status(400).json({ status: false, message: 'Employee ID is required', error: 'Employee ID is required' });
         }
         // Get company ID
@@ -326,7 +311,7 @@ router.post('/posts/:id', async (req, res) => {
                 featured_image = ?, gallery_images = ?,receiver_id=?,sender_id=?
             WHERE id = ?
         `, [title, excerpt, content, category, companyId, author, priority, pinned,
-            image || null, galleryImagesJson, employeesId, decodedUserData.id, req.params.id]);
+            image || null, galleryImagesJson, employeesId, req?.user?.id, req.params.id]);
 
         if (result.affectedRows === 0) {
             return res.status(404).json({ error: 'Post not found' });
@@ -364,25 +349,17 @@ router.post('/posts/delete/:id', async (req, res) => {
 router.get('/companies', async (req, res) => {
     try {
         const { userData } = req.query;
-        let decodedUserData = null;
 
-        if (userData) {
-            decodedUserData = decodeUserData(userData);
-            if (!decodedUserData) {
-                return res.status(400).json({ status: false, message: 'Invalid userData', error: 'Invalid userData' });
-            }
-        }
-
-        if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+        if (!req?.user?.id || !req?.user?.company_id) {
             return res.status(400).json({ status: false, message: 'Employee ID is required', error: 'Employee ID is required' });
         }
 
         let query = 'SELECT company_name as name FROM companies';
         const params = [];
 
-        if (decodedUserData?.company_id != 6) {
+        if (req?.user?.company_id != 6) {
             query += ' WHERE id = ?';
-            params.push(decodedUserData?.company_id);
+            params.push(req?.user?.company_id);
         }
 
         const [rows] = await db.promise().query(query, params);
@@ -395,16 +372,104 @@ router.get('/companies', async (req, res) => {
 });
 
 // GET dashboard stats
+// router.get('/stats', async (req, res) => {
+//     try {
+//         if (!req?.user?.id || !req?.user?.company_id) {
+//             return res.status(400).json({ status: false, message: 'Employee ID is required', error: 'Employee ID is required' });
+//         }
+//         let whereClause = '1=1';
+//         const params = [];
+
+//         if (req?.user?.company_id != 6) {
+//             whereClause = 'WHERE company_id = ?';
+//             params.push(req?.user?.company_id);
+//         }
+
+//         const [totalPosts] = await db.promise().query('SELECT COUNT(id) as count FROM posts ' + whereClause, params);
+//         const [pinnedPosts] = await db.promise().query('SELECT COUNT(id) as count FROM posts ' + whereClause + ' AND pinned = 1', params);
+//         const [highPriority] = await db.promise().query('SELECT COUNT(id) as count FROM posts ' + whereClause + ' AND priority = "high"', params);
+//         const [totalCompanies] = await db.promise().query('SELECT COUNT(id) as count FROM companies ' + whereClause.replace('WHERE', 'WHERE company_name != "All Companies"'), params);
+
+//         // Posts with images stats
+//         const [postsWithImages] = await db.promise().query(
+//             'SELECT COUNT(id) as count FROM posts WHERE featured_image IS NOT NULL'
+//         );
+
+//         const [totalGalleryImages] = await db.promise().query(`
+//             SELECT SUM(JSON_LENGTH(gallery_images)) as total 
+//             FROM posts 
+//             WHERE gallery_images IS NOT NULL
+//         `);
+
+//         const [viewsToday] = await db.promise().query(`
+//             SELECT COUNT(id) as count FROM post_views 
+//             WHERE DATE(viewed_at) = CURDATE()
+//         `);
+
+//         const [popularPosts] = await db.promise().query(`
+//             SELECT p.id, p.title, COUNT(pv.id) as view_count
+//             FROM posts p
+//             LEFT JOIN post_views pv ON p.id = pv.post_id
+//             GROUP BY p.id
+//             ORDER BY view_count DESC
+//             LIMIT 5
+//         `);
+
+//         res.json({
+//             status: 1,
+//             totalPosts: totalPosts[0].count,
+//             pinnedPosts: pinnedPosts[0].count,
+//             highPriority: highPriority[0].count,
+//             totalCompanies: totalCompanies[0].count,
+//             viewsToday: viewsToday[0].count,
+//             postsWithImages: postsWithImages[0].count,
+//             totalImages: (totalGalleryImages[0]?.total || 0) + postsWithImages[0].count,
+//             popularPosts
+//         });
+
+//     } catch (error) {
+//         console.error('Error fetching stats:', error);
+//         res.status(500).json({ error: 'Failed to fetch stats' });
+//     }
+// });
+
 router.get('/stats', async (req, res) => {
     try {
-        const [totalPosts] = await db.promise().query('SELECT COUNT(*) as count FROM posts');
-        const [pinnedPosts] = await db.promise().query('SELECT COUNT(*) as count FROM posts WHERE pinned = 1');
-        const [highPriority] = await db.promise().query('SELECT COUNT(*) as count FROM posts WHERE priority = "high"');
-        const [totalCompanies] = await db.promise().query('SELECT COUNT(*) as count FROM companies WHERE company_name != "All Companies"');
+        if (!req?.user?.id || !req?.user?.company_id) {
+            return res.status(400).json({
+                status: false,
+                message: 'Employee ID is required'
+            });
+        }
 
-        // Posts with images stats
+        let whereClause = 'WHERE 1=1';
+        const params = [];
+        console.log('User Data:', req.user); // Debugging line to check user data
+        if (req?.user?.company_id != 6) {
+            whereClause += ' AND company_id = ?';
+            params.push(req?.user?.company_id);
+        }
+
+        const [totalPosts] = await db.promise().query(
+            `SELECT COUNT(id) as count FROM posts ${whereClause}`, params
+        );
+
+        const [pinnedPosts] = await db.promise().query(
+            `SELECT COUNT(id) as count FROM posts ${whereClause} AND pinned = 1`, params
+        );
+
+        const [highPriority] = await db.promise().query(
+            `SELECT COUNT(id) as count FROM posts ${whereClause} AND priority = "high"`, params
+        );
+
+        const [totalCompanies] = await db.promise().query(
+            `SELECT COUNT(id) as count FROM companies 
+             ${whereClause} AND company_name != "All Companies"`, params
+        );
+
+        // ✅ Global stats (no company filter)
         const [postsWithImages] = await db.promise().query(
-            'SELECT COUNT(*) as count FROM posts WHERE featured_image IS NOT NULL'
+            `SELECT COUNT(id) as count FROM posts WHERE featured_image IS NOT NULL`
         );
 
         const [totalGalleryImages] = await db.promise().query(`
@@ -414,7 +479,7 @@ router.get('/stats', async (req, res) => {
         `);
 
         const [viewsToday] = await db.promise().query(`
-            SELECT COUNT(*) as count FROM post_views 
+            SELECT COUNT(id) as count FROM post_views 
             WHERE DATE(viewed_at) = CURDATE()
         `);
 

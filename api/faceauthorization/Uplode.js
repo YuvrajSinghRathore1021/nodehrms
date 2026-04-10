@@ -53,21 +53,13 @@ const fileExists = (Emp_id, company_id) => {
 // app cheak A
 router.post('/faceGet', async (req, res) => {
     const { userData } = req.body;
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData format' });
-        }
-    }
-    if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+     
+         if ( !req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
     }
     try {
         let query = `SELECT id, employee_id, company_id, image_path, created_at FROM face_auth WHERE company_id = ? And employee_id = ?`;
-        let values = [decodedUserData.company_id, decodedUserData.id];
+        let values = [req?.user?.company_id, req?.user?.id];
 
 
         db.query(query, values, (err, results) => {

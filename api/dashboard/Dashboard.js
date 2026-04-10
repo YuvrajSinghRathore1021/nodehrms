@@ -6,18 +6,10 @@ const { AdminCheck } = require('../../model/functlity/AdminCheck');
 // web cheak A
 router.post('/api/Birthday', async (req, res) => {
     const { userData, startDate, endDate } = req.body;
-    let decodedUserData = null;
+     
 
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData format' });
-        }
-    }
-
-    if (!decodedUserData?.id || !decodedUserData?.company_id) {
+     
+    if (!req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
     }
 
@@ -31,7 +23,7 @@ router.post('/api/Birthday', async (req, res) => {
             WHERE company_id = ? AND employee_status = 1 AND status = 1 AND delete_status = 0 
             AND DATE_FORMAT(dob, '%m-%d') 
         `;
-        const params = [decodedUserData.company_id];
+        const params = [req?.user?.company_id];
 
         if (useCustomRange) {
             query += ` BETWEEN DATE_FORMAT(?, '%m-%d') AND DATE_FORMAT(?, '%m-%d')`;
@@ -88,17 +80,9 @@ router.post('/api/Birthday', async (req, res) => {
 router.post('/api/workAnniversaries', async (req, res) => {
     const { userData, startDate, endDate } = req.body;
 
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData format' });
-        }
-    }
-
-    if (!decodedUserData?.id || !decodedUserData?.company_id) {
+     
+     
+    if (!req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
     }
 
@@ -112,7 +96,7 @@ router.post('/api/workAnniversaries', async (req, res) => {
             WHERE company_id = ? AND employee_status = 1 AND status = 1 AND delete_status = 0 
             AND DATE_FORMAT(date_of_Joining, '%m-%d')
         `;
-        const params = [decodedUserData.company_id];
+        const params = [req?.user?.company_id];
 
         if (useCustomRange) {
             query += ` BETWEEN DATE_FORMAT(?, '%m-%d') AND DATE_FORMAT(?, '%m-%d')`;
@@ -169,23 +153,15 @@ router.post('/api/workAnniversaries', async (req, res) => {
 router.post('/api/newJoiners', async (req, res) => {
     const { userData, startDate, endDate } = req.body;
 
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData format' });
-        }
-    }
-
-    if (!decodedUserData?.id || !decodedUserData?.company_id) {
+     
+     
+    if (!req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
     }
 
     try {
         const useCustomRange = startDate && endDate;
-        const queryParams = [decodedUserData.company_id];
+        const queryParams = [req?.user?.company_id];
         let query = `
             SELECT id, profile_image, CONCAT(first_name, ' ', last_name) AS name, date_of_Joining,gender
             FROM employees
@@ -241,18 +217,10 @@ router.post('/api/newJoiners', async (req, res) => {
 // web cheak A
 router.post('/api/attendanceSummary', async (req, res) => {
     const { userData, date } = req.body;
-    let decodedUserData = null;
+     
 
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData format' });
-        }
-    }
-
-    if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+     
+    if ( !req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
     }
 
@@ -264,21 +232,21 @@ router.post('/api/attendanceSummary', async (req, res) => {
             SELECT COUNT(id) as total 
             FROM employees 
             WHERE company_id = ? AND status = 1 AND employee_status = 1 AND delete_status = 0
-        `, [decodedUserData.company_id]);
+        `, [req?.user?.company_id]);
 
         // Total employees marked present (attendance entry on given date)
         const [attended] = await db.promise().query(`
             SELECT COUNT(DISTINCT employee_id) as present 
             FROM attendance 
             WHERE company_id = ? AND attendance_date = ?
-        `, [decodedUserData.company_id, targetDate]);
+        `, [req?.user?.company_id, targetDate]);
 
         // Employees who checked in on time (before 10:00 AM)
         const [onTime] = await db.promise().query(`
             SELECT COUNT(DISTINCT employee_id) as on_time 
             FROM attendance 
             WHERE company_id = ? AND attendance_date = ? AND TIME(check_in_time) <= '09:30:00'
-        `, [decodedUserData.company_id, targetDate]);
+        `, [req?.user?.company_id, targetDate]);
 
 
         const [leaveData] = await db.promise().query(`
@@ -288,7 +256,7 @@ router.post('/api/attendanceSummary', async (req, res) => {
               AND deletestatus = 0 
               AND admin_status = 1 
               AND ? BETWEEN start_date AND end_date
-        `, [decodedUserData.company_id, targetDate]);
+        `, [req?.user?.company_id, targetDate]);
 
         // SELECT `id`, `employee_id`, `company_id`, `date`, `holiday`, `status`, `add_stamp` FROM `holiday` WHERE 1
 
@@ -305,7 +273,7 @@ router.post('/api/attendanceSummary', async (req, res) => {
       AND YEAR(date) = ? 
       AND MONTH(date) = ?
     ORDER BY date ASC
-`, [decodedUserData.company_id, yearH, monthH]);
+`, [req?.user?.company_id, yearH, monthH]);
 
 
 
@@ -340,18 +308,10 @@ router.post('/api/attendanceSummary', async (req, res) => {
 // web cheak A
 router.post('/api/employeeStatusSummary', async (req, res) => {
     const { userData } = req.body;
-    let decodedUserData = null;
+     
 
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData format' });
-        }
-    }
-
-    if (!decodedUserData || !decodedUserData.company_id) {
+     
+    if ( !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Company ID is required' });
     }
 
@@ -364,7 +324,7 @@ router.post('/api/employeeStatusSummary', async (req, res) => {
                 SUM(CASE WHEN status = 0 or status = 2  OR employee_status = 0 OR delete_status = 1 THEN 1 ELSE 0 END) AS inactive
             FROM employees
             WHERE company_id = ?
-        `, [decodedUserData.company_id]);
+        `, [req?.user?.company_id]);
 
         res.json({
             status: true,
@@ -385,17 +345,9 @@ router.post('/api/topArrivals', async (req, res) => {
     const { userData, limit, data } = req.body;
     // data = { month: 6, year: 2025 }
 
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData format' });
-        }
-    }
-
-    if (!decodedUserData?.company_id) {
+     
+     
+    if (!req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Company ID is required' });
     }
 
@@ -424,7 +376,7 @@ router.post('/api/topArrivals', async (req, res) => {
             WHERE company_id = ?
               AND MONTH(attendance_date) = ?
               AND YEAR(attendance_date) = ?
-        `, [decodedUserData.company_id, selectedMonth, selectedYear]);
+        `, [req?.user?.company_id, selectedMonth, selectedYear]);
 
         const totalWorkingDays = workingDaysResult[0]?.working_days || 1;
 
@@ -447,7 +399,7 @@ router.post('/api/topArrivals', async (req, res) => {
                 AND YEAR(a.attendance_date) = ?
                 AND e.status = 1 AND e.delete_status = 0
             GROUP BY a.employee_id
-        `, [decodedUserData.company_id, selectedMonth, selectedYear]);
+        `, [req?.user?.company_id, selectedMonth, selectedYear]);
 
         // Step 3: Calculate percentages
         const enrichedResults = results.map(emp => {
@@ -483,18 +435,10 @@ router.post('/api/topArrivals', async (req, res) => {
 // web cheak A
 router.post('/api/teamsStrength', async (req, res) => {
     const { userData } = req.body;
-    let decodedUserData = null;
+     
 
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData format' });
-        }
-    }
-
-    if (!decodedUserData || !decodedUserData.company_id) {
+     
+    if ( !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Company ID is required' });
     }
 
@@ -515,7 +459,7 @@ router.post('/api/teamsStrength', async (req, res) => {
             WHERE d.company_id = ?
             GROUP BY d.id, d.name, d.type
             ORDER BY strength DESC
-        `, [decodedUserData.company_id]);
+        `, [req?.user?.company_id]);
 
         res.json({
             status: true,
@@ -532,18 +476,10 @@ const moment = require('moment');
 // web cheak A
 router.post('/api/TotalEmployees', async (req, res) => {
     const { userData, filter } = req.body;
-    let decodedUserData = null;
+     
 
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData format' });
-        }
-    }
-
-    if (!decodedUserData || !decodedUserData.company_id) {
+     
+    if ( !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Company ID is required' });
     }
 
@@ -568,7 +504,7 @@ router.post('/api/TotalEmployees', async (req, res) => {
     }
 
     try {
-        const companyId = decodedUserData.company_id;
+        const companyId = req?.user?.company_id;
 
         // Current active employees
         const [current] = await db.promise().query(`
@@ -621,18 +557,10 @@ router.post('/api/TotalEmployees', async (req, res) => {
 // web cheak A
 router.post('/api/NewEmployees', async (req, res) => {
     const { userData, filter } = req.body;
-    let decodedUserData = null;
+     
 
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData format' });
-        }
-    }
-
-    if (!decodedUserData || !decodedUserData.company_id) {
+     
+    if ( !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Company ID is required' });
     }
 
@@ -663,7 +591,7 @@ router.post('/api/NewEmployees', async (req, res) => {
     }
 
     try {
-        const companyId = decodedUserData.company_id;
+        const companyId = req?.user?.company_id;
 
         // Count current period new employees
         const [current] = await db.promise().query(`
@@ -717,18 +645,11 @@ router.post('/api/NewEmployees', async (req, res) => {
 
 // router.post('/api/LeaveStats', async (req, res) => {
 //     const { userData, filter } = req.body;
-//     let decodedUserData = null;
+//      
 
-//     if (userData) {
-//         try {
-//             const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-//             decodedUserData = JSON.parse(decodedString);
-//         } catch (error) {
-//             return res.status(400).json({ status: false, error: 'Invalid userData format' });
-//         }
-//     }
+ 
 
-//     if (!decodedUserData || !decodedUserData.company_id) {
+//     if ( !req?.user?.company_id) {
 //         return res.status(400).json({ status: false, error: 'Company ID is required' });
 //     }
 
@@ -759,7 +680,7 @@ router.post('/api/NewEmployees', async (req, res) => {
 //     }
 
 //     try {
-//         const companyId = decodedUserData.company_id;
+//         const companyId = req?.user?.company_id;
 
 //         // Current leave count
 //         const [current] = await db.promise().query(`
@@ -812,27 +733,19 @@ router.post('/api/NewEmployees', async (req, res) => {
 // web cheak A
 router.post('/api/LeaveStats', async (req, res) => {
     const { userData, filter } = req.body;
-    let decodedUserData = null;
+     
 
     // Decode base64 userData
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData format' });
-        }
-    }
-
+     
     // Validate required data
-    if (!decodedUserData || !decodedUserData.company_id) {
+    if ( !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Company ID is required' });
     }
-    const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
+    const isAdmin = await AdminCheck(req?.user?.id, req?.user?.company_id);
 
     try {
-        const companyId = decodedUserData.company_id;
-        const employeeId = decodedUserData.id || null;
+        const companyId = req?.user?.company_id;
+        const employeeId = req?.user?.id || null;
 
         // Get date range for last 3 months
         const currentTo = moment().endOf('day');
@@ -893,25 +806,17 @@ router.post('/api/LeaveStats', async (req, res) => {
 // app cheak A
 router.post('/fcmUpdate', async (req, res) => {
     const { userData, fcm } = req.body;
-    let decodedUserData = null;
+     
     // console.log(req.body)
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData format' });
-        }
-    }
-
-    if (!decodedUserData || !decodedUserData.company_id) {
+     
+    if ( !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Company ID is required' });
     }
     try {
 
         const [fcmUpdate] = await db.promise().query(`
             UPDATE employees SET fcm_token = ? WHERE id = ? AND company_id = ?
-        `, [fcm, decodedUserData.id, decodedUserData.company_id]);
+        `, [fcm, req?.user?.id, req?.user?.company_id]);
 
         if (fcmUpdate.affectedRows == 0) {
             return res.status(400).json({ status: false, error: 'No matching employee found or update failed' });

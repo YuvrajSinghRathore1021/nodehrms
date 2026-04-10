@@ -29,19 +29,11 @@ router.post("/leave", async (req, res) => {
   }
 
   // ================== DECODE USER DATA ====================
-  let decodedUserData = null;
-  try {
-    const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-    decodedUserData = JSON.parse(decodedString);
-    if (!decodedUserData?.id || !decodedUserData?.company_id) {
-      return res.status(400).json({ status: false, error: "Invalid userData: missing id or company_id" });
-    }
-  } catch (error) {
-    return res.status(400).json({ status: false, error: "Invalid userData format" });
-  }
+   
+ 
 
-  const employeeIdNew = employeeId || decodedUserData?.id;
-  if (employeeId != decodedUserData?.id && employeeId > 0) {
+  const employeeIdNew = employeeId || req?.user?.id;
+  if (employeeId != req?.user?.id && employeeId > 0) {
     type = "admin";
   }
 
@@ -66,7 +58,7 @@ router.post("/leave", async (req, res) => {
   // ================== VALIDATE EMPLOYEE ====================
   const [EmployeeData] = await db.promise().query(
     'SELECT id, leave_rule_id, first_name, last_name, date_of_Joining, contact_number, probation_period, probation_status, notice_period, employee_status, status, delete_status, company_id, reporting_manager FROM employees WHERE id=? AND company_id=? AND delete_status=0',
-    [employeeIdNew, decodedUserData.company_id]
+    [employeeIdNew, req?.user?.company_id]
   );
 
   if (!EmployeeData || EmployeeData.length == 0) {
@@ -86,7 +78,7 @@ router.post("/leave", async (req, res) => {
   // ================== VALIDATE LEAVE RULE ====================
   const [LeaveRuleDataGet] = await db.promise().query(
     "SELECT id, company_id, leave_type, description, leaves_allowed_year, weekends_leave, holidays_leave, creditable, accrual_frequency, accrual_period, under_probation, notice_period, encash_enabled, carry_forward, remaining_leaves, max_leaves_month, continuous_leaves, negative_leaves, max_negative_leaves, future_dated_leaves, future_dated_leaves_after, backdated_leaves, backdated_leaves_up_to, apply_leaves_next_year FROM leave_rules WHERE id = ? AND company_id = ?",
-    [leave_type, decodedUserData.company_id]
+    [leave_type, req?.user?.company_id]
   );
 
   if (!LeaveRuleDataGet || LeaveRuleDataGet.length == 0) {
@@ -127,7 +119,7 @@ router.post("/leave", async (req, res) => {
      WHERE employee_id = ? AND company_id = ? 
      AND ((start_date BETWEEN ? AND ?) OR (end_date BETWEEN ? AND ?) OR (start_date <= ? AND end_date >= ?))
      AND ((rm_status != 2) OR (admin_status != 2)) and deletestatus=0`,
-    [employeeIdNew, decodedUserData.company_id, start_date, end_date, start_date, end_date, start_date, end_date]
+    [employeeIdNew, req?.user?.company_id, start_date, end_date, start_date, end_date, start_date, end_date]
   );
   if (existingLeave.length > 0) {
     let existingStatus = "";
@@ -160,7 +152,7 @@ router.post("/leave", async (req, res) => {
     `SELECT id, total_leaves, used_leaves, remaining_leaves,old_balance , status 
      FROM leave_balance 
      WHERE employee_id = ? AND company_id = ? AND leave_rules_id = ?  AND status = 1 and session_start <= ? and session_end >= ?`,
-    [employeeIdNew, decodedUserData.company_id, leave_type, startDate, endDate]
+    [employeeIdNew, req?.user?.company_id, leave_type, startDate, endDate]
   );
 
 
@@ -180,7 +172,7 @@ router.post("/leave", async (req, res) => {
     AND leave_rule_id=? 
     AND admin_status=0 
     AND deletestatus=0
-`, [employeeIdNew, decodedUserData.company_id, leave_type]);
+`, [employeeIdNew, req?.user?.company_id, leave_type]);
 
   const pendingByRule = {};
 
@@ -216,7 +208,7 @@ router.post("/leave", async (req, res) => {
        FROM leaves 
        WHERE employee_id = ? AND company_id = ? AND leave_rule_id = ?
        AND DATE_FORMAT(start_date, '%Y-%m') = ? AND status NOT IN (3, 4)`,
-      [employeeIdNew, decodedUserData.company_id, leave_type, yearMonth]
+      [employeeIdNew, req?.user?.company_id, leave_type, yearMonth]
     );
 
     const totalDaysThisMonth = parseInt(monthlyLeaves[0]?.total_days || 0) + leaveDays;
@@ -264,7 +256,7 @@ router.post("/leave", async (req, res) => {
   } else {
     // ================== BACKDATED LEAVES VALIDATION ====================
 
-    if (leaveRule.backdated_leaves == 0 && employeeIdNew == decodedUserData?.id) {
+    if (leaveRule.backdated_leaves == 0 && employeeIdNew == req?.user?.id) {
       return res.status(400).json({
         status: false,
         message: "Backdated leaves are not allowed for this leave type."
@@ -275,7 +267,7 @@ router.post("/leave", async (req, res) => {
       const backdatedLimit = new Date(currentDate);
       backdatedLimit.setDate(backdatedLimit.getDate() - leaveRule.backdated_leaves_up_to);
 
-      if (startDate < backdatedLimit && employeeIdNew == decodedUserData?.id) {
+      if (startDate < backdatedLimit && employeeIdNew == req?.user?.id) {
         return res.status(400).json({
           status: false,
           message: `Backdated leaves can only be applied within ${leaveRule.backdated_leaves_up_to} days. Limit: ${backdatedLimit.toLocaleDateString()}`
@@ -284,7 +276,7 @@ router.post("/leave", async (req, res) => {
     }
 
     // Check if backdated leave requires admin approval
-    if (employeeIdNew != decodedUserData?.id && leaveRule.backdated_leaves == 1) {
+    if (employeeIdNew != req?.user?.id && leaveRule.backdated_leaves == 1) {
       type = "admin"; // Force admin approval for backdated leaves
     }
   }
@@ -311,7 +303,7 @@ router.post("/leave", async (req, res) => {
 
   // ================== NEXT YEAR LEAVE VALIDATION ====================
   if (startDate.getFullYear() > currentDate.getFullYear()) {
-    if (leaveRule.apply_leaves_next_year == 0 && employeeIdNew == decodedUserData?.id) {
+    if (leaveRule.apply_leaves_next_year == 0 && employeeIdNew == req?.user?.id) {
       return res.status(400).json({
         status: false,
         message: "Cannot apply for leaves for next year. Please apply after year end."
@@ -322,7 +314,7 @@ router.post("/leave", async (req, res) => {
   // ================== COMPANY SETTINGS VALIDATION ====================
   const [settingResult] = await db.promise().query(
     "SELECT multi_level_approve FROM settings WHERE type=? and company_id = ?",
-    ["Leave_setting", decodedUserData.company_id]
+    ["Leave_setting", req?.user?.company_id]
   );
 
 
@@ -340,7 +332,7 @@ router.post("/leave", async (req, res) => {
       leaveStatus = 1;
       adminStatus = 1;
       adminRemark = reason;
-      adminId = decodedUserData.id;
+      adminId = req?.user?.id;
     } else {
 
       // Get reporting manager if multi-level approval is enabled
@@ -364,14 +356,14 @@ router.post("/leave", async (req, res) => {
       : "INSERT INTO leaves (company_id, employee_id, leave_type, leave_rule_id, start_date, end_date,  reason, rm_id, start_half, end_half, created, updated) VALUES (?, ?, ?, ?, ?, ?, ?,  ?, ?, ?, NOW(), NOW())";
 
     const insertParams = type == "admin"
-      ? [decodedUserData.company_id, employeeIdNew, leaveRule.leave_type, leave_type, start_date, end_date, reason, RmIdValue, start_half, end_half, adminStatus, adminRemark, adminId]
-      : [decodedUserData.company_id, employeeIdNew, leaveRule.leave_type, leave_type, start_date, end_date, reason, RmIdValue, start_half, end_half];
+      ? [req?.user?.company_id, employeeIdNew, leaveRule.leave_type, leave_type, start_date, end_date, reason, RmIdValue, start_half, end_half, adminStatus, adminRemark, adminId]
+      : [req?.user?.company_id, employeeIdNew, leaveRule.leave_type, leave_type, start_date, end_date, reason, RmIdValue, start_half, end_half];
 
     [insertResult] = await db.promise().query(insertQuery, insertParams);
 
     // Update leave balance
     if (leaveStatus == 1) { // Only deduct if auto-approved
-      await updateLeaveBalance(insertResult.insertId, decodedUserData.company_id);
+      await updateLeaveBalance(insertResult.insertId, req?.user?.company_id);
     }
 
     // console.log("insertId:", insertResult.insertId);
@@ -524,30 +516,18 @@ router.post("/api/ApprovalSubmit", async (req, res) => {
     reason
   } = req.body;
 
-  let decodedUserData = null;
+   
 
-  // Decode userData
-  if (userData) {
-    try {
-      decodedUserData = JSON.parse(
-        Buffer.from(userData, "base64").toString("utf-8")
-      );
-    } catch {
-      return res.status(400).json({
-        status: false,
-        message: "Invalid userData"
-      });
-    }
-  }
+ 
 
-  if (!decodedUserData?.company_id) {
+  if (!req?.user?.company_id) {
     return res.status(400).json({
       status: false,
       message: "Company ID is required"
     });
   }
 
-  const company_id = decodedUserData.company_id;
+  const company_id = req?.user?.company_id;
 
   let query, queryArray;
 
@@ -565,7 +545,7 @@ router.post("/api/ApprovalSubmit", async (req, res) => {
     queryArray = [
       ApprovalStatus,
       reason,
-      decodedUserData.id,
+      req?.user?.id,
       ApprovalRequests_id,
       company_id
     ];

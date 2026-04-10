@@ -11,17 +11,10 @@ router.post("/holiday", (req, res) => {
       .status(400)
       .json({ status: false, message: "Date and holiday are required." });
   }
-  let decodedUserData = null;
-  if (userData) {
-    try {
-      const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-      decodedUserData = JSON.parse(decodedString);
-    } catch (error) {
-      return res.status(400).json({ status: false, message: "Invalid userData format." });
-    }
-  }
+   
+  
 
-  if (!decodedUserData || !decodedUserData.company_id) {
+  if ( !req?.user?.company_id) {
     return res
       .status(400)
       .json({ status: false, message: "Company ID is missing or invalid." });
@@ -31,7 +24,7 @@ router.post("/holiday", (req, res) => {
   const dayOfWeek = selectedDate.getDay();
 
 
-  const companyId = decodedUserData.company_id;
+  const companyId = req?.user?.company_id;
   // holiday_type,half_day_type
   db.query(
     `SELECT mon1, tue1, wed1, thu1, fri1, sat1, sun1,
@@ -94,7 +87,7 @@ router.post("/holiday", (req, res) => {
 
           db.query(
             "INSERT INTO holiday (employee_id,date, holiday, company_id,holiday_type,half_day_type,status) VALUES (?,?,?,?,?, ?, ?)",
-            [decodedUserData.id, date, holiday, companyId, holiday_type, half_day_type, status],
+            [req?.user?.id, date, holiday, companyId, holiday_type, half_day_type, status],
             (err, insertResult) => {
               if (err) {
                 console.error("Error inserting holiday:", err);
@@ -133,18 +126,11 @@ router.post("/HolidayUpdate", (req, res) => {
       .status(400)
       .json({ status: false, message: "ID is required to update holiday." });
   }
-  let decodedUserData = null;
+   
 
-  if (userData) {
-    try {
-      const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-      decodedUserData = JSON.parse(decodedString);
-    } catch (error) {
-      return res.status(400).json({ status: false, error: "Invalid userData" });
-    }
-  }
+   
 
-  if (!decodedUserData.company_id) {
+  if (!req?.user?.company_id) {
     return res
       .status(400)
       .json({ status: false, error: "Company ID is missing or invalid" });
@@ -152,7 +138,7 @@ router.post("/HolidayUpdate", (req, res) => {
 
   const selectedDate = new Date(date);
   const dayOfWeek = selectedDate.getDay();
-  const companyId = decodedUserData.company_id;
+  const companyId = req?.user?.company_id;
   db.query(
     `SELECT mon1, tue1, wed1, thu1, fri1, sat1, sun1,
             mon2, tue2, wed2, thu2, fri2, sat2, sun2,
@@ -213,7 +199,7 @@ router.post("/HolidayUpdate", (req, res) => {
           // holiday_type, half_day_type
           db.query(
             "UPDATE holiday SET holiday = ?, date = ?,holiday_type=?, half_day_type=?,status=? WHERE id = ? AND company_id=?",
-            [holiday, date, holiday_type, half_day_type, status, id, decodedUserData.company_id],
+            [holiday, date, holiday_type, half_day_type, status, id, req?.user?.company_id],
             (err, results) => {
               if (err) {
                 console.error("Database error:", err);
@@ -247,25 +233,18 @@ router.post("/holidaydelete", (req, res) => {
   if (!id) {
     return res.status(200).json({ status: false, message: "ID is required." });
   }
-  let decodedUserData = null;
+   
 
-  if (userData) {
-    try {
-      const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-      decodedUserData = JSON.parse(decodedString);
-    } catch (error) {
-      return res.status(400).json({ status: false, error: "Invalid userData" });
-    }
-  }
+   
 
-  if (!decodedUserData.company_id) {
+  if (!req?.user?.company_id) {
     return res
       .status(400)
       .json({ status: false, error: "Company ID is missing or invalid" });
   }
   db.query(
     "DELETE FROM holiday WHERE id = ? AND company_id=?",
-    [id, decodedUserData.company_id],
+    [id, req?.user?.company_id],
     (err, results) => {
       if (err) {
         console.error("Database error:", err);
@@ -298,18 +277,11 @@ router.get("/holidayfetch", (req, res) => {
   const offset = (page - 1) * limit;
 
   const { userData } = req.query;
-  let decodedUserData = null;
+   
 
-  if (userData) {
-    try {
-      const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-      decodedUserData = JSON.parse(decodedString);
-    } catch (error) {
-      return res.status(400).json({ status: false, error: "Invalid userData" });
-    }
-  }
+   
 
-  if (!decodedUserData.company_id) {
+  if (!req?.user?.company_id) {
     return res
       .status(400)
       .json({ status: false, error: "Company ID is missing or invalid" });
@@ -318,7 +290,7 @@ router.get("/holidayfetch", (req, res) => {
 
   db.query(
     holidayQuery,
-    [decodedUserData.company_id, limit, offset],
+    [req?.user?.company_id, limit, offset],
     (err, results) => {
       if (err) {
         console.error("Error fetching holiday records:", err);
@@ -329,7 +301,7 @@ router.get("/holidayfetch", (req, res) => {
         `;
       db.query(
         countQuery,
-        [decodedUserData.company_id],
+        [req?.user?.company_id],
         (countErr, countResults) => {
           if (countErr) {
             console.error("Error fetching total holiday records:", countErr);
@@ -368,17 +340,10 @@ if (date) {
   currentYear = parsedDate.getFullYear();
 }
 
-  let decodedUserData = null;
-  if (userData) {
-    try {
-      const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-      decodedUserData = JSON.parse(decodedString);
-    } catch (error) {
-      return res.status(400).json({ status: false, error: "Invalid userData" });
-    }
-  }
+   
+   
 
-  if (!decodedUserData.company_id) {
+  if (!req?.user?.company_id) {
     return res
       .status(400)
       .json({ status: false, error: "Company ID is missing or invalid" });
@@ -386,7 +351,7 @@ if (date) {
 
   let query =
     "SELECT holiday, date, holiday_type, half_day_type FROM holiday WHERE company_id=? AND status=1";
-  let queryData = [decodedUserData.company_id];
+  let queryData = [req?.user?.company_id];
 
   if (currentMonth && currentYear) {
     // Constructing the date filter condition for a specific month and year

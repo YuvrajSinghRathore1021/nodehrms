@@ -7,17 +7,8 @@ const { AdminCheck } = require('../../model/functlity/AdminCheck');
 // web cheak A
 router.post('/api/Attendance_settings', async (req, res) => {
     const { userData, multi_Attendance_approve, Type } = req.body;
-    if (!userData) {
-        return res.status(400).json({ status: false, error: 'userData is required' });
-    }
-    let decodedUserData;
-    try {
-        const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-        decodedUserData = JSON.parse(decodedString);
-    } catch (error) {
-        return res.status(400).json({ status: false, error: 'Invalid userData format' });
-    }
-    const { company_id, id: userId } = decodedUserData;
+   
+    const { company_id, id: userId } = req?.user || {};
     if (!company_id) {
         return res.status(400).json({ status: false, error: 'Company ID is missing or invalid' });
     }
@@ -80,17 +71,9 @@ router.post('/api/Attendance_settings', async (req, res) => {
 // web cheak A
 router.post('/api/GetAttendanceValue', async (req, res) => {
     const { userData, Type } = req.body;
-    if (!userData) {
-        return res.status(400).json({ status: false, error: 'userData is required' });
-    }
-    let decodedUserData;
-    try {
-        const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-        decodedUserData = JSON.parse(decodedString);
-    } catch (error) {
-        return res.status(400).json({ status: false, error: 'Invalid userData format' });
-    }
-    const { company_id, id: userId } = decodedUserData;
+   
+   
+    const { company_id, id: userId } = req?.user || {};
     if (!company_id) {
         return res.status(400).json({ status: false, error: 'Company ID is missing or invalid' });
     }

@@ -36,28 +36,21 @@ router.post('/Attendancemark', async (req, res) => {
     const formattedTime = attendanceTime || `${String(currentDate.getHours()).padStart(2, '0')}:${String(currentDate.getMinutes()).padStart(2, '0')}:${String(currentDate.getSeconds()).padStart(2, '0')}`;
 
 
-    let decodedUserData = null;
+
     let IpHandal = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
     if (!latitude || !longitude) {
         return res.status(200).json({ status: false, message: 'Location are required' });
     }
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    }
-    if (!decodedUserData || !decodedUserData.company_id || !decodedUserData.id || !type) {
+
+    if (!req?.user?.company_id || !req?.user?.id || !type) {
         return res.status(400).json({ status: false, error: 'company_id, id, and type are required' });
     }
-    let empId = attendanceType == "hr" && employeeId && employeeId != "0" ? employeeId : decodedUserData.id;
-    let companyId = decodedUserData.company_id;
+    let empId = attendanceType == "hr" && employeeId && employeeId != "0" ? employeeId : req?.user?.id;
+    let companyId = req?.user?.company_id;
     let applyBy = 0;
 
-    if (empId != decodedUserData.id) {
-        applyBy = decodedUserData.id;
+    if (empId != req?.user?.id) {
+        applyBy = req?.user?.id;
     }
     let getEmployeeData = {
         userData,
@@ -136,7 +129,7 @@ router.post('/Attendancemark', async (req, res) => {
                         late_coming_leaving = 1;
                     }
                 }
-                if (late_coming_leaving == 1 && decodedUserData.company_id == 10 && rule?.late_coming_penalty == 1) {
+                if (late_coming_leaving == 1 && req?.user?.company_id == 10 && rule?.late_coming_penalty == 1) {
                     const attendanceCount = await queryDb(` 
                         SELECT COUNT(attendance_id) AS total FROM attendance WHERE employee_id = ? AND 
                         company_id = ? AND late_coming_leaving = 1 AND MONTH(attendance_date) = ? AND 
@@ -168,7 +161,7 @@ router.post('/Attendancemark', async (req, res) => {
 
                 // const resultEmpin = await getEmployeeProfile(getEmployeeData);
                 // setTimeout(() => {
-                    // req.io.to(empId.toString()).emit("profileResponse", resultEmpin);
+                // req.io.to(empId.toString()).emit("profileResponse", resultEmpin);
                 // }, 1000);
 
                 return res.status(200).json({ status: true, message: `Attendance marked as 'in' at ${formattedTime}.` });
@@ -368,9 +361,9 @@ router.post('/Attendancemark', async (req, res) => {
             // After marking 'out', calculate total break duration
             await calculateAndUpdateTotalBreakDuration(empId, companyId);
             // const resultEmpout = await getEmployeeProfile(getEmployeeData);
-           
+
             // setTimeout(() => {
-                // req.io.to(empId.toString()).emit("profileResponse", resultEmpout);
+            // req.io.to(empId.toString()).emit("profileResponse", resultEmpout);
             // }, 1000);
 
             return res.status(200).json({ status: true, message: `Attendance marked as 'out' at ${formattedTime}. Duration: ${duration}.` });

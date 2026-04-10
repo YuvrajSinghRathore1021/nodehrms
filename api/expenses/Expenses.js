@@ -8,21 +8,14 @@ router.use(cors());
 // // // // // app cheak A / web cheak A
 // router.post('/api/getExpenses', async (req, res) => {
 //     const { userData, limit = 10, page = 1, search = '' } = req.body;
-//     let decodedUserData = null;
-//     if (userData) {
-//         try {
-//             const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-//             decodedUserData = JSON.parse(decodedString);
-//         } catch (error) {
-//             return res.status(400).json({ status: false, error: 'Invalid userData format' });
-//         }
-//     }
+//      
 
-//     // Validate required userData fields
-//     if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+
+//     // Validate required  fields
+//     if ( !req?.user?.id || !req?.user?.company_id) {
 //         return res.status(400).json({ status: false, error: 'Invalid or missing employee credentials' });
 //     }
-//     let employeeId = req.body.employee_id || decodedUserData.id;
+//     let employeeId = req.body.employee_id || req?.user?.id;
 
 //     // SELECT id, employee_id, company_id, expense_type, amount, reason, expense_date, added_by, rm_id, admin_id, rm_status, admin_status, rm_remark, admin_remark, status, created_at, updated_at FROM expenses WHERE 1
 
@@ -45,7 +38,7 @@ router.use(cors());
 //     WHERE e.company_id = ? AND e.employee_id = ?
 // `;
 
-//     let queryParams = [decodedUserData.company_id, employeeId];
+//     let queryParams = [req?.user?.company_id, employeeId];
 
 //     // Add search condition if search string is provided
 //     if (search && search.trim() !== '') {
@@ -72,7 +65,7 @@ router.use(cors());
 // LEFT JOIN employees emp ON e.employee_id = emp.id
 // WHERE e.company_id = ? AND e.employee_id = ?`;
 
-//         let countParams = [decodedUserData.company_id, employeeId];
+//         let countParams = [req?.user?.company_id, employeeId];
 
 //         if (search && search.trim() !== '') {
 //             countQuery += ` AND (
@@ -129,29 +122,21 @@ router.post('/api/getExpenses', async (req, res) => {
     } = req.body;
 
     // //console.log(req.body)
-    
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData format' });
-        }
-    }
 
-    if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+
+
+    if (!req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Invalid or missing employee credentials' });
     }
-    const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
-    let employee_idNew = employee_id || decodedUserData.id;
+    const isAdmin = await AdminCheck(req?.user?.id, req?.user?.company_id);
+    let employee_idNew = employee_id || req?.user?.id;
     const parsedLimit = parseInt(limit, 10);
     const parsedPage = parseInt(page, 10);
     const offset = (parsedPage - 1) * parsedLimit;
 
     // Handle multiple employees
     let employeeIdCondition = '';
-    let queryParams = [decodedUserData.company_id];
+    let queryParams = [req?.user?.company_id];
 
     if (employee_idNew && employee_idNew !== '') {
         const employeeIdArray = employee_idNew.split(',').map(id => parseInt(id));
@@ -243,7 +228,7 @@ router.post('/api/getExpenses', async (req, res) => {
     }
     if (!isAdmin) {
         query += ` AND (e.rm_id = ? or e.employee_id = ?)`;
-        queryParams.push(decodedUserData.id, decodedUserData.id);
+        queryParams.push(req?.user?.id, req?.user?.id);
     }
 
     query += ` ORDER BY e.id DESC LIMIT ? OFFSET ?`;
@@ -257,7 +242,7 @@ router.post('/api/getExpenses', async (req, res) => {
             LEFT JOIN employees emp ON e.employee_id = emp.id
             WHERE e.company_id = ? ${employeeIdCondition}`;
 
-        let countParams = [decodedUserData.company_id];
+        let countParams = [req?.user?.company_id];
         if (employee_idNew && employee_idNew !== '') {
             const employeeIdArray = employee_idNew.split(',').map(id => parseInt(id));
             countParams.push(...employeeIdArray);
@@ -306,7 +291,7 @@ router.post('/api/getExpenses', async (req, res) => {
 
         let expensesWithSrnu = results.map((Expenses, index) => ({
             srnu: offset + index + 1,
-            action_status: actionFound(Expenses, decodedUserData.id, isAdmin),
+            action_status: actionFound(Expenses, req?.user?.id, isAdmin),
             employee_name: Expenses.employee_name || '',
             rm_name: Expenses.rm_name || '',
             admin_name: Expenses.admin_name || '',
@@ -367,35 +352,23 @@ function actionFound(action, employeeId = 0, isAdmin = false) {
 router.post('/expensesAdd', async (req, res) => {
     const { userData, expense_type, amount, reason, expense_date, document } = req.body;
 
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    }
-
-    // Validate decoded userData
-    if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+    // Validate 
+    if (!req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and company ID are required' });
     }
-
-
     let { employee_id } = req.body;
-    employee_id = employee_id || decodedUserData.id;
+    employee_id = employee_id || req?.user?.id;
     // Basic validations
     if (!employee_id || !expense_type || !amount || !expense_date) {
         return res.status(400).json({ status: false, message: 'Missing required fields.' });
     }
-    const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
+    const isAdmin = await AdminCheck(req?.user?.id, req?.user?.company_id);
 
     try {
         let RmIdValue = 0;
         // Step 1: Get the reporting manager ID
         const [SettingMultiLeaveApprove] = await db.promise().query('SELECT multi_level_approve FROM settings WHERE company_id = ?',
-            [decodedUserData.company_id]
+            [req?.user?.company_id]
         );
 
         if (SettingMultiLeaveApprove.length === 0) { }
@@ -403,7 +376,7 @@ router.post('/expensesAdd', async (req, res) => {
             if (SettingMultiLeaveApprove[0].multi_level_approve == 1) {
                 const [managerResults] = await db.promise().query(
                     'SELECT reporting_manager FROM employees WHERE  employee_status=1 and status=1 and delete_status=0 and id = ? AND company_id = ?',
-                    [employee_id, decodedUserData.company_id]
+                    [employee_id, req?.user?.company_id]
                 );
                 if (managerResults.length === 0) {
                     return res.status(404).json({ status: false, error: 'Employee not found', message: 'Invalid employee ID or company ID' });
@@ -419,7 +392,7 @@ router.post('/expensesAdd', async (req, res) => {
             insertQuery = `INSERT INTO expenses (employee_id, company_id, expense_type, amount, reason, expense_date, document, added_by, rm_id, admin_id, rm_status, admin_status, status, created_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`;
 
-            db.query(insertQuery, [employee_id || decodedUserData.id, decodedUserData.company_id, expense_type, amount, reason || '', expense_date, documentJson, decodedUserData?.id || 0, RmIdValue || 0, decodedUserData.id || 0, '0', 1, 1], (err, result) => {
+            db.query(insertQuery, [employee_id || req?.user?.id, req?.user?.company_id, expense_type, amount, reason || '', expense_date, documentJson, req?.user?.id || 0, RmIdValue || 0, req?.user?.id || 0, '0', 1, 1], (err, result) => {
                 if (err) {
                     return res.status(500).json({ status: false, message: 'DB error', error: err });
                 }
@@ -430,7 +403,7 @@ router.post('/expensesAdd', async (req, res) => {
             insertQuery = `INSERT INTO expenses (employee_id, company_id, expense_type, amount, reason, expense_date, document, added_by, rm_id, admin_id, rm_status, admin_status, status, created_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`;
 
-            db.query(insertQuery, [employee_id || decodedUserData.id, decodedUserData.company_id, expense_type, amount, reason || '', expense_date, documentJson, decodedUserData?.id || 0, RmIdValue || 0, 0, '0', '0', 1], (err, result) => {
+            db.query(insertQuery, [employee_id || req?.user?.id, req?.user?.company_id, expense_type, amount, reason || '', expense_date, documentJson, req?.user?.id || 0, RmIdValue || 0, 0, '0', '0', 1], (err, result) => {
                 if (err) {
                     return res.status(500).json({ status: false, message: 'DB error', error: err });
                 }
@@ -449,18 +422,11 @@ router.post('/expensesAdd', async (req, res) => {
 router.post('/RequestApprove', async (req, res) => {
     const { userData, expense_type, amount, reason, employee_id, action_type, id, status } = req.body;
 
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    }
 
-    // Validate decoded userData
-    if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+
+
+     
+    if (!req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and company ID are required' });
     }
 
@@ -470,11 +436,11 @@ router.post('/RequestApprove', async (req, res) => {
     }
 
     try {
-        let EmployeeId = decodedUserData.id;
+        let EmployeeId = req?.user?.id;
         if (action_type == "rm") {
             const [Results] = await db.promise().query(
                 'UPDATE expenses SET rm_status = ?, rm_remark = ?, rm_id = ? WHERE id = ? AND company_id = ?',
-                [status, reason, EmployeeId, id, decodedUserData.company_id]
+                [status, reason, EmployeeId, id, req?.user?.company_id]
             );
             if (Results.affectedRows === 0) {
                 return res.status(404).json({ status: false, message: 'Expense request not found or already processed' });
@@ -484,7 +450,7 @@ router.post('/RequestApprove', async (req, res) => {
         } else {
             const [Results] = await db.promise().query(
                 'UPDATE expenses SET admin_status = ?, admin_remark = ?, admin_id = ? WHERE id = ? AND company_id = ?',
-                [status, reason, EmployeeId, id, decodedUserData.company_id]
+                [status, reason, EmployeeId, id, req?.user?.company_id]
             );
             if (Results.affectedRows === 0) {
                 return res.status(404).json({ status: false, message: 'Expense request not found or already processed' });
@@ -500,19 +466,11 @@ router.post('/RequestApprove', async (req, res) => {
 //amount count =total, totalpaid,totalunpaid,totalrejected,totalreturned        
 // router.post('/amountCount', async (req, res) => {
 //     const { userData, employee_id } = req.body;
-//     let decodedUserData = null;
+//      
 
-//     if (userData) {
-//         try {
-//             const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-//             decodedUserData = JSON.parse(decodedString);
-//         } catch (error) {
-//             return res.status(400).json({ status: false, error: 'Invalid userData' });
-//         }
-//     }
 
-//     // Validate decoded userData
-//     if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+//      
+//     if ( !req?.user?.id || !req?.user?.company_id) {
 //         return res.status(400).json({ status: false, error: 'Employee ID and company ID are required' });
 //     }
 //     // Basic validations
@@ -529,7 +487,7 @@ router.post('/RequestApprove', async (req, res) => {
 //                 SUM(CASE WHEN status = 3 THEN amount ELSE 0 END) AS totalreturned
 //             FROM expenses
 //             WHERE company_id = ? AND employee_id = ?`,
-//             [decodedUserData.company_id, employee_id]
+//             [req?.user?.company_id, employee_id]
 //         );
 
 //         if (Results.length === 0) {
@@ -556,26 +514,19 @@ router.post('/amountCount', async (req, res) => {
         search = ''
     } = req.body;
 
-    let decodedUserData = null;
 
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    }
 
-    // Validate decoded userData
-    if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+
+
+     
+    if (!req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and company ID are required' });
     }
-    const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
+    const isAdmin = await AdminCheck(req?.user?.id, req?.user?.company_id);
 
     // Handle multiple employees
     let employeeIdCondition = '';
-    let queryParams = [decodedUserData.company_id];
+    let queryParams = [req?.user?.company_id];
 
     if (employee_ids && employee_ids !== '') {
         const employeeIdArray = employee_ids.split(',').map(id => parseInt(id));
@@ -653,7 +604,7 @@ router.post('/amountCount', async (req, res) => {
     }
     if (!isAdmin) {
         query += ` AND (e.rm_id = ? or e.employee_id = ?)`;
-        queryParams.push(decodedUserData.id, decodedUserData.id);
+        queryParams.push(req?.user?.id, req?.user?.id);
     }
 
     try {
@@ -687,18 +638,11 @@ router.post('/amountCount', async (req, res) => {
 router.post('/expensesEdit', async (req, res) => {
 
     const { userData, id, expense_type, amount, reason, expense_date, document } = req.body;
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    }
 
-    // Validate decoded userData
-    if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+
+
+     
+    if (!req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and company ID are required' });
     }
 
@@ -711,7 +655,7 @@ router.post('/expensesEdit', async (req, res) => {
         // Check if the expense exists
         const [expenseResults] = await db.promise().query(
             'SELECT * FROM expenses WHERE id = ? AND company_id = ?',
-            [id, decodedUserData.company_id]
+            [id, req?.user?.company_id]
         );
 
         if (expenseResults.length === 0) {
@@ -722,7 +666,7 @@ router.post('/expensesEdit', async (req, res) => {
         const updateQuery = ` UPDATE expenses SET expense_type = ?, amount = ?, reason = ?, expense_date = ?, document = ?, updated_at = NOW() WHERE id = ? AND company_id = ? `;
 
         await db.promise().query(updateQuery, [
-            expense_type, amount, reason || '', expense_date, documentJson, id, decodedUserData.company_id
+            expense_type, amount, reason || '', expense_date, documentJson, id, req?.user?.company_id
         ]);
         // console.log({ status: true, message: 'Expense updated successfully' })
         return res.status(200).json({ status: true, message: 'Expense updated successfully' });

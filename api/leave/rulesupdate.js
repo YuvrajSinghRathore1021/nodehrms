@@ -51,18 +51,11 @@ router.post("/RulesUpdate", async (req, res) => {
         monthlyLeaveStructurenew = generateMonthlyLeaveStructure(leaves_allowed_year, apply_leaves_next_year)
     }
     
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(200).json({ status: false, error: "Invalid UserData" });
-        }
-    }
+     
+    
 
-    const companyId = decodedUserData?.company_id || company_id;
-    const updatedBy = decodedUserData?.id || 0;
+    const companyId = req?.user?.company_id || company_id;
+    const updatedBy = req?.user?.id || 0;
 
     if (!id || !companyId) {
         return res.status(200).json({
@@ -347,26 +340,15 @@ router.post("/RulesUpdate", async (req, res) => {
 
 router.post("/update-leave-type", async (req, res) => {
     const { id, leave_rule_id, userData, assign_date, change_reason = "Leave rules assigned" } = req.body;
-    let decodedUserData = "";
+    
 
-    // Decode userData
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(200).json({ status: false, error: "Invalid userData" });
-        }
-    } else {
-        return res.status(200).json({ status: false, error: "Invalid userData" });
-    }
-
-    if (!decodedUserData || !decodedUserData.company_id) {
+   
+    if ( !req?.user?.company_id) {
         return res.status(200).json({ status: false, error: "Company ID missing" });
     }
 
-    const company_id = decodedUserData.company_id;
-    const performed_by = decodedUserData.id || 0;
+    const company_id = req?.user?.company_id;
+    const performed_by = req?.user?.id || 0;
 
     if (!id || !leave_rule_id || !company_id) {
         return res.status(200).json({
@@ -465,7 +447,7 @@ router.post("/update-leave-type", async (req, res) => {
             );
 
             if (ruleResults.length === 0) {
-                console.log(`Rule ID ${ruleId} not found, skipping...`);
+                // console.log(`Rule ID ${ruleId} not found, skipping...`);
                 continue;
             }
 
@@ -473,12 +455,12 @@ router.post("/update-leave-type", async (req, res) => {
 
             // Check if rule has effective date restrictions
             if (rule.effective_from && new Date(rule.effective_from) > new Date()) {
-                console.log(`Rule ID ${ruleId} not effective yet, skipping...`);
+                // console.log(`Rule ID ${ruleId} not effective yet, skipping...`);
                 continue;
             }
 
             if (rule.effective_to && new Date(rule.effective_to) < new Date()) {
-                console.log(`Rule ID ${ruleId} has expired, skipping...`);
+                // console.log(`Rule ID ${ruleId} has expired, skipping...`);
                 continue;
             }
 

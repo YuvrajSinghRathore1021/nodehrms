@@ -6,29 +6,18 @@ const db = require('../../DB/ConnectionSql');
 router.post('/api/ChackViewDetails', (req, res) => {
     const { userData, Logid, attendanceId = 0 } = req.body;
     const attendanceIdNum = Number(attendanceId);
-    let decodedUserData = null;
+     
 
-    // 🔐 Decode userData
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({
-                status: false,
-                message: 'Invalid userData'
-            });
-        }
-    }
+   
 
-    if (!decodedUserData?.company_id) {
+    if (!req?.user?.company_id) {
         return res.status(400).json({
             status: false,
             message: 'Company ID is required'
         });
     }
 
-    const company_id = decodedUserData.company_id;
+    const company_id = req?.user?.company_id;
 
     /* =====================================================
        CASE 1️⃣ : attendanceId AVAILABLE → attendance table
@@ -159,17 +148,12 @@ router.post('/api/ChackViewDetailsNew', async (req, res) => {
         return res.status(400).json({ status: false, message: 'attendanceDate is required' });
     }
 
-    let decodedUserData;
-    try {
-        const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-        decodedUserData = JSON.parse(decodedString);
-    } catch (err) {
-        return res.status(400).json({ status: false, message: 'Invalid userData' });
-    }
+   
+   
 
-    const { company_id } = decodedUserData;
+    const  company_id  =  req?.user?.company_id;
 
-    let employee_id = employeeId || decodedUserData.id;
+    let employee_id = employeeId || req?.user?.id;
 
     if (!employee_id || !company_id) {
         return res.status(400).json({ status: false, message: 'Invalid employee or company' });
@@ -423,23 +407,9 @@ LEFT JOIN employees AS e  ON a.apply_by = e.id WHERE a.employee_id = ? AND a.com
 // app cheak A / web cheak A
 router.post('/api/ApprovalSubmit', async (req, res) => {
     const { userData, ApprovalRequests_id, Type, ApprovalStatus, employee_id, in_time, out_time, reason, request_date, request_type, short_leave = 0, short_leave_type = 0, short_leave_reason = "" } = req.body;
-    let decodedUserData = null;
-    // Decode and validate userData
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({
-                status: false,
-                error: 'Invalid userData',
-                message: 'Invalid userData'
-            });
-        }
-    }
-
+     
     // Validate company_id
-    if (!decodedUserData || !decodedUserData.company_id) {
+    if ( !req?.user?.company_id) {
         return res.status(400).json({
             status: false,
             error: 'Company ID is required',
@@ -448,7 +418,7 @@ router.post('/api/ApprovalSubmit', async (req, res) => {
     }
 
 
-    const company_id = decodedUserData.company_id;
+    const company_id = req?.user?.company_id;
 
     let query = '';
     let queryArray = [];
@@ -464,21 +434,21 @@ router.post('/api/ApprovalSubmit', async (req, res) => {
         UPDATE attendance_requests 
         SET admin_status = ?, admin_remark = ?, admin_id = ? ,request_type=?, short_leave=?, short_leave_type=?, short_leave_reason=?
         WHERE id = ? AND company_id = ?`;
-        queryArray = [ApprovalStatus, reason, decodedUserData.id, request_type, short_leave, short_leave_type, short_leave_reason, ApprovalRequests_id, company_id];
+        queryArray = [ApprovalStatus, reason, req?.user?.id, request_type, short_leave, short_leave_type, short_leave_reason, ApprovalRequests_id, company_id];
     }
 
     try {
 
         const AttendanceApprovalRequestsDate = await queryDb(
             'SELECT request_date,attendance_id FROM attendance_requests WHERE id=? AND company_id = ?',
-            [ApprovalRequests_id, decodedUserData.company_id]
+            [ApprovalRequests_id, req?.user?.company_id]
         );
         let ReqData = AttendanceApprovalRequestsDate[0]['request_date'];
         let AttendanceId = AttendanceApprovalRequestsDate[0]['attendance_id'];
 
         const AttendanceApprovalCheck = await queryDb(
             'SELECT attendance_id FROM attendance WHERE attendance_date = ? AND employee_id = ? AND company_id = ?',
-            [ReqData, employee_id, decodedUserData.company_id]
+            [ReqData, employee_id, req?.user?.company_id]
         );
         if ((AttendanceApprovalCheck.length > 0 && AttendanceId == 0) || (AttendanceId > 0 && AttendanceApprovalCheck.length > 1)) {
             return res.status(200).json({

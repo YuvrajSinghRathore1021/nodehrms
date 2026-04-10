@@ -7,22 +7,12 @@ const db = require('../../DB/ConnectionSql');
 // app cheak A / web cheak A
 router.post('/EmployeeLocationGet', (req, res) => {
   const { userData, searchData = "", departmentId = 0, subDepartmentid = 0 } = req.body;
-  let decodedUserData = null;
 
-  if (userData) {
-    try {
-      const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-      decodedUserData = JSON.parse(decodedString);
-    } catch (error) {
-      return res.status(400).json({ status: false, error: 'Invalid userData' });
-    }
-  }
-
-  if (!decodedUserData || !decodedUserData.company_id || !decodedUserData.id) {
+  if (!req?.user?.company_id || !req?.user?.id) {
     return res.status(400).json({ status: false, error: 'company_id and id are required' });
   }
 
-  const { company_id, id: viewer_id } = decodedUserData;
+  const { company_id, id: viewer_id } = req?.user || {};
 
   const permissionSql = `SELECT target_id FROM location_permissions WHERE company_id = ? AND viewer_id = ? AND can_view = 1`;
 
@@ -109,20 +99,13 @@ router.post('/EmployeeLocationGet', (req, res) => {
 // web cheak A
 router.post('/EmployeeGet', (req, res) => {
   const { userData, company_id = 0 } = req.body;
-  let decodedUserData = null;
 
-  if (userData) {
-    try {
-      const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-      decodedUserData = JSON.parse(decodedString);
-    } catch (error) {
-      return res.status(400).json({ status: false, error: 'Invalid userData' });
-    }
-  }
-  if (!decodedUserData || !decodedUserData.company_id || !decodedUserData.id) {
+
+
+  if (!req?.user?.company_id || !req?.user?.id) {
     return res.status(400).json({ status: false, error: 'company_id, id are required' });
   }
-  let companyId = company_id || decodedUserData.company_id;
+  let companyId = company_id || req?.user?.company_id;
 
   db.query(`SELECT id,CONCAT(first_name,' ',last_name) as name ,type FROM employees WHERE employee_status=1 and status=1 and delete_status=0 and company_id = ? ORDER BY first_name ASC`,
     [companyId],
@@ -148,22 +131,15 @@ router.post('/SubmitLocationPermissions', (req, res) => {
   let parsed = JSON.parse(target_id);
   let newTargetId = parsed.join(',');
 
-  let decodedUserData = null;
-  if (userData) {
-    try {
-      const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-      decodedUserData = JSON.parse(decodedString);
-    } catch (error) {
-      return res.status(400).json({ status: false, error: 'Invalid userData' });
-    }
-  }
 
-  if (!decodedUserData || !decodedUserData.company_id || !decodedUserData.id) {
+
+
+  if (!req?.user?.company_id || !req?.user?.id) {
     return res.status(400).json({ status: false, error: 'company_id and id required' });
   }
 
-  let employee_id = decodedUserData.id;
-  let company_id = decodedUserData.company_id;
+  let employee_id = req?.user?.id;
+  let company_id = req?.user?.company_id;
 
 
   const sqlCheck = 'SELECT id FROM location_permissions WHERE viewer_id = ?';
@@ -192,22 +168,15 @@ router.post('/SubmitLocationPermissions', (req, res) => {
 // web cheak A
 router.get('/api/FetchLocationPermissions', async (req, res) => {
   const { userData } = req.query;
-  let decodedUserData = null;
 
-  if (userData) {
-    try {
-      const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-      decodedUserData = JSON.parse(decodedString);
-    } catch (error) {
-      return res.status(400).json({ status: false, error: 'Invalid userData' });
-    }
-  }
+
+
 
   const limit = parseInt(req.query.limit, 10) || 10;
   const page = parseInt(req.query.page, 10) || 1;
   const offset = (page - 1) * limit;
 
-  if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+  if (!req?.user?.id || !req?.user?.company_id) {
     return res.status(400).json({ status: false, error: 'Employee ID is required' });
   }
 
@@ -222,7 +191,7 @@ router.get('/api/FetchLocationPermissions', async (req, res) => {
     ORDER BY lp.id DESC
     LIMIT ? OFFSET ?
   `;
-  const queryParams = [decodedUserData.company_id, limit, offset];
+  const queryParams = [req?.user?.company_id, limit, offset];
 
   db.query(query, queryParams, async (err, results) => {
     if (err) {
@@ -231,7 +200,7 @@ router.get('/api/FetchLocationPermissions', async (req, res) => {
     }
 
     // Fetch all employees once for mapping target IDs
-    db.query('SELECT id, CONCAT(first_name, " ", last_name) AS full_name FROM employees WHERE company_id = ? and employee_status=1 and status=1 and delete_status=0', [decodedUserData.company_id], (empErr, employees) => {
+    db.query('SELECT id, CONCAT(first_name, " ", last_name) AS full_name FROM employees WHERE company_id = ? and employee_status=1 and status=1 and delete_status=0', [req?.user?.company_id], (empErr, employees) => {
       if (empErr) {
         return res.status(500).json({ status: false, error: 'Error fetching employee names' });
       }
@@ -253,7 +222,7 @@ router.get('/api/FetchLocationPermissions', async (req, res) => {
       });
 
       // Get total count
-      db.query('SELECT COUNT(id) AS total FROM location_permissions WHERE company_id = ? ', [decodedUserData.company_id], (countErr, countResults) => {
+      db.query('SELECT COUNT(id) AS total FROM location_permissions WHERE company_id = ? ', [req?.user?.company_id], (countErr, countResults) => {
         if (countErr) {
           return res.status(500).json({ status: false, error: 'Server error' });
         }
@@ -276,22 +245,15 @@ router.get('/api/FetchLocationPermissions', async (req, res) => {
 // web cheak A
 router.post('/Get', async (req, res) => {
   const { userData, type = 'in', startDate, endDate, employeeId } = req.body;
-  let decodedUserData = null;
-  if (userData) {
-    try {
-      const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-      decodedUserData = JSON.parse(decodedString);
-    } catch (error) {
-      return res.status(400).json({ status: false, error: 'Invalid userData' });
-    }
-  }
 
-  if (!decodedUserData || !decodedUserData.company_id || !decodedUserData.id) {
+
+
+  if (!req?.user?.company_id || !req?.user?.id) {
     return res.status(400).json({ status: false, error: 'company_id and id are required' });
   }
 
   try {
-    const companyId = decodedUserData.company_id;
+    const companyId = req?.user?.company_id;
 
     // Validate type
     const locationField = type === 'out' ?

@@ -8,19 +8,12 @@ router.post('/api/BankDetails', async (req, res) => {
         const { userData } = req.body;
         let { EmployeeId = null } = req.body;
 
-        let decodedUserData = null;
-        if (userData) {
-            decodedUserData = decodeUserData(userData);
-            if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
-                return res.status(400).json({ status: false, message: 'Invalid userData', error: 'Invalid userData' });
-            }
-        } else {
-            return res.status(400).json({ status: false, message: 'userData is required', error: 'Missing userData' });
-        }
+         
+        
 
         // Query to fetch attendance requests
         const query = `SELECT id, employee_id,  first_name, last_name, official_email_id, email_id, date_of_Joining, last_day,upi,account_holder_name, contact_number, alternate_phone,bank, branch, city, ifsc, account_number,ctc FROM employees WHERE id=? And company_id = ? ORDER BY id DESC `;
-        const queryParams = [EmployeeId, decodedUserData.company_id];
+        const queryParams = [EmployeeId, req?.user?.company_id];
 
         // Execute the query
         const [results] = await db.promise().query(query, queryParams);
@@ -53,21 +46,14 @@ router.post("/api/UpdateBankDetails", (req, res) => {
         return res.status(400).json({ status: false, message: "ID is required to update holiday." });
     }
 
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: "Invalid userData" });
-        }
-    }
+     
+     
 
-    if (!decodedUserData.company_id) {
+    if (!req?.user?.company_id) {
         return res.status(400).json({ status: false, error: "Company ID is missing or invalid" });
     }
     db.query("UPDATE employees SET date_of_Joining=?,bank=?,branch=?,city=?,ifsc=?,account_number=?,account_holder_name=?,upi=?,last_day=? WHERE id = ? AND company_id=?",
-        [date_of_Joining, bank, branch, city, ifsc, account_number, account_holder_name, upi, last_day, id, decodedUserData.company_id],
+        [date_of_Joining, bank, branch, city, ifsc, account_number, account_holder_name, upi, last_day, id, req?.user?.company_id],
         (err, results) => {
             if (err) {
                 console.error("Database error:", err);
@@ -99,17 +85,11 @@ router.post("/api/UpdateSalary", async (req, res) => {
         return res.status(400).json({ status: false, message: "Employee ID is required" });
     }
 
-    let decodedUserData = null;
-    try {
-        const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-        decodedUserData = JSON.parse(decodedString);
-    } catch (error) {
-        return res.status(400).json({ status: false, error: "Invalid userData" });
-    }
+     
+     
 
-    // const { company_id, employee_id } = decodedUserData || {};
-    let company_id = decodedUserData ? decodedUserData.company_id : 0;
-    let employee_id = decodedUserData ? decodedUserData.id : 0;
+    let company_id = req?.user ? req?.user?.company_id : 0;
+    let employee_id = req?.user ? req?.user?.id : 0;
     if (!company_id) {
         return res.status(400).json({ status: false, error: "Company ID is missing or invalid" });
     }
@@ -172,16 +152,11 @@ router.post("/api/salaryLog", async (req, res) => {
     if (!id) {
         return res.status(400).json({ status: false, message: "Employee ID is required" });
     }
-    let decodedUserData = null;
-    try {
-        const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-        decodedUserData = JSON.parse(decodedString);
-    } catch (error) {
-        return res.status(400).json({ status: false, error: "Invalid userData" });
-    }
+     
+     
 
-    let company_id = decodedUserData ? decodedUserData.company_id : 0;
-    let employee_id = decodedUserData ? decodedUserData.id : 0;
+    let company_id = req?.user ? req?.user?.company_id : 0;
+    let employee_id = req?.user ? req?.user?.id : 0;
 
     if (!company_id) {
         return res.status(400).json({ status: false, error: "Company ID is missing or invalid" });
@@ -211,13 +186,6 @@ sul.company_id = ? AND sul.employee_id = ?  ORDER BY sul.id DESC`, [company_id, 
     }
 });
 
-const decodeUserData = (userData) => {
-    try {
-        const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-        return JSON.parse(decodedString);
-    } catch (error) {
-        return null;
-    }
-};
+
 
 module.exports = router;

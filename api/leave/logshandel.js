@@ -15,16 +15,11 @@ const leaveconversion = require("../../utils/leave/leaveconversion");
 //     return res.status(400).json({ status: false, message: "UserData is required." });
 //   }                         
 
-//   let decodedUserData;
-//   try {
-//     const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-//     decodedUserData = JSON.parse(decodedString);
-//   } catch (error) {
-//     return res.status(400).json({ status: false, message: "Invalid UserData format." });
-//   }
 
-//   const companyId = decodedUserData?.company_id;
-//   const employeeId = employee_Id || decodedUserData?.id;
+
+
+//   const companyId = req?.user?.company_id;
+//   const employeeId = employee_Id || req?.user?.id;
 
 //   if (!companyId || !employeeId) {
 //     return res.status(400).json({
@@ -160,7 +155,7 @@ const leaveconversion = require("../../utils/leave/leaveconversion");
 //       if (available < 0) available = 0;
 //       let totalCreditedNew = available;
 
-//       if (decodedUserData?.company_id == 10) {
+//       if (req?.user?.company_id == 10) {
 //         // employeeId
 //         // const leavecount = await handleleave(employeeId, rule.id);
 //         const leavecount = await leaveconversion(employeeId, rule.id);
@@ -202,16 +197,11 @@ router.post("/FetchLeaveCount", async (req, res) => {
     return res.status(400).json({ status: false, message: "UserData is required." });
   }
 
-  let decodedUserData;
-  try {
-    const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-    decodedUserData = JSON.parse(decodedString);
-  } catch (error) {
-    return res.status(400).json({ status: false, message: "Invalid UserData format." });
-  }
 
-  const companyId = decodedUserData?.company_id;
-  const employeeId = employee_Id || decodedUserData?.id;
+  
+
+  const companyId = req?.user?.company_id;
+  const employeeId = employee_Id || req?.user?.id;
 
   if (!companyId || !employeeId) {
     return res.status(400).json({

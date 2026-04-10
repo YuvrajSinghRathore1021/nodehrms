@@ -43,7 +43,6 @@ async function generateExcelAndSendMailc() {
 
 async function generateExcelAndSendMail(companyId, companyEmail) {
   try {
-    console.log("🔄 Fetching attendance data...");
 
     // 1️⃣ Fetch data from API
     const response = await axios.post(API_URL, {
@@ -54,7 +53,6 @@ async function generateExcelAndSendMail(companyId, companyEmail) {
     const data = response.data.Attendanceemployees;
 
     if (!data || data.length === 0) {
-      console.log("⚠️ No attendance data found.");
       return;
     }
     // === 1️⃣ Format data for Excel ===

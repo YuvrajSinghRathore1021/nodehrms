@@ -14,20 +14,13 @@ router.post('/api/MakePdf', async (req, res) => {
     try {
         const { userData, type, month, year } = req.body;
 
-        let decodedUserData = null;
-        if (userData) {
-            try {
-                const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-                decodedUserData = JSON.parse(decodedString);
-            } catch (error) {
-                return res.status(400).json({ status: false, error: "Invalid userData", message: "Invalid userData" });
-            }
-        }
+        
+     
 
-        if (!decodedUserData || !decodedUserData.company_id) {
+        if ( !req?.user?.company_id) {
             return res.status(400).json({ status: false, error: "ID is required", message: "ID is required" });
         }
-        const company_id = decodedUserData.company_id;
+        const company_id = req?.user?.company_id;
         if (!type || !month || !year) {
             return res.status(400).json({ status: false, error: "Type, month, and year are required", message: "Type, month, and year are required" });
         }
@@ -954,34 +947,20 @@ router.post('/api/data', async (req, res) => {
     try {
         const { userData, month, year, employeeId } = req.body;
 
-        /* ===================  Decode User =================== */
-        if (!userData) {
+        
+       
+
+     
+
+        if (!req?.user?.id || !req?.user?.company_id) {
             return res.status(400).json({
                 status: false,
-                message: 'userData is required'
+                message: 'Invalid user'
             });
         }
 
-        let decodedUserData = null;
-
-        if (userData) {
-            try {
-                const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-                decodedUserData = JSON.parse(decodedString);
-            } catch (error) {
-                return res.status(400).json({ status: false, error: 'Invalid userData format' });
-            }
-        }
-
-        if (!decodedUserData?.id || !decodedUserData?.company_id) {
-            return res.status(400).json({
-                status: false,
-                message: 'Invalid userData'
-            });
-        }
-
-        const employee_Id = employeeId || decodedUserData.id;
-        const companyId = decodedUserData.company_id;
+        const employee_Id = employeeId || req?.user?.id;
+        const companyId = req?.user?.company_id;
 
 
         if (!month || !year) {
@@ -1118,8 +1097,8 @@ router.get('/api/HtmlViewApi', async (req, res) => {
         // Extract parameters from query
         const { userData, month, year, employeeId } = req.query;
 
-        if (!userData || !month || !year) {
-            return res.status(400).send('Missing required parameters: userData, month, year');
+        if ( !month || !year) {
+            return res.status(400).send('Missing required parameters: month, year');
         }
 
         // Fetch dynamic data from your API
@@ -1128,7 +1107,7 @@ router.get('/api/HtmlViewApi', async (req, res) => {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ userData, month, year, employeeId })
+            body: JSON.stringify({  month, year, employeeId })
         });
         if (!apiResponse.ok) {
             throw new Error('Failed to fetch salary data');

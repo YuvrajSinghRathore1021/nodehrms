@@ -7,24 +7,17 @@ const db = require('../../DB/ConnectionSql');
 router.post('/api/Update', (req, res) => {
     const { EmployeesData, TypeValue, userData } = req.body;
 
-    if (!TypeValue || !EmployeesData || !userData) {
+    if (!TypeValue || !EmployeesData ) {
         return res.status(400).json({ status: false, message: 'Missing required fields' });
     }
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData, decoding failed' });
-        }
-    }
-    if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+     
+   
+    if ( !req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Invalid user data. Employee ID and Company ID are required.' });
     }
     let employeeIds = Array.isArray(EmployeesData) ? EmployeesData : EmployeesData.split(',').map(id => parseInt(id.trim()));
     const query = 'UPDATE employees SET type=? WHERE id IN (?) AND company_id=?';
-    const values = [TypeValue, employeeIds, decodedUserData.company_id];
+    const values = [TypeValue, employeeIds, req?.user?.company_id];
 
     db.query(query, values, (err, results) => {
         if (err) {
@@ -38,21 +31,13 @@ router.post('/api/Update', (req, res) => {
 router.post('/api/EmployeeRemove', (req, res) => {
     const { id, userData } = req.body;
 
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData, decoding failed' });
-        }
-    }
-
-    if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+     
+  
+    if ( !req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Invalid user data. Employee ID and Company ID are required.' });
     }
     const query = 'UPDATE employees SET type="employee" WHERE id =? AND company_id=?';
-    const values = [ id, decodedUserData.company_id];
+    const values = [ id, req?.user?.company_id];
 
     db.query(query, values, (err, results) => {
         if (err) {
@@ -68,24 +53,16 @@ router.post('/api/EmployeeRemove', (req, res) => {
 // web cheak A
 router.get('/api/EmployeesDetiles', async (req, res) => {
     const { userData } = req.query;
-    let decodedUserData = null;
-    // Decode userData
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    }
-    if (!decodedUserData || !decodedUserData.id) {
+     
+   
+    if ( !req?.user?.id) {
         return res.status(400).json({ status: false, error: 'Employee ID is required' });
     }
 
     let query;
     let queryParams = '';
 
-    queryParams = [decodedUserData.company_id];
+    queryParams = [req?.user?.company_id];
     query = `SELECT id,type,first_name FROM employees WHERE  employee_status=1 and status=1 and delete_status=0 and  company_id = ?`;
 
     db.query(query, queryParams, (err, results) => {
@@ -107,25 +84,16 @@ router.get('/api/EmployeesDetiles', async (req, res) => {
 // web cheak A
 router.get('/api/fetchType', async (req, res) => {
     const { userData } = req.query;
-    let decodedUserData = null;
-    // Decode userData
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    }
-
-    if (!decodedUserData || !decodedUserData.id) {
+     
+   
+    if ( !req?.user?.id) {
         return res.status(400).json({ status: false, error: 'Employee ID is required' });
     }
 
     let query;
     let queryParams = '';
 
-    queryParams = [decodedUserData.company_id];
+    queryParams = [req?.user?.company_id];
     query = `SELECT id,profile_image,type, first_name FROM employees WHERE employee_status=1 and status=1 and delete_status=0 and  company_id = ?`;
 
     db.query(query, queryParams, (err, results) => {

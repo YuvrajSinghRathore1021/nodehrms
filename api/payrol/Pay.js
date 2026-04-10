@@ -13,17 +13,10 @@ router.post('/salary/submit', async (req, res) => {
         const salaryDetails = JSON.parse(req.body.Data);
         const { userData } = req.body;
 
-        let decodedUserData = null;
-        if (userData) {
-            try {
-                const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-                decodedUserData = JSON.parse(decodedString);
-            } catch (error) {
-                return res.status(400).json({ status: false, error: 'Invalid userData format' });
-            }
-        }
+         
+        
 
-        if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+        if ( !req?.user?.id || !req?.user?.company_id) {
             return res.status(400).json({
                 status: false,
                 error: 'Employee ID and Company ID are required',
@@ -42,7 +35,7 @@ router.post('/salary/submit', async (req, res) => {
             WHERE company_id = ? AND employee_id = ? AND month = ? AND year = ?`;
 
         const checkDuplicateValues = [
-            decodedUserData.company_id, employee_id, month, year,
+            req?.user?.company_id, employee_id, month, year,
         ];
         // console.log('checkDuplicateQuery', checkDuplicateQuery, checkDuplicateValues);
 
@@ -72,7 +65,7 @@ router.post('/salary/submit', async (req, res) => {
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
             const salaryQueryValues = [
-                decodedUserData.company_id, month, year, employee_id, employee_name,
+                req?.user?.company_id, month, year, employee_id, employee_name,
                 presentCount, HF, absenteeCount, leaveCount, leaveRequestCount, holidayCount,
                 WO, WD, ctc, monthly_salary, BasicPayAmount, proratedSalary,
             ];
@@ -96,7 +89,7 @@ router.post('/salary/submit', async (req, res) => {
 
                 components.forEach((component) => {
                     const componentValues = [
-                        decodedUserData.company_id, salaryDetailId,
+                        req?.user?.company_id, salaryDetailId,
                         component.component_name, component.amount,
                     ];
 
@@ -150,16 +143,10 @@ router.post('/api/GenerateSalary', async (req, res) => {
         const { employeeId, presentCount, HF, leaveCount, holidayCount, WO, month, year, PenaltyData, userData } = req.body;
 
         // Decode userData
-        let decodedUserData = null;
-        if (userData) {
-            try {
-                decodedUserData = JSON.parse(Buffer.from(userData, 'base64').toString('utf-8'));
-            } catch (error) {
-                return res.status(400).json({ status: false, error: 'Invalid userData format' });
-            }
-        }
+         
+       
 
-        if (!decodedUserData?.id || !decodedUserData?.company_id) {
+        if (!req?.user?.id || !req?.user?.company_id) {
             return res.status(400).json({
                 status: false,
                 error: 'Employee ID and Company ID are required',
@@ -254,7 +241,7 @@ router.post('/api/GenerateSalary', async (req, res) => {
     LEFT JOIN employees admin ON e.admin_id = admin.id
     LEFT JOIN employees added ON e.added_by = added.id
     WHERE e.company_id = ? AND e.employee_id = ? and e.admin_status=1 and e.status=1`,
-            [decodedUserData?.company_id, employeeId]
+            [req?.user?.company_id, employeeId]
         );
 
         if (componentResults.length === 0) {
@@ -361,20 +348,15 @@ router.get('/api/PayEmployeeSalaryDetails', async (req, res) => {
     }
 
     // Decode user
-    let decodedUserData = null;
-    try {
-        const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-        decodedUserData = JSON.parse(decodedString);
-    } catch (error) {
-        return res.status(400).json({ status: false, error: 'Invalid userData format' });
-    }
+     
+    
 
-    if (!decodedUserData?.id || !decodedUserData?.company_id) {
+    if (!req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
     }
 
     try {
-        const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
+        const isAdmin = await AdminCheck(req?.user?.id, req?.user?.company_id);
         const searchQuery = `%${search}%`;
 
         let whereQuery = ''
@@ -408,16 +390,16 @@ router.get('/api/PayEmployeeSalaryDetails', async (req, res) => {
             AND esd.year = ?
         `;
 
-        let values = [decodedUserData.company_id, month, year];
+        let values = [req?.user?.company_id, month, year];
 
         whereQuery += ` AND esd.company_id = ? AND esd.month = ? AND esd.year = ?`;
-        whereValue.push(decodedUserData.company_id, month, year);
+        whereValue.push(req?.user?.company_id, month, year);
 
         if (!isAdmin) {
             query += ` AND esd.employee_id = ? `;
-            values.push(decodedUserData.id);
+            values.push(req?.user?.id);
             whereQuery += ` AND esd.employee_id = ? `;
-            whereValue.push(decodedUserData.id);
+            whereValue.push(req?.user?.id);
         }
 
         if (search) {
@@ -564,20 +546,12 @@ router.post('/api/EmployeeSalaryDetails', async (req, res) => {
     const { userData, month, year, salaryStatus } = req.body;
 
 
-    let decodedUserData = null;
+     
 
 
     // Decode and validate userData
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData format' });
-        }
-    }
-
-    if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+     
+    if ( !req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
     }
 
@@ -613,11 +587,11 @@ router.post('/api/EmployeeSalaryDetails', async (req, res) => {
             inner JOIN employees AS e ON esd.employee_id = e.id
             LEFT JOIN salarycomponents AS sc
             ON esd.id = sc.salary_detail_id WHERE esd.company_id = ? AND esd.month = ? AND esd.year = ?`;
-        let values = [decodedUserData.company_id, month, year];
+        let values = [req?.user?.company_id, month, year];
 
 
         query += ` AND esd.employee_id=?`;
-        values.push(decodedUserData.id);
+        values.push(req?.user?.id);
 
 
         // Approved, Pending
@@ -691,18 +665,10 @@ router.post('/api/EmployeeSalaryDetails', async (req, res) => {
 // web cheak A
 router.post("/api/Upadate", (req, res) => {
     const { id, userData, paymentStatus = 1 } = req.body;
-    let decodedUserData = null;
+     
 
     // Decode and validate userData
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData format' });
-        }
-    }
-    if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+         if ( !req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
     }
     if (!id) {
@@ -711,7 +677,7 @@ router.post("/api/Upadate", (req, res) => {
 
     db.query(
         "UPDATE employeesalarydetails SET status = ? WHERE id = ? And company_id=?",
-        [paymentStatus, id, decodedUserData.company_id],
+        [paymentStatus, id, req?.user?.company_id],
         (err, results) => {
             if (err) {
                 console.error("Database error:", err);
@@ -737,21 +703,13 @@ router.post("/api/Upadate", (req, res) => {
 router.post('/calculate-penalties', async (req, res) => {
     const { userData, month, year, UserEmployeeId } = req.body;
 
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData format' });
-        }
-    }
-
-    if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+     
+     
+    if ( !req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
     }
 
-    let employeeId = UserEmployeeId || decodedUserData.id;
+    let employeeId = UserEmployeeId || req?.user?.id;
     if (!employeeId || !month || !year) {
         return res.status(400).json({ message: 'Missing required parameters' });
     }
@@ -927,28 +885,19 @@ const addGracePeriod = (rowData) => {
 router.post("/calculate-Sandwichpenalties", async (req, res) => {
     try {
         const { userData, month, year, UserEmployeeId } = req.body;
-        let decodedUserData = null;
+         
 
         // Decode Base64 userData
-        if (userData) {
-            try {
-                const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-                decodedUserData = JSON.parse(decodedString);
-            } catch (error) {
-                return res
-                    .status(400)
-                    .json({ status: false, error: "Invalid userData format" });
-            }
-        }
+        
 
-        if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+        if ( !req?.user?.id || !req?.user?.company_id) {
             return res
                 .status(400)
                 .json({ status: false, error: "Employee ID and Company ID are required" });
         }
 
-        const employeeId = UserEmployeeId || decodedUserData.id;
-        const companyId = decodedUserData.company_id;
+        const employeeId = UserEmployeeId || req?.user?.id;
+        const companyId = req?.user?.company_id;
 
         // Calculate month range
         const startDate = new Date(`${year}-${month}-01`);

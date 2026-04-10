@@ -5,28 +5,22 @@ const db = require('../../DB/ConnectionSql');
 // web cheak A
 router.post('/api/UrlGet', async (req, res) => {
     const { userData } = req.body;
-    let decodedUserData = null;
 
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData format' });
-        }
-    }
-
-    if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+    if (!req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
     }
+    let superadmin = false;
+    if (req?.user?.user_company_id == 6) {
+        superadmin = true;
+    }
 
-    const company_id = decodedUserData.company_id;
+    const company_id = req?.user?.company_id;
     const query = `
         SELECT type FROM employees 
         WHERE company_id = ? AND id = ? 
         AND (type = 'admin' OR type = 'ceo' OR type = 'HR' OR type = 'Company_Admin')
     `;
-    const queryParams = [decodedUserData.company_id, decodedUserData.id];
+    const queryParams = [req?.user?.company_id, req?.user?.id];
 
     db.query(query, queryParams, (err, results) => {
         if (err) {
@@ -192,7 +186,8 @@ router.post('/api/UrlGet', async (req, res) => {
             status: true,
             data: menuItems,
             ValidUrl,
-            adminCheck
+            adminCheck,
+            superadmin
         });
     });
 });

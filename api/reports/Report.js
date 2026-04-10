@@ -8,20 +8,11 @@ const db = require('../../DB/ConnectionSql');
 router.post("/GetReport", async (req, res) => {
     const { userData, EmployeeId = '', StartMonth = '', StartYear = '', EndMonth = '', EndYear = '' } = req.body;
 
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(200).json({ status: false, error: "Invalid UserData" });
-        }
-    }
 
 
     let whereClauses = [`e.company_id = ?`];
     // `esd.status = 1`
-    let values = [decodedUserData.company_id];
+    let values = [req?.user?.company_id];
 
     if (EmployeeId) {
         whereClauses.push(`e.id = ?`);
@@ -37,7 +28,7 @@ router.post("/GetReport", async (req, res) => {
 
     const [employeesTotal] = await db.promise().query(
         "SELECT COUNT(id) AS Total FROM employees WHERE company_id=?",
-        [decodedUserData.company_id]
+        [req?.user?.company_id]
     );
 
     const [totalSalary] = await db.promise().query(
@@ -70,15 +61,8 @@ router.post("/GetReport", async (req, res) => {
 router.post("/SalaryGraph", async (req, res) => {
     const { userData } = req.body;
 
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(200).json({ status: false, error: "Invalid UserData" });
-        }
-    }
+   
+  
 
     try {
         const [rows] = await db.promise().query(
@@ -87,7 +71,7 @@ router.post("/SalaryGraph", async (req, res) => {
              WHERE company_id = ? 
              GROUP BY year, month 
              ORDER BY year ASC, month ASC`,
-            [decodedUserData.company_id]
+            [req?.user?.company_id]
         );
 
         return res.status(200).json({
@@ -111,16 +95,6 @@ router.post("/SalaryGraph", async (req, res) => {
 router.post("/DepartmentSalaryGraph", async (req, res) => {
     const { userData } = req.body;
 
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(200).json({ status: false, error: "Invalid UserData" });
-        }
-    }
-
     try {
         const [result] = await db.promise().query(`
             SELECT e.department,SUM(esd.total_monthly_salary) AS total_salary 
@@ -128,7 +102,7 @@ router.post("/DepartmentSalaryGraph", async (req, res) => {
             LEFT JOIN employeesalarydetails esd ON e.id = esd.employee_id
             WHERE e.company_id = ? 
             GROUP BY e.department
-        `, [decodedUserData.company_id]);
+        `, [req?.user?.company_id]);
         // AND esd.status = 1
 
         return res.status(200).json({

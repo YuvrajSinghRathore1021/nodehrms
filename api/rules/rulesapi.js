@@ -9,17 +9,10 @@ const { json } = require("body-parser");
 
 router.get("/fetch-department-employee", async (req, res) => {
 
-  let decodedUserData = null;
+   
   const { userData } = req.query;
-  if (userData) {
-    try {
-      const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-      decodedUserData = JSON.parse(decodedString);
-    } catch (error) {
-      return res.status(200).json({ status: false, error: "Invalid UserData" });
-    }
-  }
-  const companyId = decodedUserData?.company_id;
+   
+  const companyId = req?.user?.company_id;
   if (!companyId) {
     return res
       .status(200)
@@ -38,7 +31,6 @@ router.get("/fetch-department-employee", async (req, res) => {
     WHERE
       e.company_id = ?                        
   `;
-  // console.log(decodedUserData)
   try {
     const [employees] = await db.promise().query(employeeQuery, [companyId]);
     if (employees.length === 0) {
@@ -132,16 +124,9 @@ router.post("/RulesUpdate", (req, res) => {
     userData
   } = req.body;
   const recordId = id;
-  let decodedUserData = null;
-  if (userData) {
-    try {
-      const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-      decodedUserData = JSON.parse(decodedString);
-    } catch (error) {
-      return res.status(200).json({ status: false, error: "Invalid UserData" });
-    }
-  }
-  const companyId = decodedUserData.id || company_id;
+   
+   
+  const companyId = req?.user?.id || company_id;
   // Check if record exists before updating
   const checkQuery = `SELECT * FROM leave_rules WHERE id = ?`;
   db.query(checkQuery, [id], (err, results) => {
@@ -282,21 +267,12 @@ router.get("/Assign_Rules", (req, res) => {
 
 router.post("/update-leave-type", (req, res) => {
   const { employee_id, leave_rule_id, userData } = req.body;
-  let decodedUserData = "";
-  if (userData) {
-    try {
-      const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-      decodedUserData = JSON.parse(decodedString);
-    } catch (error) {
-      return res.status(200).json({ status: false, error: "Invalid userData" });
-    }
-  } else {
-    return res.status(200).json({ status: false, error: "Invalid userData" });
-  }
-  if (!decodedUserData || !decodedUserData.company_id) {
+ 
+   
+  if ( !req?.user?.company_id) {
     return res.status(200).json({ status: false, error: "ID is required" });
   }
-  const company_id = decodedUserData.company_id;
+  const company_id = req?.user?.company_id;
   if (!employee_id || !leave_rule_id || !company_id) {
     return res.status(200).json({
       status: false,
@@ -365,25 +341,16 @@ router.post("/update-leave-type", (req, res) => {
 
 router.get("/rulesfetch", (req, res) => {
   const recordId = req.params.id;
-  let decodedUserData = "";
+
   const userData = req.params.userData;
-  if (userData) {
-    try {
-      const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-      decodedUserData = JSON.parse(decodedString);
-    } catch (error) {
-      return res.status(200).json({ status: false, error: "Invalid userData" });
-    }
-  } else {
-    return res.status(200).json({ status: false, error: "Invalid userData" });
-  }
-  if (!decodedUserData || !decodedUserData.company_id) {
+    
+  if ( !req?.user?.company_id) {
     return res.status(200).json({ status: false, error: "ID is required" });
   }
   const query = recordId
     ? `SELECT * FROM leave_rules WHERE company_id=? And id = ?`
     : `SELECT * FROM leave_rules Where company_id=?`;
-  const values = recordId ? [decodedUserData.company_id, recordId] : [decodedUserData.company_id];
+  const values = recordId ? [req?.user?.company_id, recordId] : [req?.user?.company_id];
   db.query(query, values, (err, results) => {
     if (err) {
       console.error("SQL Error:", err);
@@ -497,15 +464,8 @@ ORDER BY
 // router.get("/Balance", (req, res) => {
 //   const { userData, page = 1, limit = 10 } = req.query; // Default page=1 and limit=10
 
-//   let decodedUserData;
-//   if (userData) {
-//     try {
-//       const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-//       decodedUserData = JSON.parse(decodedString);
-//     } catch (error) {
-//       return res.status(400).json({ status: false, error: "Invalid userData" });
-//     }
-//   }
+
+ 
 //   // Calculate OFFSET for pagination
 //   const offset = (page - 1) * limit;
 //   // Main query with LIMIT and OFFSET
@@ -583,17 +543,10 @@ ORDER BY
 
 router.get("/leavesTypes", (req, res) => {
   const { userData } = req.body;
-  if (userData) {
-    try {
-      const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-      var decodedUserData = JSON.parse(decodedString);
-    } catch (error) {
-      return res.status(400).json({ status: false, error: "Invalid UserData" });
-    }
-  }
+  
   const query = "SELECT leave_type FROM leaves Where company_id=?";
 
-  db.query(query, [decodedUserData.company_id], (err, result) => {
+  db.query(query, [req?.user?.company_id], (err, result) => {
     if (err) {
       console.error("Database error:", err);
       return res.status(500).json({ status: false, error: "Database error" });

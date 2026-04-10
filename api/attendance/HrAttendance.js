@@ -6,25 +6,16 @@ const db = require('../../DB/ConnectionSql');
 //////
 // router.post('/attendanceEdit', async (req, res) => {
 //     const { userData, status, checkInTime, attendance_status, checkOutTime, duration, reason, branchIdIn, branchIdOut, attendanceId, hrReason, type, employeeId, late_coming_leaving, short_leave, short_leave_type, short_leave_reason } = req.body;
-//     let decodedUserData = null;
-//     // Decode and validate userData
-//     if (userData) {
-//         try {
-//             const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-//             decodedUserData = JSON.parse(decodedString);
-//         } catch (error) {
-//             return res.status(400).json({
-//                 status: false, error: 'Invalid userData', message: 'Invalid userData'
-//             }); 
-//         }
-//     }
+//      
+
+//     
 //     // Validate company_id
-//     if (!decodedUserData || !decodedUserData.company_id) {
+//     if ( !req?.user?.company_id) {
 //         return res.status(400).json({
 //             status: false, error: 'Company ID is required', message: 'Company ID is required'
 //         });
 //     }
-//     const company_id = decodedUserData.company_id;
+//     const company_id = req?.user?.company_id;
 //     try {
 //         let result;
 //         console.log(type);
@@ -32,7 +23,7 @@ const db = require('../../DB/ConnectionSql');
 //             console.log(type);
 //             [result] = await db.promise().query(
 //                 `INSERT INTO attendance ( status,check_in_time ,check_out_time,duration ,reason,branch_id_in, branch_id_out,employee_id , company_id,apply_by,hr_reason,late_coming_leaving, short_leave, short_leave_type, short_leave_reason) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) `,
-//                 [status, checkInTime, checkOutTime, duration, reason, branchIdIn, branchIdOut, employeeId, company_id, decodedUserData.id, hrReason, late_coming_leaving, short_leave, short_leave_type, short_leave_reason]
+//                 [status, checkInTime, checkOutTime, duration, reason, branchIdIn, branchIdOut, employeeId, company_id, req?.user?.id, hrReason, late_coming_leaving, short_leave, short_leave_type, short_leave_reason]
 //             );
 //             console.log(result);
 //         } else {
@@ -81,24 +72,15 @@ const db = require('../../DB/ConnectionSql');
 //         userData, reason = null, type = "", employeeId = 0, attendanceDate = ""
 //     } = req.body;
 
-//     let decodedUserData = null;
+//      
 
-//     // Decode userData
-//     if (userData) {
-//         try {
-//             const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-//             decodedUserData = JSON.parse(decodedString);
-//         } catch (error) {
-//             return res.status(400).json({ status: false, error: 'Invalid userData' });
-//         }
-//     }
 
 //     // Validate company
-//     if (!decodedUserData || !decodedUserData.company_id) {
+//     if ( !req?.user?.company_id) {
 //         return res.status(400).json({ status: false, message: 'Company ID is required' });
 //     }
 
-//     const company_id = decodedUserData.company_id;
+//     const company_id = req?.user?.company_id;
 //     const fix = (v) => ((v == "" || v == null )? " " : v);
 //     try {
 //         let result;
@@ -113,7 +95,7 @@ const db = require('../../DB/ConnectionSql');
 //                  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 //                 [
 //                     attendance_status, status, checkInTime, checkOutTime, duration, fix(reason),
-//                     branchIdIn, branchIdOut, employeeId, company_id, decodedUserData.id,
+//                     branchIdIn, branchIdOut, employeeId, company_id, req?.user?.id,
 //                     fix(hrReason) || "", late_coming_leaving, short_leave, short_leave_type, short_leave_reason, attendanceDate
 //                 ]
 //             );
@@ -166,22 +148,14 @@ router.post('/attendanceEdit', async (req, res) => {
         employeeId = 0,
         userData = "",
         type = ""
-    } = req.body;
+    } = req.body;    
+    
 
-    // Decode userData
-    let decodedUserData = null;
-    try {
-        const decoded = Buffer.from(userData, "base64").toString("utf8");
-        decodedUserData = JSON.parse(decoded);
-    } catch (e) {
-        return res.status(400).json({ status: false, message: "Invalid userData" });
-    }
-
-    if (!decodedUserData?.company_id) {
+    if (!req?.user?.company_id) {
         return res.status(400).json({ status: false, message: "company_id missing" });
     }
 
-    const company_id = decodedUserData.company_id;
+    const company_id = req?.user?.company_id;
 
     // Fix empty/null values
     const fix = (v) => (v === null || v === undefined || v === "" ? "" : v);
@@ -216,7 +190,7 @@ router.post('/attendanceEdit', async (req, res) => {
                 branchIdOut,
                 employeeId,
                 company_id,
-                decodedUserData.id,
+                req?.user?.id,
                 fix(hrReason),
                 late_coming_leaving,
                 short_leave,
@@ -279,7 +253,7 @@ router.post('/attendanceEdit', async (req, res) => {
         UPDATE attendance_requests 
         SET  admin_id = ?, admin_status = ?,admin_remark=?
         WHERE request_date=? and company_id=? and employee_id=?
-    `, [decodedUserData.id, attendance_status, hrReasonNew, attendanceDate, company_id, employeeId]);
+    `, [req?.user?.id, attendance_status, hrReasonNew, attendanceDate, company_id, employeeId]);
         }
 
         if (result.affectedRows > 0) {
@@ -303,23 +277,15 @@ router.post('/attendanceEdit', async (req, res) => {
 router.post('/attendanceRequestEdit', async (req, res) => {
     const { userData, attendanceId, request_type, in_time, out_time, reason, rm_id, rm_status, admin_id, admin_status, request_id } = req.body;
 
-    let decodedUserData = null;
+     
 
-    // Decode and validate userData
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, message: 'Invalid userData' });
-        }
-    }
+    
 
-    if (!decodedUserData || !decodedUserData.company_id) {
+    if ( !req?.user?.company_id) {
         return res.status(400).json({ status: false, message: 'Company ID is required' });
     }
 
-    const company_id = decodedUserData.company_id;
+    const company_id = req?.user?.company_id;
 
     try {
         const [result] = await db.promise().query(
@@ -477,28 +443,18 @@ function trackTime(officeStartTime, arrivalTimeOrCloseTime) {
 // web cheak A
 router.post('/attendanceDetails', async (req, res) => {
     const { userData, attendanceId, attendanceDate, employeeId } = req.body;
-    let decodedUserData = null;
+     
 
-    // Decode and validate userData
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({
-                status: false, error: 'Invalid userData', message: 'Invalid userData'
-            });
-        }
-    }
+  
 
     // Validate company_id
-    if (!decodedUserData || !decodedUserData.company_id) {
+    if ( !req?.user?.company_id) {
         return res.status(400).json({
             status: false, error: 'Company ID is required', message: 'Company ID is required'
         });
     }
 
-    const company_id = decodedUserData.company_id;
+    const company_id = req?.user?.company_id;
     let employee_Id = employeeId;
 
     let query = "";
@@ -604,18 +560,13 @@ WHERE (att.attendance_id = ? or (att.attendance_date=? and att.employee_id=?)) A
 // router.post('/attendanceDetailsSummary', async (req, res) => {
 //     const { userData, employeeId, timeAllow = "00:20", startDate, endDate } = req.body;
 
-//     let decodedUserData = null;
-//     try {
-//         decodedUserData = JSON.parse(Buffer.from(userData, 'base64').toString('utf-8'));
-//     } catch (error) {
-//         return res.status(400).json({ status: false, message: "Invalid userData" });
-//     }
 
-//     if (!decodedUserData?.company_id) {
+
+//     if (!req?.user?.company_id) {
 //         return res.status(400).json({ status: false, message: "Company ID is required" });
 //     }
 
-//     const company_id = decodedUserData.company_id;
+//     const company_id = req?.user?.company_id;
 
 //     // office timings
 //     const officeIn = "09:30:00";
@@ -699,19 +650,14 @@ WHERE (att.attendance_id = ? or (att.attendance_date=? and att.employee_id=?)) A
 router.post('/AttendanceRequestDetails', async (req, res) => {
     const { userData, employeeId, attendanceDate } = req.body;
 
-    let decodedUserData = null;
-    try {
-        decodedUserData = JSON.parse(Buffer.from(userData, 'base64').toString('utf-8'));
-    } catch (error) {
-        return res.status(400).json({ status: false, message: "Invalid userData" });
-    }
-
-    if (!decodedUserData?.company_id) {
+     
+   
+    if (!req?.user?.company_id) {
         return res.status(400).json({ status: false, message: "Company ID is required" });
     }
 
-    const company_id = decodedUserData.company_id;
-    let employee_Id = employeeId || decodedUserData.id;
+    const company_id = req?.user?.company_id;
+    let employee_Id = employeeId || req?.user?.id;
 
     try {
         // 1️⃣ Attendance summary

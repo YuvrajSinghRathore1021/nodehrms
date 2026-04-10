@@ -32,17 +32,9 @@ router.post('/api/add', async (req, res) => {
 
 
 
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData format' });
-        }
-    }
-
-    if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+     
+     
+    if ( !req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
     }
     let iconPath = icon || null;
@@ -64,24 +56,16 @@ router.post('/api/add', async (req, res) => {
 
 router.post('/api/getUrl', async (req, res) => {
     const { userData } = req.body;
-    let decodedUserData = null;
+     
 
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData format' });
-        }
-    }
-
-    if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+     
+    if ( !req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
     }
-    const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
+    const isAdmin = await AdminCheck(req?.user?.id, req?.user?.company_id);
 
 
-    const employee_id = decodedUserData.id;
+    const employee_id = req?.user?.id;
 
     let query = `
     SELECT id, title, url, icon, parent_id
@@ -100,7 +84,7 @@ router.post('/api/getUrl', async (req, res) => {
 
     query += ` ORDER BY sort_order ASC`;
 
-    db.query(query, [employee_id, decodedUserData.company_id], (err, menus) => {
+    db.query(query, [employee_id, req?.user?.company_id], (err, menus) => {
         if (err) return res.status(500).json({ status: false, error: err });
 
         const menuMap = {};
@@ -135,7 +119,6 @@ router.post('/api/getUrl', async (req, res) => {
             status: true,
             data: structuredMenus,
             ValidUrl: validUrls,
-            // adminCheck: decodedUserData.role === 'is_admin_view' || decodedUserData.is_admin === true
             adminCheck: isAdmin
         });
     });
@@ -144,24 +127,17 @@ router.post('/api/getUrl', async (req, res) => {
 
 // router.post('/api/menulist', async (req, res) => {
 //     const { userData } = req.body;
-//     let decodedUserData = null;
+//      
 
-//     if (userData) {
-//         try {
-//             const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-//             decodedUserData = JSON.parse(decodedString);
-//         } catch (error) {
-//             return res.status(400).json({ status: false, error: 'Invalid userData format' });
-//         }
-//     }
+ 
 
-//     if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+//     if ( !req?.user?.id || !req?.user?.company_id) {
 //         return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
 //     }
-//     const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
+//     const isAdmin = await AdminCheck(req?.user?.id, req?.user?.company_id);
 
 
-//     const employee_id = decodedUserData.id;
+//     const employee_id = req?.user?.id;
 
 //     let query = `
 //     SELECT id, title, url, icon, parent_id
@@ -184,26 +160,18 @@ router.post('/api/getUrl', async (req, res) => {
 
 router.post('/api/menu/restrict', async (req, res) => {
     const { userData, menu_id } = req.body;
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData format' });
-        }
-    }
-
-    if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+     
+     
+    if ( !req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
     }
-    let employee_id = decodedUserData.id;
+    let employee_id = req?.user?.id;
     const query = `
         INSERT INTO employee_menu_restrictions (employee_id,company_id, menu_id)
         VALUES (?, ?)
     `;
 
-    db.query(query, [employee_id, decodedUserData.company_id, menu_id], (err) => {
+    db.query(query, [employee_id, req?.user?.company_id, menu_id], (err) => {
         if (err) return res.status(500).json({ status: false, error: err });
         res.json({ status: true, message: 'Menu access restricted for employee' });
     });
@@ -211,17 +179,9 @@ router.post('/api/menu/restrict', async (req, res) => {
 
 router.post('/api/menu/unrestrict', async (req, res) => {
     const { employee_id, menu_id, userData } = req.body;
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData format' });
-        }
-    }
-
-    if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+     
+     
+    if ( !req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
     }
     const query = `
@@ -239,17 +199,9 @@ router.post('/api/update', async (req, res) => {
     const { id, title, url, is_admin_view, parent_id, sort_order, is_active, userData ,icon} = req.body;
 
 
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData format' });
-        }
-    }
-
-    if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+     
+     
+    if ( !req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
     }
 
@@ -275,17 +227,9 @@ router.post('/api/update', async (req, res) => {
 // web cheak A
 router.post('/api/menu/delete', async (req, res) => {
     const { id, userData } = req.body;
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData format' });
-        }
-    }
-
-    if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+     
+     
+    if ( !req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
     }
     const query = `DELETE FROM menus WHERE id = ?`;
@@ -299,16 +243,8 @@ router.post('/api/menu/delete', async (req, res) => {
 router.post('/api/list', async (req, res) => {
     const { userData } = req.body;
 
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData format' });
-        }
-    }
-    const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
+     
+         const isAdmin = await AdminCheck(req?.user?.id, req?.user?.company_id);
 
     if (isAdmin === false) {
         return res.status(200).json({
@@ -320,7 +256,7 @@ router.post('/api/list', async (req, res) => {
     const page = parseInt(req.body.page, 10) || 1;
     const offset = (page - 1) * limit;
 
-    if (!decodedUserData || !decodedUserData.id) {
+    if ( !req?.user?.id) {
         return res.status(400).json({ status: false, error: 'Employee ID is required' });
     }
 
@@ -375,17 +311,9 @@ router.post('/api/subMenuAddBulk', async (req, res) => {
         return res.status(400).json({ status: false, error: 'sub_pages must be a non-empty array' });
     }
 
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData format' });
-        }
-    }
-
-    if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+     
+     
+    if ( !req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
     }
 
@@ -418,15 +346,10 @@ router.post('/api/addBulk', upload.any(), async (req, res) => {
     const { userData } = req.body;
     let menuData = req.body.menuData;
 
-    let decodedUserData = null;
-    try {
-        const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-        decodedUserData = JSON.parse(decodedString);
-    } catch (error) {
-        return res.status(400).json({ status: false, error: 'Invalid userData format' });
-    }
+     
+    
 
-    if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+    if ( !req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
     }
 
@@ -572,24 +495,16 @@ router.post('/api/addBulkBase64', async (req, res) => {
 // web cheak A
 router.post('/api/getMenuUrl', async (req, res) => {
     const { userData } = req.body;
-    let decodedUserData = null;
+     
 
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData format' });
-        }
-    }
-
-    if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+     
+    if ( !req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
     }
-    const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
+    const isAdmin = await AdminCheck(req?.user?.id, req?.user?.company_id);
 
 
-    const employee_id = decodedUserData.id;
+    const employee_id = req?.user?.id;
 
     let query = `
     SELECT id, title, url, icon, parent_id,is_active,sort_order
@@ -606,7 +521,7 @@ router.post('/api/getMenuUrl', async (req, res) => {
 
     query += ` ORDER BY id ASC`;
 
-    db.query(query, [employee_id, decodedUserData.company_id], (err, menus) => {
+    db.query(query, [employee_id, req?.user?.company_id], (err, menus) => {
         if (err) return res.status(500).json({ status: false, error: err });
 
         const menuMap = {};

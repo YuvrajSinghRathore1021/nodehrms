@@ -10,24 +10,17 @@ const { getEmployeeProfile } = require('../../helpers/getEmployeeProfile');
 // app cheak A / web cheak A
 router.post('/api/UploadLogo', async (req, res) => {
     const { userData, CheckId, logo } = req.body;
-    let decodedUserData = null;
+     
 
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    }
+     
 
-    if (!decodedUserData || !decodedUserData.company_id) {
+    if ( !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Company ID is required' });
     }
 
 
 
-    const id = CheckId || decodedUserData.id;
+    const id = CheckId || req?.user?.id;
     db.query('SELECT profile_image FROM employees WHERE  employee_status=1 and status=1 and delete_status=0 and id = ?', [id], (err, results) => {
         if (err) {
             console.error(err);
@@ -39,7 +32,7 @@ router.post('/api/UploadLogo', async (req, res) => {
         const currentLogo = results[0].logo;
         const logoToUse = logo || currentLogo;
 
-        db.query('UPDATE employees SET profile_image = ? WHERE  employee_status=1 and status=1 and delete_status=0 and id = ?', [logoToUse, decodedUserData.id], (err) => {
+        db.query('UPDATE employees SET profile_image = ? WHERE  employee_status=1 and status=1 and delete_status=0 and id = ?', [logoToUse, req?.user?.id], (err) => {
             if (err) {
                 console.error(err);
                 return res.status(500).json({ status: false, message: 'Failed to update company profile_image.' });
@@ -63,24 +56,12 @@ router.post('/api/GetEmployeesProfile', async (req, res) => {
 router.post('/EmployeesProfile', async (req, res) => {
     const { userData, employeeId } = req.body;
 
-    let decodedUserData = null;
+     
 
     // Decode and validate userData
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({
-                status: false,
-                error: 'Invalid userData',
-                message: 'Invalid userData'
-            });
-        }
-    }
-
+     
     // Validate company_id and employeeId
-    if (!decodedUserData?.company_id) {
+    if (!req?.user?.company_id) {
         return res.status(400).json({
             status: false,
             message: 'Company ID is required'
@@ -116,7 +97,7 @@ router.post('/EmployeesProfile', async (req, res) => {
                 AND (bl.end_time IS NULL OR bl.end_time = '' or bl.end_time = '00:00:00')
             WHERE e.id = ? AND e.company_id = ?
             `,
-            [today, employeeId, decodedUserData.company_id]
+            [today, employeeId, req?.user?.company_id]
         );
 
         if (employeesProfile.length === 0) {
@@ -162,23 +143,14 @@ router.post('/EmployeesProfile', async (req, res) => {
 // app cheak A
 router.post('/api/Deleteapi', (req, res) => {
     const { userData } = req.body;
-    let decodedUserData = null;
-
-    // Decode userData
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    }
-    const company_id = decodedUserData.company_id;
+     
+     
+    const company_id = req?.user?.company_id;
     if (!company_id) {
         return res.status(400).json({ status: false, message: 'ID is required.' });
     }
     db.query('UPDATE employees SET profile_image=? WHERE id = ? AND company_id=?',
-        ['', decodedUserData.id, company_id],
+        ['', req?.user?.id, company_id],
         (err, results) => {
             if (err) {
                 return res.status(500).json({ status: false, message: 'Error updating leave.', error: err.message });

@@ -9,27 +9,14 @@ const calculateLeaveDays = require("../../../utils/calculateLeaveDays");
 router.post("/fetchleave", (req, res) => {
 
     const { userData } = req.body;
-    let decodedUserData = null;
 
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            console.error("Error decoding userData:", error);
-            return res
-                .status(400)
-                .json({ status: false, error: "Invalid userData format" });
-        }
-    }
 
-    if (!decodedUserData) {
-        return res
-            .status(400)
-            .json({ status: false, error: "User data is required" });
-    }
 
-    const { id } = decodedUserData;
+
+
+
+
+    const id = req?.user?.id;
     const limit = parseInt(req.body.limit, 10) || 10;
     const page = parseInt(req.body.page, 10) || 1;
     const offset = (page - 1) * limit;
@@ -133,15 +120,7 @@ router.post("/fetchleave", (req, res) => {
     });
 });
 
-// new 
-const decodeUserData = (userData) => {
-    try {
-        const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-        return JSON.parse(decodedString);
-    } catch (error) {
-        return null;
-    }
-};
+
 
 // admin api 
 // app cheak A / web cheak A
@@ -153,26 +132,11 @@ router.post("/api/Review", async (req, res) => {
         const page = parseInt(req.body.page, 10) || 1;
         const offset = (page - 1) * limit;
 
-        let decodedUserData = null;
-        if (userData) {
-            decodedUserData = decodeUserData(userData);
-            if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
-                return res.status(400).json({
-                    status: false,
-                    message: "Invalid userData",
-                    error: "Invalid userData"
-                });
-            }
-        } else {
-            return res.status(400).json({
-                status: false,
-                message: "userData is required",
-                error: "Missing userData"
-            });
-        }
+
+
 
         // Parse filters
-        EmployeeId = EmployeeId || decodedUserData.id;
+        EmployeeId = EmployeeId || req?.user?.id;
 
         // Query to fetch attendance requests
         let query = `
@@ -238,13 +202,13 @@ router.post("/api/Review", async (req, res) => {
   `;
 
         let queryParams = [
-            decodedUserData.company_id,
-            decodedUserData.id,
-            decodedUserData.id,
-            decodedUserData.company_id,
-            decodedUserData.id,
-            decodedUserData.company_id,
-            decodedUserData.id
+            req?.user?.company_id,
+            req?.user?.id,
+            req?.user?.id,
+            req?.user?.company_id,
+            req?.user?.id,
+            req?.user?.company_id,
+            req?.user?.id
         ];
 
         // Apply filters for search, start date, end date, and leave type
@@ -284,7 +248,7 @@ router.post("/api/Review", async (req, res) => {
         query += ` ORDER BY l.leave_id DESC LIMIT ? OFFSET ?`;
         queryParams.push(limit, offset);
 
-        
+
         // Execute the query to get results
         const [results] = await db.promise().query(query, queryParams);
 
@@ -326,12 +290,12 @@ router.post("/api/Review", async (req, res) => {
         `;
 
         let countQueryParams = [
-            decodedUserData.company_id,
-            decodedUserData.id,
-            decodedUserData.id,
-            decodedUserData.company_id,
-            decodedUserData.id,
-            decodedUserData.company_id, decodedUserData.id,
+            req?.user?.company_id,
+            req?.user?.id,
+            req?.user?.id,
+            req?.user?.company_id,
+            req?.user?.id,
+            req?.user?.company_id, req?.user?.id,
         ];
 
         // Apply the same filters to count query
@@ -388,30 +352,8 @@ router.post("/api/Approved", async (req, res) => {
         const page = parseInt(req.body.page, 10) || 1;
         const offset = (page - 1) * limit;
 
-        let decodedUserData = null;
-        if (userData) {
-            decodedUserData = decodeUserData(userData);
-            if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
-                return res
-                    .status(400)
-                    .json({
-                        status: false,
-                        message: "Invalid userData",
-                        error: "Invalid userData"
-                    });
-            }
-        } else {
-            return res
-                .status(400)
-                .json({
-                    status: false,
-                    message: "userData is required",
-                    error: "Missing userData"
-                });
-        }
-
         // Parse filters
-        EmployeeId = EmployeeId || decodedUserData.id;
+        EmployeeId = EmployeeId || req?.user?.id;
 
         // Query to fetch attendance requests
         let query = `
@@ -477,13 +419,13 @@ router.post("/api/Approved", async (req, res) => {
   `;
 
         let queryParams = [
-            decodedUserData.company_id,
-            decodedUserData.id,
-            decodedUserData.id,
-            decodedUserData.company_id,
-            decodedUserData.id,
-            decodedUserData.company_id,
-            decodedUserData.id
+            req?.user?.company_id,
+            req?.user?.id,
+            req?.user?.id,
+            req?.user?.company_id,
+            req?.user?.id,
+            req?.user?.company_id,
+            req?.user?.id
         ];
 
         // Apply filters for search, start date, end date, and leave type
@@ -564,13 +506,13 @@ router.post("/api/Approved", async (req, res) => {
         `;
 
         let countQueryParams = [
-            decodedUserData.company_id,
-            decodedUserData.id,
-            decodedUserData.id,
-            decodedUserData.company_id,
-            decodedUserData.id,
-            decodedUserData.company_id,
-            decodedUserData.id
+            req?.user?.company_id,
+            req?.user?.id,
+            req?.user?.id,
+            req?.user?.company_id,
+            req?.user?.id,
+            req?.user?.company_id,
+            req?.user?.id
         ];
 
         // Apply the same filters to count query
@@ -628,30 +570,8 @@ router.post("/api/Rejected", async (req, res) => {
         const page = parseInt(req.body.page, 10) || 1;
         const offset = (page - 1) * limit;
 
-        let decodedUserData = null;
-        if (userData) {
-            decodedUserData = decodeUserData(userData);
-            if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
-                return res
-                    .status(400)
-                    .json({
-                        status: false,
-                        message: "Invalid userData",
-                        error: "Invalid userData"
-                    });
-            }
-        } else {
-            return res
-                .status(400)
-                .json({
-                    status: false,
-                    message: "userData is required",
-                    error: "Missing userData"
-                });
-        }
-
         // Parse filters
-        EmployeeId = EmployeeId || decodedUserData.id;
+        EmployeeId = EmployeeId || req?.user?.id;
 
         // Query to fetch attendance requests
         let query = `
@@ -715,13 +635,13 @@ router.post("/api/Rejected", async (req, res) => {
   `;
 
         let queryParams = [
-            decodedUserData.company_id,
-            decodedUserData.id,
-            decodedUserData.id,
-            decodedUserData.company_id,
-            decodedUserData.id,
-            decodedUserData.company_id,
-            decodedUserData.id
+            req?.user?.company_id,
+            req?.user?.id,
+            req?.user?.id,
+            req?.user?.company_id,
+            req?.user?.id,
+            req?.user?.company_id,
+            req?.user?.id
         ];
 
         // Apply filters for search, start date, end date, and leave type
@@ -801,13 +721,13 @@ router.post("/api/Rejected", async (req, res) => {
         `;
 
         let countQueryParams = [
-            decodedUserData.company_id,
-            decodedUserData.id,
-            decodedUserData.id,
-            decodedUserData.company_id,
-            decodedUserData.id,
-            decodedUserData.company_id,
-            decodedUserData.id
+            req?.user?.company_id,
+            req?.user?.id,
+            req?.user?.id,
+            req?.user?.company_id,
+            req?.user?.id,
+            req?.user?.company_id,
+            req?.user?.id
         ];
 
         // Apply the same filters to count query

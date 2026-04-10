@@ -7,22 +7,11 @@ router.use(cors());
 // app cheak A / web cheak A
 router.post('/api/fetchDetails', (req, res) => {
     const { userData, type, UserId } = req.body;
-    let decodedUserData = null;
-
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    }
-
-    // Validate decoded userData
-    if (!decodedUserData || !decodedUserData.id) {
+     
+    if ( !req?.user?.id) {
         return res.status(400).json({ status: false, error: 'Employee ID is required' });
     }
-    let EmpID = UserId || decodedUserData.id;
+    let EmpID = UserId || req?.user?.id;
     let query;
     let queryParams = '';
 
@@ -63,7 +52,7 @@ WHERE e.id = ?`;
         }
 
         let query = "SELECT instagram, facebook, linkedin FROM social_profile WHERE company_id = ? AND employee_id = ? AND type=? And delete_status=0";
-        let dataArray = [decodedUserData.company_id, EmpID, "Employee_Profile"];
+        let dataArray = [req?.user?.company_id, EmpID, "Employee_Profile"];
 
         db.query(query, dataArray, (err, results1) => {
             if (err) {
@@ -86,16 +75,9 @@ router.post('/api/Update', (req, res) => {
     if (!id) {
         return res.status(400).json({ status: false, message: 'Missing required fields: id' });
     }
-    let decodedUserData = null;
+     
 
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    }
+    
     let query;
     let values;
 
@@ -122,7 +104,7 @@ router.post('/api/Update', (req, res) => {
         let querySocialProfile = `
             SELECT id FROM social_profile 
             WHERE company_id = ? AND employee_id = ? AND type = ? AND delete_status = 0`;
-        let dataArraySocialProfile = [decodedUserData.company_id, id, "Employee_Profile"];
+        let dataArraySocialProfile = [req?.user?.company_id, id, "Employee_Profile"];
 
         db.query(querySocialProfile, dataArraySocialProfile, (err, socialResults) => {
             if (err) {
@@ -135,7 +117,7 @@ router.post('/api/Update', (req, res) => {
                     UPDATE social_profile 
                     SET instagram = ?, facebook = ?, linkedin = ? 
                     WHERE company_id = ? AND employee_id = ? AND type = ?`;
-                let updateValues = [instagram, facebook, linkedin, decodedUserData.company_id, id, "Employee_Profile"];
+                let updateValues = [instagram, facebook, linkedin, req?.user?.company_id, id, "Employee_Profile"];
 
                 db.query(updateSocialQuery, updateValues, (err) => {
                     if (err) {
@@ -148,7 +130,7 @@ router.post('/api/Update', (req, res) => {
                 let insertSocialQuery = `
                     INSERT INTO social_profile (company_id, employee_id, type, instagram, facebook, linkedin) 
                     VALUES (?, ?, ?, ?, ?, ?)`;
-                let insertValues = [decodedUserData.company_id, id, "Employee_Profile", instagram, facebook, linkedin];
+                let insertValues = [req?.user?.company_id, id, "Employee_Profile", instagram, facebook, linkedin];
 
                 db.query(insertSocialQuery, insertValues, (err) => {
                     if (err) {

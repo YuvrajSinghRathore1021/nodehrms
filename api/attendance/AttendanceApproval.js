@@ -3,44 +3,14 @@ const router = express.Router();
 const db = require('../../DB/ConnectionSql');
 const { AdminCheck } = require('../../model/functlity/AdminCheck');
 
-const decodeUserData = (userData) => {
-    try {
-        const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-        return JSON.parse(decodedString);
-    } catch (error) {
-        return null;
-    }
-};
+
 
 // app cheak A / Web Cheak A
 router.get('/api/companyEmployeeName', async (req, res) => {
     const { userData, searchData = '', type = "" } = req.query;
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            decodedUserData = decodeUserData(userData);
-            if (!decodedUserData || !decodedUserData.company_id) {
-                return res.status(400).json({
-                    status: false,
-                    message: 'Invalid or missing company_id in userData',
-                    error: 'Invalid userData'
-                });
-            }
-        } catch (error) {
-            return res.status(400).json({
-                status: false,
-                error: 'Invalid userData format',
-                message: 'Invalid userData format'
-            });
-        }
-    } else {
-        return res.status(400).json({
-            status: false,
-            message: 'userData query parameter is required',
-            error: 'Missing userData'
-        });
-    }
-    const company_id = decodedUserData.company_id;
+     
+   
+    const company_id = req?.user?.company_id;
     if (!company_id) {
         return res.status(400).json({
             status: false,
@@ -51,7 +21,7 @@ router.get('/api/companyEmployeeName', async (req, res) => {
     let query = "";
     let dataArray = [];
 
-    const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
+    const isAdmin = await AdminCheck(req?.user?.id, req?.user?.company_id);
     let NewFilds = "";
     if (type == "permission") {
         NewFilds += " ,designation,profile_image "
@@ -78,7 +48,7 @@ router.get('/api/companyEmployeeName', async (req, res) => {
 
     } else {
         // query = `SELECT id, CONCAT(IFNULL(first_name, ''), ' ', IFNULL(last_name, ''),' - ',IFNULL(employee_id, '')) AS name FROM employees WHERE employee_status=1 and status=1 and delete_status=0 and company_id = ? and reporting_manager=?`;
-        // dataArray.push(company_id, decodedUserData.id);
+        // dataArray.push(company_id, req?.user?.id);
         query = `
   SELECT 
     id,
@@ -96,7 +66,7 @@ router.get('/api/companyEmployeeName', async (req, res) => {
 
  
 `;
-        dataArray.push(company_id, decodedUserData.id, decodedUserData.id);
+        dataArray.push(company_id, req?.user?.id, req?.user?.id);
 
     }
     if (searchData) {
@@ -132,32 +102,8 @@ router.get('/api/companyEmployeeName', async (req, res) => {
 // app cheak A / Web Cheak A
 router.post('/api/companyEmployeeName', async (req, res) => {
     const { userData, searchData = '', type = "" } = req.body;
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            decodedUserData = decodeUserData(userData);
-            if (!decodedUserData || !decodedUserData.company_id) {
-                return res.status(400).json({
-                    status: false,
-                    message: 'Invalid or missing company_id in userData',
-                    error: 'Invalid userData'
-                });
-            }
-        } catch (error) {
-            return res.status(400).json({
-                status: false,
-                error: 'Invalid userData format',
-                message: 'Invalid userData format'
-            });
-        }
-    } else {
-        return res.status(400).json({
-            status: false,
-            message: 'userData query parameter is required',
-            error: 'Missing userData'
-        });
-    }
-    const company_id = decodedUserData.company_id;
+   
+    const company_id = req?.user?.company_id;
     if (!company_id) {
         return res.status(400).json({
             status: false,
@@ -168,7 +114,7 @@ router.post('/api/companyEmployeeName', async (req, res) => {
     let query = "";
     let dataArray = [];
 
-    const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
+    const isAdmin = await AdminCheck(req?.user?.id, req?.user?.company_id);
     let NewFilds = "";
     if (type == "permission") {
         NewFilds += " ,designation,profile_image "
@@ -195,7 +141,7 @@ router.post('/api/companyEmployeeName', async (req, res) => {
 
     } else {
         // query = `SELECT id, CONCAT(IFNULL(first_name, ''), ' ', IFNULL(last_name, ''),' - ',IFNULL(employee_id, '')) AS name FROM employees WHERE employee_status=1 and status=1 and delete_status=0 and company_id = ? and reporting_manager=?`;
-        // dataArray.push(company_id, decodedUserData.id);
+        // dataArray.push(company_id, req?.user?.id);
         query = `
   SELECT 
     id,
@@ -212,7 +158,7 @@ router.post('/api/companyEmployeeName', async (req, res) => {
     AND (reporting_manager = ? or id=?)
   
 `;
-        dataArray.push(company_id, decodedUserData.id, decodedUserData.id);
+        dataArray.push(company_id, req?.user?.id, req?.user?.id);
 
     }
     if (searchData) {

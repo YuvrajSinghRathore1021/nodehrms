@@ -13,17 +13,9 @@ router.post('/penaltie/submit', async (req, res) => {
             penaltyValue = 0;
         }
 
-        let decodedUserData = null;
-        if (userData) {
-            try {
-                const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-                decodedUserData = JSON.parse(decodedString);
-            } catch (error) {
-                return res.status(400).json({ status: false, error: 'Invalid userData format' });
-            }
-        }
+        
 
-        if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+        if ( !req?.user?.id || !req?.user?.company_id) {
             return res.status(400).json({
                 status: false,
                 error: 'Employee ID and Company ID are required',
@@ -31,7 +23,7 @@ router.post('/penaltie/submit', async (req, res) => {
         }
 
         const Query = `INSERT INTO penalties(employee_id, company_id, type, month, year, penalty_type, penaltie_for, penalty_name, penalty_reason, penalty_count, penalty_amount, issued_by,  remarks) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`;
-        const QueryArray = [decodedUserData.id, decodedUserData.company_id, type, month, year, penaltyType, employee_id, penaltyName, penalty_reason, penaltyCount, penaltyValue, decodedUserData.id, remark];
+        const QueryArray = [req?.user?.id, req?.user?.company_id, type, month, year, penaltyType, employee_id, penaltyName, penalty_reason, penaltyCount, penaltyValue, req?.user?.id, remark];
 
         db.query(Query, QueryArray, (err, Result) => {
 
@@ -65,25 +57,17 @@ router.post('/penaltie/penaltiesData', async (req, res) => {
 
         // SalaryDetails
 
-        let decodedUserData = null;
-        if (userData) {
-            try {
-                const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-                decodedUserData = JSON.parse(decodedString);
-            } catch (error) {
-                return res.status(400).json({ status: false, error: 'Invalid userData format' });
-            }
-        }
+     
 
-        if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+        if ( !req?.user?.id || !req?.user?.company_id) {
             return res.status(400).json({
                 status: false,
                 error: 'Employee ID and Company ID are required',
             });
         }
-        let employeeId = employee_id || decodedUserData.id;
+        let employeeId = employee_id || req?.user?.id;
         let Query = `SELECT penalty_id, employee_id, company_id, type, month, year, penalty_type, penaltie_for, penalty_name,penalty_count, penalty_reason, penalty_date, penalty_amount, issued_by, status, remarks, add_stamp FROM penalties WHERE company_id = ?  AND month = ? AND year = ? And penaltie_for = ?`;
-        let QueryArray = [decodedUserData.company_id, month, year, employeeId];
+        let QueryArray = [req?.user?.company_id, month, year, employeeId];
 
         if (type == "SalaryDetails") {
             Query += ' AND status = 2';
@@ -117,18 +101,9 @@ router.post('/penaltie/penaltiesData', async (req, res) => {
 router.post('/penaltie/penaltiesDataUpdate', async (req, res) => {
     try {
         const { userData, penalty_id, status } = req.body;
-        let decodedUserData = null;
+        
 
-        if (userData) {
-            try {
-                const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-                decodedUserData = JSON.parse(decodedString);
-            } catch (error) {
-                return res.status(400).json({ status: false, error: 'Invalid userData format' });
-            }
-        }
-
-        if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+        if ( !req?.user?.id || !req?.user?.company_id) {
             return res.status(400).json({
                 status: false,
                 error: 'Employee ID and Company ID are required',

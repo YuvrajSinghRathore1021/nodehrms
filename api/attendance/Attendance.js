@@ -5,16 +5,8 @@ const db = require('../../DB/ConnectionSql');
 // app cheak A / web cheak A
 router.post('/AttendanceGet', (req, res) => {
     const { userData } = req.body;
-    let decodedUserData;
 
-    try {
-        if (!userData) throw new Error("Missing userData");
-        decodedUserData = JSON.parse(Buffer.from(userData, 'base64').toString('utf-8'));
-    } catch (error) {
-        return res.status(400).json({ status: false, error: 'Invalid userData' });
-    }
-
-    const { company_id, id: employee_id } = decodedUserData || {};
+    const { company_id, id: employee_id } = req?.user || {};
     if (!company_id || !employee_id) {
         return res.status(400).json({ status: false, error: 'company_id, id are required' });
     }
@@ -94,14 +86,6 @@ const handleCheck = async (data) => {
 
 
 
-const decodeUserData = (userData) => {
-    try {
-        const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-        return JSON.parse(decodedString);
-    } catch (error) {
-        return null;
-    }
-};
 
 // Helper function to check if a date is in the past or today
 const isDateBeforeOrEqualToday = (date) => {
@@ -130,12 +114,12 @@ router.post('/api/data', async (req, res) => {
         const page = parseInt(req.body.page, 10) || 1;
 
         // Step 1: Decode user data
-        let decodedUserData = userData ? decodeUserData(userData) : null;
-        if (!decodedUserData || !decodedUserData.id) {
+      
+        if ( !req?.user?.id) {
             return res.status(400).json({ status: false, message: 'Invalid or missing user data' });
         }
 
-        const EmployeeId = UserId || decodedUserData.id;
+        const EmployeeId = UserId || req?.user?.id;
 
         // Step 2: Validate date range
         startDate = startDate ? new Date(startDate) : new Date();
@@ -165,7 +149,7 @@ router.post('/api/data', async (req, res) => {
                 SELECT work_week_id FROM employees WHERE employee_status=1 AND status=1 AND delete_status=0 
                 AND id = ? AND company_id = ?
             )`,
-            [EmployeeId, decodedUserData.company_id]
+            [EmployeeId, req?.user?.company_id]
         );
         const workWeek = workWeekData.length > 0 ? workWeekData[0] : null;
         const daysOfWeek = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
@@ -175,7 +159,7 @@ router.post('/api/data', async (req, res) => {
             `SELECT employee_id, start_date, end_date, start_half, end_half
              FROM leaves WHERE deletestatus=0 AND status=1 AND admin_status=1 
              AND company_id=? AND employee_id=?`,
-            [decodedUserData.company_id, EmployeeId]
+            [req?.user?.company_id, EmployeeId]
         );
 
         // Step 6: Paginate Dates
@@ -208,7 +192,7 @@ router.post('/api/data', async (req, res) => {
                     status = "Leave";
                 }
             } else {
-                const holiday = await checkHoliday(decodedUserData.company_id, date);
+                const holiday = await checkHoliday(req?.user?.company_id, date);
                 if (holiday.length > 0) {
                     status = `Holiday(${holiday[0].holiday})`;
                 } else if (isWeeklyOff) {
@@ -217,7 +201,7 @@ router.post('/api/data', async (req, res) => {
             }
 
             // Fetch Attendance
-            let record = await getAttendanceData(decodedUserData.company_id, EmployeeId, date);
+            let record = await getAttendanceData(req?.user?.company_id, EmployeeId, date);
 
             if (record.length > 0) {
                 const {
@@ -269,7 +253,7 @@ router.post('/api/data', async (req, res) => {
                 });
             }
             else {
-                const employeeInfo = await getEmployeeInfo(decodedUserData.company_id, EmployeeId);
+                const employeeInfo = await getEmployeeInfo(req?.user?.company_id, EmployeeId);
                 allData.push(createAttendanceResponse(employeeInfo[0], status, date));
             }
         }
@@ -392,16 +376,11 @@ router.get('/api/attendance', async (req, res) => {
     let year = null;
     let month = null;
     let searchData = null;
-    let decodedUserData = null;
+     
 
-    if (userData) {
-        decodedUserData = decodeUserData(userData);
-        if (!decodedUserData) {
-            return res.status(200).json({ status: false, message: 'Invalid userData', error: 'Invalid userData' });
-        }
-    }
+    
 
-    if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+    if ( !req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, message: 'Employee ID is required', error: 'Employee ID is required' });
     }
 
@@ -411,12 +390,12 @@ router.get('/api/attendance', async (req, res) => {
         searchData = data['searchData'] || null;
     }
 
-    // let employeeIds = employeeId || decodedUserData.id.toString();
+    // let employeeIds = employeeId || req?.user?.id.toString();
 
     let employeeIds;
     if (!employeeId || employeeId.trim() == "" || employeeId.trim().toLowerCase() == "null" || employeeId.trim().toLowerCase() == "undefined" || employeeId.trim() == '""' // 👈 catch "%22%22"
     ) {
-        employeeIds = decodedUserData.id.toString();
+        employeeIds = req?.user?.id.toString();
     } else {
         employeeIds = employeeId;
     }
@@ -434,7 +413,7 @@ router.get('/api/attendance', async (req, res) => {
 
     try {
         let empsql = `SELECT id,CONCAT(first_name, " ", last_name) AS first_name, work_week_id, employee_id FROM employees WHERE company_id=? `;
-        let EmpArrayValue = [decodedUserData.company_id];
+        let EmpArrayValue = [req?.user?.company_id];
 
         //// filter 
         if (employeeStatus && employeeStatus == 1) {
@@ -465,7 +444,7 @@ router.get('/api/attendance', async (req, res) => {
 
         const [holidayResults] = await db.promise().query(`
             SELECT date, holiday FROM holiday WHERE company_id=? And status = 1 AND YEAR(date) = ? AND 
-            MONTH(date) = ?`, [decodedUserData.company_id, year, month]
+            MONTH(date) = ?`, [req?.user?.company_id, year, month]
         );
 
         // const holidays = new Set(holidayResults.map(holiday => new Date(holiday.date).toISOString().split('T')[0]));
@@ -486,7 +465,7 @@ router.get('/api/attendance', async (req, res) => {
                 mon5, tue5, wed5, thu5, fri5, sat5, sun5 
                 FROM work_week 
                 WHERE id = ? AND company_id=?`,
-                [employee.work_week_id, decodedUserData.company_id]
+                [employee.work_week_id, req?.user?.company_id]
             );
 
             const workWeekData = WorkWeek.length > 0 ? WorkWeek[0] : null;
@@ -507,7 +486,7 @@ router.get('/api/attendance', async (req, res) => {
             const [leaveResultsRequest] = await db.promise().query(
                 `SELECT employee_id, start_date, end_date, start_half, end_half,leave_type FROM leaves WHERE deletestatus = 0 AND status = 1 AND admin_status = 1 AND company_id = ?  AND employee_id = ?  
      AND ((start_date BETWEEN ? AND ?)  OR  (end_date BETWEEN ? AND ?) OR  (start_date <= ? AND end_date >= ?))`,
-                [decodedUserData.company_id, employee.id, monthStart, monthEnd, monthStart, monthEnd, monthStart, monthEnd]
+                [req?.user?.company_id, employee.id, monthStart, monthEnd, monthStart, monthEnd, monthStart, monthEnd]
             );
 
             const monthlyAttendanceLogs = [];
@@ -568,7 +547,7 @@ router.get('/api/attendance', async (req, res) => {
                             status = 'PWO';
                             label = 'Present on Weekly Off';
                             //// cl check
-                            if (status == 'PWO' && decodedUserData.company_id == 10) {
+                            if (status == 'PWO' && req?.user?.company_id == 10) {
                                 const leaveType = await handleCheck(attendance);
                                 if (leaveType) {
                                     status = leaveType;
@@ -615,7 +594,7 @@ router.get('/api/attendance', async (req, res) => {
 
                 // ================= HOLIDAY / WO / SANDWICH =================
                 else if (isHoliday || isWeeklyOff) {
-                    // else if ((decodedUserData.company_id == 10 && isWeeklyOff) || (decodedUserData.company_id != 10 && (isHoliday || isWeeklyOff))) {
+                    // else if ((req?.user?.company_id == 10 && isWeeklyOff) || (req?.user?.company_id != 10 && (isHoliday || isWeeklyOff))) {
 
 
                     const prev = new Date(date); prev.setDate(prev.getDate() - 1);
@@ -647,7 +626,7 @@ router.get('/api/attendance', async (req, res) => {
                     //     label = 'Sandwich Penalty';
                     // } 
                     // console.log(dayNo, "=", isHoliday, isWeeklyOff)
-                    if (!isFirstDay && !isLastDay && isPureAbsent(prevAtt, prevLeave) && isPureAbsent(nextAtt, nextLeave) && ((decodedUserData.company_id == 10 && isWeeklyOff) || (decodedUserData.company_id != 10 && (isHoliday || isWeeklyOff)))) {
+                    if (!isFirstDay && !isLastDay && isPureAbsent(prevAtt, prevLeave) && isPureAbsent(nextAtt, nextLeave) && ((req?.user?.company_id == 10 && isWeeklyOff) || (req?.user?.company_id != 10 && (isHoliday || isWeeklyOff)))) {
                         status = 'SP';
                         label = 'Sandwich Penalty';
                     }
@@ -736,7 +715,7 @@ const lwpcheck = (attDate, status, lockDate) => {
 
 const parseDurationToMinutes = (duration) => {
     if (!duration) return 0;
-    console.log("Parsing duration:", duration);
+    // console.log("Parsing duration:", duration);
     let hours = 0;
     let minutes = 0;
 
@@ -752,16 +731,9 @@ const parseDurationToMinutes = (duration) => {
 // app cheak A / web cheak A
 router.post('/api/BreakDetails', async (req, res) => {
     const { userData, attendance_id } = req.body;
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData format' });
-        }
-    }
-    if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+     
+    
+    if ( !req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
     }
     const query = 'SELECT break_id, start_time, end_time, duration, in_ip, out_ip, in_latitude, in_longitude, out_latitude, out_longitude, created FROM break_logs WHERE attendance_id=?';
@@ -796,16 +768,8 @@ router.post('/api/AttendanceTypeDetails', async (req, res) => {
         SearchDate = Date;
     }
 
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData format' });
-        }
-    }
-    if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+  
+    if ( !req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
     }
     const limit = parseInt(req.body.limit, 10) || 10;
@@ -840,7 +804,7 @@ router.post('/api/AttendanceTypeDetails', async (req, res) => {
                 ORDER BY b.first_name ASC
                 LIMIT ? OFFSET ?
             `;
-            const queryParams = [SearchDate || null, decodedUserData.company_id, limit, offset];
+            const queryParams = [SearchDate || null, req?.user?.company_id, limit, offset];
             db.query(query, queryParams, (err, results) => (err ? reject(err) : resolve(results)));
         });
         const totalEmployees = await new Promise((resolve, reject) => {
@@ -849,7 +813,7 @@ router.post('/api/AttendanceTypeDetails', async (req, res) => {
                 FROM employees
                 WHERE employee_status=1 and status=1 and delete_status=0 and company_id = ?
             `;
-            db.query(queryCountTotal, [decodedUserData.company_id], (err, results) => (err ? reject(err) : resolve(results[0].total)));
+            db.query(queryCountTotal, [req?.user?.company_id], (err, results) => (err ? reject(err) : resolve(results[0].total)));
         });
         // Query to fetch leaves
         const leaveResults = await new Promise((resolve, reject) => {
@@ -868,7 +832,7 @@ router.post('/api/AttendanceTypeDetails', async (req, res) => {
                 FROM holiday 
                 WHERE company_id=? And date = ?
             `;
-            db.query(query, [decodedUserData.company_id, SearchDate], (err, results) => (err ? reject(err) : resolve(results)));
+            db.query(query, [req?.user?.company_id, SearchDate], (err, results) => (err ? reject(err) : resolve(results)));
         });
 
         // Process and combine data
@@ -900,7 +864,7 @@ router.post('/api/AttendanceTypeDetails', async (req, res) => {
                         const workWeekResults = await new Promise((resolve, reject) => {
                             db.query(
                                 `SELECT * FROM work_week WHERE company_id = ? AND id = ?`,
-                                [decodedUserData.company_id, attendance.work_week_id],
+                                [req?.user?.company_id, attendance.work_week_id],
                                 (err, results) => (err ? reject(err) : resolve(results))
                             );
                         });
@@ -979,17 +943,9 @@ router.post('/attendanceDetails', async (req, res) => {
     const { userData, employee_id, attendance_date, attendance_id } = req.body;
 
     /* ================= USER DATA ================= */
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData format' });
-        }
-    }
+    
 
-    if (!decodedUserData || !decodedUserData.company_id) {
+    if ( !req?.user?.company_id) {
         return res.status(400).json({
             status: false,
             error: 'Company ID required'
@@ -1038,7 +994,7 @@ router.post('/attendanceDetails', async (req, res) => {
 
             WHERE e.company_id = ? AND e.id = ?
             LIMIT 1
-        `, [decodedUserData.company_id, employee_id]);
+        `, [req?.user?.company_id, employee_id]);
 
         if (employeeDetails.length === 0) {
             return res.status(200).json({
@@ -1072,7 +1028,7 @@ router.post('/attendanceDetails', async (req, res) => {
             WHERE a.company_id = ? AND a.employee_id = ? AND a.attendance_id = ?
         `;
 
-        const params = [decodedUserData.company_id, employee_id, attendance_id];
+        const params = [req?.user?.company_id, employee_id, attendance_id];
         const [attendanceDetails] = await db.promise().query(attendanceQuery, params);
 
         return res.status(200).json({
@@ -1095,22 +1051,7 @@ router.post("/convertAttendanceToLeave", async (req, res) => {
 
     const { userData, employee_id, attendance_id, attendance_date, leave_rule_id, leave_type = "", convert_reason, previous_status } = req.body;
 
-    /* ================= Decode User Data ================= */
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            decodedUserData = JSON.parse(
-                Buffer.from(userData, "base64").toString("utf-8")
-            );
-        } catch (err) {
-            return res.status(400).json({
-                status: false,
-                message: "Invalid userData format"
-            });
-        }
-    }
-
-    if (!decodedUserData?.company_id || !employee_id || !attendance_id || !leave_rule_id) {
+    if (!req?.user?.company_id || !employee_id || !attendance_id || !leave_rule_id) {
         return res.status(400).json({
             status: false,
             message: "Required fields missing"
@@ -1133,13 +1074,13 @@ router.post("/convertAttendanceToLeave", async (req, res) => {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'L', NOW())`;
 
         let params = [
-            decodedUserData.company_id,
+            req?.user?.company_id,
             employee_id,
             attendance_id,
             attendance_date,
             leave_rule_id,
             leave_type || null,
-            decodedUserData.id || null,
+            req?.user?.id || null,
             convert_reason || null,
             previous_status
         ]

@@ -5,21 +5,11 @@ const { AdminCheck } = require('../../../model/functlity/AdminCheck');
 // app cheak A
 router.post('/api/fetchType', async (req, res) => {
     const { userData, type } = req.body;
-    let decodedUserData = null;
-    // Decode userData
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    }
-    // Validate decoded userData
-    if (!decodedUserData || !decodedUserData.id) {
+     
+    if ( !req?.user?.id) {
         return res.status(400).json({ status: false, error: 'Employee ID is required' });
     }
-    const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
+    const isAdmin = await AdminCheck(req?.user?.id, req?.user?.company_id);
     if (isAdmin === false) {
         return res.status(200).json({
             status: false,
@@ -31,7 +21,7 @@ router.post('/api/fetchType', async (req, res) => {
     // Determine the query based on type
     let query;
     let queryParams = '';
-    queryParams = [decodedUserData.company_id];
+    queryParams = [req?.user?.company_id];
     query = `SELECT id, rule_name ,id AS rule_id FROM work_week WHERE company_id = ?`;
     db.query(query, queryParams, (err, results) => {
         if (err) {
@@ -49,23 +39,14 @@ router.post('/api/fetchType', async (req, res) => {
 router.post('/api/fetchDetailsWorkWeek', async (req, res) => {
     const { userData } = req.body;
 
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData' });
-        }
-    }
-    if (!decodedUserData || !decodedUserData.id) {
+    if ( !req?.user?.id) {
         return res.status(400).json({ status: false, error: 'Employee ID is required' });
     }
     let Id = req.body.Id;
 
     if (!Id) {
         let QueryGetworkWeek = `SELECT work_week_id FROM employees WHERE id = ?`;
-        db.query(QueryGetworkWeek, [decodedUserData.id], (err, results) => {
+        db.query(QueryGetworkWeek, [req?.user?.id], (err, results) => {
             if (err) {
                 return res.status(500).json({ status: false, error: 'Server error' });
             }
@@ -74,7 +55,7 @@ router.post('/api/fetchDetailsWorkWeek', async (req, res) => {
             }
             Id = results[0].work_week_id;
             let query = `SELECT * FROM work_week WHERE id=? AND company_id = ?`;
-            let queryParams = [Id, decodedUserData.company_id];
+            let queryParams = [Id, req?.user?.company_id];
 
             db.query(query, queryParams, (err, results) => {
                 if (err) {
@@ -88,7 +69,7 @@ router.post('/api/fetchDetailsWorkWeek', async (req, res) => {
         });
     } else {
         let query = `SELECT * FROM work_week WHERE id=? AND company_id = ?`;
-        let queryParams = [Id, decodedUserData.company_id];
+        let queryParams = [Id, req?.user?.company_id];
 
         db.query(query, queryParams, (err, results) => {
             if (err) {
@@ -104,18 +85,8 @@ router.post('/api/fetchDetailsWorkWeek', async (req, res) => {
 // app cheak A
 router.post('/api/data', async (req, res) => {
     const { userData, Search } = req.body;
-    let decodedUserData = null;
-
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData format' });
-        }
-    }
-
-    const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
+     
+    const isAdmin = await AdminCheck(req?.user?.id, req?.user?.company_id);
     if (isAdmin === false) {
         return res.status(200).json({
             status: false,
@@ -126,14 +97,14 @@ router.post('/api/data', async (req, res) => {
     const page = parseInt(req.body.page, 10) || 1;
     const offset = (page - 1) * limit;
 
-    if (!decodedUserData || !decodedUserData.id) {
+    if ( !req?.user?.id) {
         return res.status(400).json({ status: false, error: 'Employee ID is required' });
     }
     // Build the base query
     let query = `SELECT a.first_name, a.id, a.employee_id, b.rule_name, b.id as rule_id FROM employees AS a
         LEFT JOIN work_week AS b ON a.work_week_id = b.id WHERE a.company_id = ?`;
 
-    const queryParams = [decodedUserData.company_id];
+    const queryParams = [req?.user?.company_id];
     if (Search) {
         query += ' AND a.first_name LIKE ?';
         queryParams.push(`%${Search}%`);
@@ -153,7 +124,7 @@ router.post('/api/data', async (req, res) => {
         }));
         // Get total count of records (for pagination)
         let countQuery = 'SELECT COUNT(id) AS total FROM employees WHERE company_id = ?';
-        let countQueryParams = [decodedUserData.company_id];
+        let countQueryParams = [req?.user?.company_id];
 
         if (Search) {
             countQuery += ' AND first_name LIKE ?';

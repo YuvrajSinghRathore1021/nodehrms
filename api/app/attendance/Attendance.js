@@ -2,15 +2,6 @@ const express = require('express');
 const router = express.Router();
 const db = require('../../../DB/ConnectionSql');
 const { sendNotification } = require('../../../api/firebase/notificationComman');
-const decodeUserData = (userData) => {
-    try {
-        const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-        return JSON.parse(decodedString);
-    } catch (error) {
-        return null;
-    }
-};
-
 
 function getWorkWeekStatus(workWeekResults, date) {
     if (!workWeekResults || workWeekResults.length == 0) {
@@ -23,8 +14,6 @@ function getWorkWeekStatus(workWeekResults, date) {
     return workWeek && workWeek[statusKey] ? workWeek[statusKey] : null;
 }
 
-
-
 const PendingForFunction = async (ReqId) => {
     if (ReqId == '') {
         return 'Get Approve';
@@ -34,14 +23,12 @@ const PendingForFunction = async (ReqId) => {
             `SELECT id, rm_status, rm_id, rm_remark, admin_id, admin_status FROM attendance_requests WHERE id = ?`,
             [ReqId]
         );
-
         // Check if the query returned any result
         if (PendingFor.length == 0) {
             return 'Request not found';
         }
 
         let Type = '';
-
         // Check conditions based on the returned row data
         if (PendingFor[0].rm_id !== 0 && PendingFor[0].rm_status == 0 && PendingFor[0].admin_id == 0) {
             Type = 'Pending For Rm';
@@ -96,17 +83,7 @@ router.post('/api/data', async (req, res) => {
         const limit = parseInt(req.body.limit, 10) || 10;
         const page = parseInt(req.body.page, 10) || 1;
 
-        // Step 1: Decode user data
-        let decodedUserData = null;
-
-        if (userData) {
-            decodedUserData = decodeUserData(userData);
-            if (!decodedUserData) {
-                return res.status(400).json({ status: false, message: 'Invalid userData', error: 'Invalid userData' });
-            }
-        }
-
-        if (!decodedUserData || !decodedUserData.id) {
+        if (!req?.user?.id) {
             return res.status(400).json({ status: false, message: 'Employee ID is required', error: 'Employee ID is required' });
         }
         let companyId = req?.user?.company_id;
@@ -118,12 +95,9 @@ router.post('/api/data', async (req, res) => {
         let defaultStartDate = new Date();
         defaultStartDate.setDate(currentDateToday.getDate() - 30);
 
-
-
         // Step 2: Validate date range
         startDate = startDate ? new Date(startDate) : currentDateToday;
         endDate = endDate ? new Date(endDate) : new Date();
-
 
         if (!startDate || !endDate) {
             return res.status(400).json({ status: false, message: 'Both startDate and endDate are required', error: 'Both startDate and endDate are required' });
@@ -161,7 +135,6 @@ router.post('/api/data', async (req, res) => {
 
         const workWeek = workWeekData.length > 0 ? workWeekData[0] : null;
         const daysOfWeek = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-
         // Step 4: Pagination logic
         const startIndex = (page - 1) * limit;
         const endIndex = startIndex + limit;
@@ -267,45 +240,31 @@ const createAttendanceResponse = (record, status, date) => {
 
 // app cehak A / web cheak A
 router.post('/api/AttendanceDelete', async (req, res) => {
-
     const { requestId, userData } = req.body;
 
-    if (!userData) {
-        return res.status(400).json({ status: false, error: 'Missing userData', message: 'userData is required' });
-    }
-
-    let decodedUserData;
-    try {
-        const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-        decodedUserData = JSON.parse(decodedString);
-    } catch (error) {
-        return res.status(400).json({ status: false, error: 'Invalid userData', message: 'Invalid userData' });
-    }
-
-    if (!decodedUserData || !decodedUserData.company_id) {
+    if (!req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Missing company ID', message: 'Company ID is required' });
     }
-
 
     try {
         const AttendanceDelete = await queryDb(
             'DELETE FROM `attendance` WHERE request_id= ? AND company_id = ?',
-            [requestId, decodedUserData.company_id]
+            [requestId, req?.user?.company_id]
         );
         const AttendanceRequestDelete = await queryDb(
             'DELETE FROM `attendance_requests` WHERE id= ? AND company_id = ?',
-            [requestId, decodedUserData.company_id]
+            [requestId, req?.user?.company_id]
         );
         if (AttendanceDelete.affectedRows > 0 || AttendanceRequestDelete.affectedRows > 0) {
             res.json({ status: true, message: 'Attendance request deleted successfully' });
         } else {
             res.status(200).json({ status: false, message: 'Attendance request not found or already deleted' });
         }
-
     } catch (err) {
         res.status(500).json({ status: false, message: 'Database error', error: err.message });
     }
 });
+
 function queryDb(query, params) {
     return new Promise((resolve, reject) => {
         db.query(query, params, (err, results) => {
@@ -318,27 +277,13 @@ function queryDb(query, params) {
 // new 
 // app cheak A / web cheak A
 router.post('/api/AttendanceReqSubmit', async (req, res) => {
-
     const { userData, request_date, request_type, in_time, out_time, reason, short_leave = 0, short_leave_type = 0, short_leave_reason = '' } = req.body;
     let attendance_id = Number(req.body.attendance_id) || 0;
 
-    if (!userData) {
-        return res.status(400).json({ status: false, error: 'Missing userData', message: 'userData is required' });
-    }
-
-    let decodedUserData;
-    try {
-        const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-        decodedUserData = JSON.parse(decodedString);
-    } catch (error) {
-        return res.status(400).json({ status: false, error: 'Invalid userData', message: 'Invalid userData' });
-    }
-
-    if (!decodedUserData || !decodedUserData.company_id) {
+    if (!req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Missing company ID', message: 'Company ID is required' });
     }
-    let employee_id = req.body.employee_id || decodedUserData.id;
-
+    let employee_id = req.body.employee_id || req?.user?.id;
 
     try {
         // Check existing request
@@ -347,7 +292,7 @@ router.post('/api/AttendanceReqSubmit', async (req, res) => {
      WHERE employee_id = ? 
      AND company_id = ? 
      AND request_date = ? and ((rm_id>0 and rm_status!=2) or (admin_id>0  and admin_status!=2))`,
-            [employee_id, decodedUserData.company_id, request_date]
+            [employee_id, req?.user?.company_id, request_date]
         );
 
         if (existingRequest.length > 0) {
@@ -361,7 +306,7 @@ router.post('/api/AttendanceReqSubmit', async (req, res) => {
         // Step 1: Get the reporting manager ID
         const [SettingMultiLeaveApprove] = await db.promise().query(
             'SELECT multi_level_approve FROM settings WHERE company_id = ?',
-            [decodedUserData.company_id]
+            [req?.user?.company_id]
         );
         if (SettingMultiLeaveApprove.length == 0) {
 
@@ -369,7 +314,7 @@ router.post('/api/AttendanceReqSubmit', async (req, res) => {
             if (SettingMultiLeaveApprove[0].multi_level_approve == 1) {
                 const [managerResults] = await db.promise().query(
                     'SELECT reporting_manager FROM employees WHERE  employee_status=1 and status=1 and delete_status=0 and id = ? AND company_id = ?',
-                    [employee_id, decodedUserData.company_id]
+                    [employee_id, req?.user?.company_id]
                 );
                 if (managerResults.length == 0) {
                     return res.status(404).json({ status: false, error: 'Employee not found', message: 'Invalid employee ID or company ID' });
@@ -380,7 +325,7 @@ router.post('/api/AttendanceReqSubmit', async (req, res) => {
         // Step 2: Insert the attendance request
         const [insertResults] = await db.promise().query(
             'INSERT INTO attendance_requests (attendance_id,rm_id, employee_id, company_id, request_type, request_date, in_time, out_time, reason,short_leave,short_leave_type,short_leave_reason) VALUES (?,?, ?, ?, ?, ?, ?, ?, ?,?,?,?)',
-            [attendance_id, RmIdValue, employee_id, decodedUserData?.company_id, request_type, request_date, in_time, out_time, reason, short_leave, short_leave_type, short_leave_reason]
+            [attendance_id, RmIdValue, employee_id, req?.user?.company_id, request_type, request_date, in_time, out_time, reason, short_leave, short_leave_type, short_leave_reason]
         );
         if (RmIdValue) {
             await sendNotification({
@@ -402,18 +347,9 @@ router.post('/api/AttendanceReqSubmit', async (req, res) => {
 // appro ......
 // app cheak A / web cheak A
 router.post('/api/AttendancePending', async (req, res) => {
-
     let { userData, startDate, endDate, searchData, EmployeeId } = req.body;
-    let decodedUserData = null;
 
-    if (userData) {
-        decodedUserData = decodeUserData(userData);
-        if (!decodedUserData) {
-            return res.status(400).json({ status: false, message: 'Invalid userData', error: 'Invalid userData' });
-        }
-    }
-
-    if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+    if (!req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, message: 'Employee ID is required', error: 'Employee ID is required' });
     }
 
@@ -429,7 +365,7 @@ router.post('/api/AttendancePending', async (req, res) => {
     endDate = endDate || formatDate(OnedayBack);
 
     searchData = searchData || null;
-    EmployeeId = EmployeeId || decodedUserData.id;
+    EmployeeId = EmployeeId || req?.user?.id;
 
 
     if (!startDate || !endDate) {
@@ -438,8 +374,8 @@ router.post('/api/AttendancePending', async (req, res) => {
     if (!isDateBeforeToday(endDate)) {
         return res.status(400).json({ status: false, message: 'End date cannot be greater than today.' });
     }
-    let companyId = decodedUserData.company_id;
-    if (decodedUserData.id == EmployeeId) {
+    let companyId = req?.user?.company_id;
+    if (req?.user?.id == EmployeeId) {
 
         try {
             const start = new Date(startDate);
@@ -452,7 +388,7 @@ router.post('/api/AttendancePending', async (req, res) => {
             let empsql = `SELECT id, id as employee_id,CONCAT(first_name,' ', last_name) AS first_name, employee_id,date_of_Joining 
                   FROM employees 
                   WHERE employee_status=1 AND status=1 AND delete_status=0 AND id=? AND company_id=?`;
-            let EmpArrayValue = [EmployeeId, decodedUserData.company_id];
+            let EmpArrayValue = [EmployeeId, req?.user?.company_id];
 
             if (searchData) {
                 empsql += ` AND first_name LIKE ?`;
@@ -470,7 +406,7 @@ router.post('/api/AttendancePending', async (req, res) => {
 
             const [holidayResults] = await db.promise().query(
                 `SELECT date FROM holiday WHERE company_id=? AND status=1 AND date BETWEEN ? AND ?`,
-                [decodedUserData.company_id, startDate, endDate]
+                [req?.user?.company_id, startDate, endDate]
             );
 
             const holidays = new Set(holidayResults.map(holiday => new Date(holiday.date).toISOString().split('T')[0]));
@@ -480,7 +416,7 @@ router.post('/api/AttendancePending', async (req, res) => {
             SELECT work_week_id FROM employees 
             WHERE employee_status=1 AND status=1 AND delete_status=0 AND id=? AND company_id=?
         )`,
-                [EmployeeId, decodedUserData.company_id]
+                [EmployeeId, req?.user?.company_id]
             );
             const workWeek = workWeekData.length > 0 ? workWeekData[0] : null;
             const daysOfWeek = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
@@ -491,7 +427,7 @@ router.post('/api/AttendancePending', async (req, res) => {
          FROM leaves 
          WHERE deletestatus=0 AND status=1 AND admin_status=1 
          AND company_id=? AND employee_id=?`,
-                [decodedUserData.company_id, EmployeeId]
+                [req?.user?.company_id, EmployeeId]
             );
 
             const monthlyAttendanceLogs = [];
@@ -508,7 +444,7 @@ router.post('/api/AttendancePending', async (req, res) => {
                     `SELECT id, request_date, in_time, out_time,rm_status, rm_id, admin_id, admin_status 
              FROM attendance_requests 
              WHERE company_id=? AND employee_id=? AND request_date BETWEEN ? AND ?`,
-                    [decodedUserData.company_id, employee.id, startDate, endDate]
+                    [req?.user?.company_id, employee.id, startDate, endDate]
                 );
 
                 const startDateObj = new Date(startDate);
@@ -656,11 +592,11 @@ router.post('/api/AttendancePending', async (req, res) => {
 
         const queryParams = [
             EmployeeId,
-            decodedUserData.id,
-            decodedUserData.id,
-            decodedUserData.company_id,
-            decodedUserData.id,
-            decodedUserData.company_id
+            req?.user?.id,
+            req?.user?.id,
+            req?.user?.company_id,
+            req?.user?.id,
+            req?.user?.company_id
         ];
 
         // Execute the query
@@ -710,20 +646,9 @@ router.post('/api/AttendancePending', async (req, res) => {
 router.post('/api/AttendanceApprovalLog', async (req, res) => {
     try {
         let { EmployeeId, userData } = req.body;
-        // Decode user data
-        let decodedUserData = null;
-
-        if (userData) {
-            decodedUserData = decodeUserData(userData);
-            if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
-                return res.status(400).json({ status: false, message: 'Invalid userData', error: 'Invalid userData' });
-            }
-        } else {
-            return res.status(400).json({ status: false, message: 'userData is required', error: 'Missing userData' });
-        }
 
         // Parse filters
-        EmployeeId = EmployeeId || decodedUserData.id;
+        EmployeeId = EmployeeId || req?.user?.id;
 
         // Query to fetch attendance requests
 
@@ -768,9 +693,9 @@ router.post('/api/AttendanceApprovalLog', async (req, res) => {
 
         const queryParams = [
             EmployeeId,
-            decodedUserData.company_id,
-            decodedUserData.id,
-            decodedUserData.id,
+            req?.user?.company_id,
+            req?.user?.id,
+            req?.user?.id,
             EmployeeId
         ];
 
@@ -806,22 +731,13 @@ router.post('/api/Attendancedirectory', async (req, res) => {
     const { userData, date, filter = 'all', search = '', departmentId = 0, subDepartmentid = 0, companyId = 0 } = req.body;
 
     let SearchDate = date || null;
-    let decodedUserData = null;
 
-    if (userData && companyId == 0) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData format' });
-        }
-    }
 
 
     const limit = parseInt(req.body.limit, 10) || 10;
     const page = parseInt(req.body.page, 10) || 1;
     const offset = (page - 1) * limit;
-    let company_Id = companyId || decodedUserData?.company_id;
+    let company_Id = companyId || req?.user?.company_id;
     try {
         // Build dynamic employee filters
         let employeeFilter = `b.company_id = ?`;
@@ -1036,12 +952,10 @@ LEFT JOIN branches AS bo
                     branch_in: attendance?.branch_in_name || '',
                     branch_out: attendance?.branch_out_name || '',
                     status,
-
                     late_coming_leaving: attendance?.late_coming_leaving,
                     short_leave: attendance?.short_leave,
                     short_leave_type: attendance?.short_leave_type,
                     short_leave_reason: attendance?.short_leave_reason
-
                 };
             })
         );
@@ -1110,32 +1024,9 @@ LEFT JOIN branches AS bo
 // app cheak A
 router.post('/api/EmployeesUnderRm', async (req, res) => {
     const { userData } = req.body;
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            decodedUserData = decodeUserData(userData);
-            if (!decodedUserData || !decodedUserData.company_id) {
-                return res.status(400).json({
-                    status: false,
-                    message: 'Invalid or missing company_id in userData',
-                    error: 'Invalid userData'
-                });
-            }
-        } catch (error) {
-            return res.status(400).json({
-                status: false,
-                error: 'Invalid userData format',
-                message: 'Invalid userData format'
-            });
-        }
-    } else {
-        return res.status(400).json({
-            status: false,
-            message: 'userData query parameter is required',
-            error: 'Missing userData'
-        });
-    }
-    const company_id = decodedUserData.company_id;
+
+
+    const company_id = req?.user?.company_id;
     if (!company_id) {
         return res.status(400).json({
             status: false,
@@ -1147,7 +1038,7 @@ router.post('/api/EmployeesUnderRm', async (req, res) => {
     let dataArray = [];
 
     query = `SELECT id, CONCAT(first_name,' ',last_name) AS name,employee_id,profile_image FROM employees WHERE employee_status=1 and status=1 and delete_status=0 and company_id = ? and (reporting_manager=? OR id=?)`;
-    dataArray.push(company_id, decodedUserData.id, decodedUserData.id);
+    dataArray.push(company_id, req?.user?.id, req?.user?.id);
 
     db.query(query, dataArray, (err, results) => {
         if (err) {
@@ -1175,18 +1066,9 @@ router.post('/api/EmployeesUnderRm', async (req, res) => {
 router.post('/api/attendanceRequestCount', async (req, res) => {
     let { userData, startDate = "", endDate = "", page = 1, limit = 10, search = "" } = req.body;
 
-    let decodedUserData = null;
-    if (userData) {
-        decodedUserData = decodeUserData(userData);
-        if (!decodedUserData) {
-            return res.status(400).json({ status: false, message: 'Invalid userData' });
-        }
-    }
-
-    if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+    if (!req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, message: 'Employee ID is required' });
     }
-
     try {
         let whereConditions = `
             Emp.employee_status=1 
@@ -1225,12 +1107,12 @@ router.post('/api/attendanceRequestCount', async (req, res) => {
         `;
 
         let queryParams = [
-            decodedUserData.company_id,
-            decodedUserData.id,
-            decodedUserData.id,
-            decodedUserData.company_id,
-            decodedUserData.id,
-            decodedUserData.company_id
+            req?.user?.company_id,
+            req?.user?.id,
+            req?.user?.id,
+            req?.user?.company_id,
+            req?.user?.id,
+            req?.user?.company_id
         ];
 
         // Date filter only if provided
@@ -1297,9 +1179,8 @@ router.post('/api/attendanceRequestCount', async (req, res) => {
 // working 
 // router.post('/api/attendanceRequestRm', async (req, res) => {
 //     const { userData } = req.body;
-//     const decoded = decodeUserData(userData);
 
-//     if (!decoded?.company_id) {
+//     if (!req?.user?.company_id) {
 //         return res.status(400).json({ status: false, message: "Invalid user" });
 //     }
 
@@ -1322,7 +1203,7 @@ router.post('/api/attendanceRequestCount', async (req, res) => {
 //             ORDER BY rm_name
 //         `;
 
-//         const [rows] = await db.promise().query(query, [decoded.company_id]);
+//         const [rows] = await db.promise().query(query, [req?.user?.company_id]);
 
 //         // 🔁 Format data RM-wise
 //         const result = {};
@@ -1362,12 +1243,10 @@ router.post('/api/attendanceRequestCount', async (req, res) => {
 
 router.post('/api/attendanceRequestRm', async (req, res) => {
     const { userData } = req.body;
-    const decoded = decodeUserData(userData);
 
-    if (!decoded?.company_id) {
+    if (!req?.user?.company_id) {
         return res.status(400).json({ status: false, message: "Invalid user" });
     }
-
     try {
         // 🔹 STEP 1: RM + USER WISE COUNT
         const mainQuery = `
@@ -1390,7 +1269,7 @@ router.post('/api/attendanceRequestRm', async (req, res) => {
             ORDER BY rm_name
         `;
 
-        const [rows] = await db.promise().query(mainQuery, [decoded.company_id]);
+        const [rows] = await db.promise().query(mainQuery, [req?.user?.company_id]);
 
         const result = {};
 
@@ -1428,7 +1307,7 @@ router.post('/api/attendanceRequestRm', async (req, res) => {
             const [details] = await db.promise().query(detailQuery, [
                 r.user_id,
                 r.rm_id,
-                decoded.company_id
+                req?.user?.company_id
             ]);
 
             result[r.rm_id].requests += r.user_requests;
@@ -1456,9 +1335,6 @@ router.post('/api/attendanceRequestRm', async (req, res) => {
         });
     }
 });
-
-
-
 
 // Export the router
 module.exports = router;

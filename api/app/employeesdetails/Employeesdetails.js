@@ -5,22 +5,13 @@ const { AdminCheck } = require('../../../model/functlity/AdminCheck');
 // app cheak A
 router.post('/api/IdCard', async (req, res) => {
     const { userData } = req.body;
-    let decodedUserData = null;
-    // Decode and validate userData
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData format' });
-        }
-    }
-    if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+   
+    if ( !req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
     }
     try {
         let query = `SELECT e.id, e.employee_id,CONCAT(e.first_name,'', e.last_name) AS name, e.official_email_id, e.email_id,  e.contact_number, e.alternate_phone,  e.dob, e.gender,e.designation, e.profile_image,c.company_name,c.logo FROM employees AS e INNER JOIN companies AS c ON e.company_id=c.id WHERE e.company_id=? AND e.id=?`;
-        let values = [decodedUserData.company_id, decodedUserData.id];
+        let values = [req?.user?.company_id, req?.user?.id];
 
         db.query(query, values, (err, results) => {
             if (err) {
@@ -43,17 +34,8 @@ router.post('/api/IdCard', async (req, res) => {
 // app cheak A
 router.post('/api/SalarySlipStructure', async (req, res) => {
     const { userData } = req.body;
-    let decodedUserData = null;
-    // Decode and validate userData
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData format' });
-        }
-    }
-    if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+
+    if ( !req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
     }
 
@@ -83,7 +65,7 @@ FROM employees e
 JOIN salary_structure ss ON e.structure_id = ss.structure_id
 JOIN salary_component sc ON ss.structure_id = sc.structure_id
 WHERE e.id = ? AND e.company_id = ?`;
-        let values = [decodedUserData.id, decodedUserData.id, decodedUserData.company_id];
+        let values = [req?.user?.id, req?.user?.id, req?.user?.company_id];
 
         db.query(query, values, (err, results) => {
             if (err) {
@@ -113,16 +95,7 @@ router.get('/api/documentGet', async (req, res) => {
         EmployeeId = data['EmployeeId'] ? data['EmployeeId'] : null;
     }
 
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData format' });
-        }
-    }
-    const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
+    const isAdmin = await AdminCheck(req?.user?.id, req?.user?.company_id);
 
     if (isAdmin === false) {
         return res.status(200).json({
@@ -134,14 +107,14 @@ router.get('/api/documentGet', async (req, res) => {
     const page = parseInt(req.query.page, 10) || 1;
     const offset = (page - 1) * limit;
 
-    if (!decodedUserData || !decodedUserData.id) {
+    if ( !req?.user?.id) {
         return res.status(400).json({ status: false, error: 'Employee ID is required' });
     }
 
     // Build the base query
     let query = `SELECT id, employee_id, company_id, document_name, file_path, status, add_stamp, uploaded_at FROM documents WHERE company_id = ? And employee_id = ?`;
 
-    const queryParams = [decodedUserData.company_id, EmployeeId || decodedUserData.id];
+    const queryParams = [req?.user?.company_id, EmployeeId || req?.user?.id];
 
     // Add pagination
     query += ' LIMIT ? OFFSET ?';
@@ -162,7 +135,7 @@ router.get('/api/documentGet', async (req, res) => {
 
         // Get total count of records (for pagination)
         let countQuery = 'SELECT COUNT(id) AS total FROM documents WHERE company_id = ? And employee_id = ?';
-        let countQueryParams = [decodedUserData.company_id, EmployeeId || decodedUserData.id];
+        let countQueryParams = [req?.user?.company_id, EmployeeId || req?.user?.id];
 
 
         db.query(countQuery, countQueryParams, (err, countResults) => {
@@ -187,18 +160,11 @@ router.get('/api/documentGet', async (req, res) => {
 // router.post('/api/documentUpdate', async (req, res) => {
 //     try {
 //         const { userData, id, status } = req.body;
-//         let decodedUserData = null;
 
-//         if (userData) {
-//             try {
-//                 const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-//                 decodedUserData = JSON.parse(decodedString);
-//             } catch (error) {
-//                 return res.status(400).json({ status: false, error: 'Invalid userData format' });
-//             }
-//         }
 
-//         if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+
+
+//         if ( !req?.user?.id || !req?.user?.company_id) {
 //             return res.status(400).json({
 //                 status: false,
 //                 error: 'Employee ID and Company ID are required',
@@ -247,17 +213,10 @@ router.post('/api/documentGet', async (req, res) => {
         search = ''
     } = req.body;
 
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData format' });
-        }
-    }
+   
+   
 
-    const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
+    const isAdmin = await AdminCheck(req?.user?.id, req?.user?.company_id);
     if (!isAdmin) {
         return res.status(403).json({
             status: false,
@@ -271,7 +230,7 @@ router.post('/api/documentGet', async (req, res) => {
 
     // Handle multiple employees
     let employeeIdCondition = '';
-    let queryParams = [decodedUserData.company_id];
+    let queryParams = [req?.user?.company_id];
 
     if (employee_id && employee_id !== '') {
         const employeeIdArray = employee_id.split(',').map(id => parseInt(id));
@@ -341,7 +300,7 @@ router.post('/api/documentGet', async (req, res) => {
             LEFT JOIN employees e ON d.employee_id = e.id
             WHERE d.company_id = ? ${employeeIdCondition}`;
 
-        let countParams = [decodedUserData.company_id];
+        let countParams = [req?.user?.company_id];
         if (employee_id && employee_id !== '') {
             const employeeIdArray = employee_id.split(',').map(id => parseInt(id));
             countParams.push(...employeeIdArray);
@@ -401,17 +360,9 @@ router.post('/api/documentStats', async (req, res) => {
         search = ''
     } = req.body;
 
-    let decodedUserData = null;
-    if (userData) {
-        try {
-            const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-            decodedUserData = JSON.parse(decodedString);
-        } catch (error) {
-            return res.status(400).json({ status: false, error: 'Invalid userData format' });
-        }
-    }
+  
 
-    const isAdmin = await AdminCheck(decodedUserData.id, decodedUserData.company_id);
+    const isAdmin = await AdminCheck(req?.user?.id, req?.user?.company_id);
     if (!isAdmin) {
         return res.status(403).json({
             status: false,
@@ -420,7 +371,7 @@ router.post('/api/documentStats', async (req, res) => {
     }
 
     let employeeIdCondition = '';
-    let queryParams = [decodedUserData.company_id];
+    let queryParams = [req?.user?.company_id];
 
     if (employee_ids && employee_ids !== '') {
         const employeeIdArray = employee_ids.split(',').map(id => parseInt(id));
@@ -488,18 +439,11 @@ router.post('/api/documentStats', async (req, res) => {
 router.post('/api/bulkDocumentUpdate', async (req, res) => {
     try {
         const { userData, ids, status } = req.body;
-        let decodedUserData = null;
+     
 
-        if (userData) {
-            try {
-                const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-                decodedUserData = JSON.parse(decodedString);
-            } catch (error) {
-                return res.status(400).json({ status: false, error: 'Invalid userData format' });
-            }
-        }
+       
 
-        if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+        if ( !req?.user?.id || !req?.user?.company_id) {
             return res.status(400).json({
                 status: false,
                 error: 'Employee ID and Company ID are required',
@@ -544,18 +488,8 @@ router.post('/api/bulkDocumentUpdate', async (req, res) => {
 router.post('/api/documentUpdate', async (req, res) => {
     try {
         const { userData, id, status, document_type, remark } = req.body;
-        let decodedUserData = null;
-
-        if (userData) {
-            try {
-                const decodedString = Buffer.from(userData, 'base64').toString('utf-8');
-                decodedUserData = JSON.parse(decodedString);
-            } catch (error) {
-                return res.status(400).json({ status: false, error: 'Invalid userData format' });
-            }
-        }
-
-        if (!decodedUserData || !decodedUserData.id || !decodedUserData.company_id) {
+       
+        if ( !req?.user?.id || !req?.user?.company_id) {
             return res.status(400).json({
                 status: false,
                 error: 'Employee ID and Company ID are required',
@@ -575,7 +509,7 @@ router.post('/api/documentUpdate', async (req, res) => {
         }
 
         Query += `, updated_by = ?, updated_at = NOW() WHERE id = ?`;
-        QueryArray.push(decodedUserData.id, id);
+        QueryArray.push(req?.user?.id, id);
 
         db.query(Query, QueryArray, (err, Result) => {
             if (err) {

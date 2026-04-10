@@ -19,18 +19,8 @@ router.post("/holidayfetch", (req, res) => {
     currentYear = parsedDate.getFullYear();
   }
 
-  let decodedUserData = null;
 
-  if (userData) {
-    try {
-      const decodedString = Buffer.from(userData, "base64").toString("utf-8");
-      decodedUserData = JSON.parse(decodedString);
-    } catch (error) {
-      return res.status(400).json({ status: false, error: "Invalid userData" });
-    }
-  }
-
-  if (!decodedUserData.company_id) {
+  if (!req?.user?.company_id) {
     return res
       .status(400)
       .json({ status: false, error: "Company ID is missing or invalid" });
@@ -38,7 +28,7 @@ router.post("/holidayfetch", (req, res) => {
   let holidayQuery = `
           SELECT * FROM holiday WHERE company_id=? 
       `;
-  let queryParams = [decodedUserData.company_id];
+  let queryParams = [req?.user?.company_id];
 
   if (Search) {
     holidayQuery += ` AND (Emp.holiday LIKE ?)`;
@@ -64,7 +54,7 @@ router.post("/holidayfetch", (req, res) => {
       let countQuery = `
               SELECT COUNT(id) as total FROM holiday WHERE company_id=?
           `;
-      let countQueryqueryParams = [decodedUserData.company_id];
+      let countQueryqueryParams = [req?.user?.company_id];
       if (Search) {
         countQuery += ` AND (Emp.holiday LIKE ?)`;
         countQueryqueryParams.push(`%${Search}%`);
