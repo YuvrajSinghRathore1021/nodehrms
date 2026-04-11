@@ -639,7 +639,7 @@ router.get('/api/attendance', async (req, res) => {
                     }
                 }
 
-                let newStatus = lwpcheck(date, status, '2026-03-04');
+                let newStatus = lwpcheck(date, status, '2026-04-04');
                 // let newStatus = status;
                 monthlyAttendanceLogs.push({
                     day_no: dayNo,

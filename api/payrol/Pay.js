@@ -13,10 +13,10 @@ router.post('/salary/submit', async (req, res) => {
         const salaryDetails = JSON.parse(req.body.Data);
         const { userData } = req.body;
 
-         
-        
 
-        if ( !req?.user?.id || !req?.user?.company_id) {
+
+
+        if (!req?.user?.id || !req?.user?.company_id) {
             return res.status(400).json({
                 status: false,
                 error: 'Employee ID and Company ID are required',
@@ -143,8 +143,8 @@ router.post('/api/GenerateSalary', async (req, res) => {
         const { employeeId, presentCount, HF, leaveCount, holidayCount, WO, month, year, PenaltyData, userData } = req.body;
 
         // Decode userData
-         
-       
+
+
 
         if (!req?.user?.id || !req?.user?.company_id) {
             return res.status(400).json({
@@ -348,8 +348,8 @@ router.get('/api/PayEmployeeSalaryDetails', async (req, res) => {
     }
 
     // Decode user
-     
-    
+
+
 
     if (!req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
@@ -488,7 +488,7 @@ router.get('/api/PayEmployeeSalaryDetails', async (req, res) => {
             INNER JOIN employees e ON esd.employee_id=e.id where 1=1  ${whereQuery}
         `;
 
-        const [[countResult]] = await db.promise().query(countQuery, whereValue);
+        const [countResult] = await db.promise().query(countQuery, whereValue);
         const totalRows = countResult.total;
         const totalPages = Math.ceil(totalRows / limitNum);
         if (salaryStatus == "Approved") {
@@ -546,12 +546,12 @@ router.post('/api/EmployeeSalaryDetails', async (req, res) => {
     const { userData, month, year, salaryStatus } = req.body;
 
 
-     
+
 
 
     // Decode and validate userData
-     
-    if ( !req?.user?.id || !req?.user?.company_id) {
+
+    if (!req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
     }
 
@@ -607,7 +607,7 @@ router.post('/api/EmployeeSalaryDetails', async (req, res) => {
 
 
         db.query(query, values, (err, results) => {
-          
+
             if (err) {
                 console.error('Database error:', err);
                 return res.status(500).json({ status: false, message: 'Database error', error: err });
@@ -665,10 +665,10 @@ router.post('/api/EmployeeSalaryDetails', async (req, res) => {
 // web cheak A
 router.post("/api/Upadate", (req, res) => {
     const { id, userData, paymentStatus = 1 } = req.body;
-     
+
 
     // Decode and validate userData
-         if ( !req?.user?.id || !req?.user?.company_id) {
+    if (!req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
     }
     if (!id) {
@@ -703,9 +703,9 @@ router.post("/api/Upadate", (req, res) => {
 router.post('/calculate-penalties', async (req, res) => {
     const { userData, month, year, UserEmployeeId } = req.body;
 
-     
-     
-    if ( !req?.user?.id || !req?.user?.company_id) {
+
+
+    if (!req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
     }
 
@@ -885,12 +885,12 @@ const addGracePeriod = (rowData) => {
 router.post("/calculate-Sandwichpenalties", async (req, res) => {
     try {
         const { userData, month, year, UserEmployeeId } = req.body;
-         
+
 
         // Decode Base64 userData
-        
 
-        if ( !req?.user?.id || !req?.user?.company_id) {
+
+        if (!req?.user?.id || !req?.user?.company_id) {
             return res
                 .status(400)
                 .json({ status: false, error: "Employee ID and Company ID are required" });
@@ -1101,7 +1101,7 @@ const checkHoliday = async (companyId, date) => {
 // Check if date is absent or on leave
 async function isAbsentOrLeave(date, companyId, employeeId, leaveList) {
     const attendance = await getAttendanceData(companyId, employeeId, date);
-    if (attendance.length > 0 && attendance[0].status.toLowerCase() !== "absent" && attendance[0].status.toLowerCase() !== "lwp" ) {
+    if (attendance.length > 0 && attendance[0].status.toLowerCase() !== "absent" && attendance[0].status.toLowerCase() !== "lwp") {
         return false;
     }
 
@@ -1130,6 +1130,174 @@ const getAttendanceData = async (companyId, employeeId, date) => {
     }
 };
 
+
+
+// new 
+router.post("/api/payment-history", async (req, res) => {
+    try {
+        const { employee_id, month, year } = req.body;
+
+        // validation
+        if (!employee_id || !month || !year) {
+            return res.json({
+                status: false,
+                message: "employee_id, month and year are required",
+            });
+        }
+
+        // fetch history
+        const [rows] = await db.promise().query(
+            `
+      SELECT 
+        id,
+        company_id,
+        employee_id,
+        salary_month,
+        salary_year,
+        total_salary,
+        paid_amount,
+        remaining_amount,
+        payment_date,
+        payment_method,
+        transaction_id,
+        status,
+        notes,
+        created_at
+      FROM salary_payments
+      WHERE employee_id = ?
+        AND salary_month = ?
+        AND salary_year = ?
+      ORDER BY id DESC
+      `,
+            [employee_id, month, year]
+        );
+
+        // calculate totals
+        const totalPaid = rows.reduce(
+            (sum, item) => sum + Number(item.paid_amount),
+            0
+        );
+
+        const latestRecord = rows[0] || null;
+
+        return res.json({
+            status: true,
+            message: "Payment history fetched",
+            data: rows,
+            summary: {
+                total_paid: totalPaid,
+                remaining_amount: latestRecord?.remaining_amount || 0,
+                total_salary: latestRecord?.total_salary || 0,
+            },
+        });
+    } catch (error) {
+        console.error("Payment History Error:", error);
+        return res.json({
+            status: false,
+            message: "Something went wrong",
+        });
+    }
+});
+
+
+
+router.post("/api/partial-payment", async (req, res) => {
+    try {
+        const { employee_id, salary_month, salary_year, total_salary, paid_amount,
+            payment_method = "bank", transaction_id = null,
+            payment_date, notes = "" } = req.body;
+
+        let company_id = req?.user?.company_id;
+
+        // ✅ Validation
+        if (!company_id || !employee_id || !salary_month || !salary_year || !total_salary) {
+            return res.json({
+                status: false,
+                message: "Required fields missing",
+            });
+        }
+
+        if (!paid_amount || Number(paid_amount) <= 0) {
+            return res.json({
+                status: false,
+                message: "Invalid paid amount",
+            });
+        }
+
+        // ✅ Get previous total paid
+        const [prevData] = await db.promise().query(
+            `SELECT IFNULL(SUM(paid_amount), 0) as total_paid FROM salary_payments
+      WHERE company_id = ? AND employee_id = ? AND salary_month = ? AND salary_year = ? `,
+            [company_id, employee_id, salary_month, salary_year]
+        );
+        let prev = prevData[0] || { total_paid: 0 };
+        const previousPaid = Number(prev.total_paid || 0);
+        const newPaidTotal = previousPaid + Number(paid_amount);
+        // ❌ Prevent overpayment
+        if (newPaidTotal > Number(total_salary)) {
+            return res.json({
+                status: false,
+                message: "Paid amount exceeds total salary",
+            });
+        }
+
+        // ✅ Calculate remaining
+        const remaining_amount = Number(total_salary) - newPaidTotal;
+
+        // ✅ Status logic
+        let status = "pending";
+        if (newPaidTotal === 0) status = "pending";
+        else if (remaining_amount === 0) status = "paid";
+        else status = "partial";
+
+        // ✅ Insert payment row
+        const [result] = await db.promise().query(
+            `
+      INSERT INTO salary_payments (
+        company_id,
+        employee_id,
+        salary_month,
+        salary_year,
+        total_salary,
+        paid_amount,
+        remaining_amount,
+        payment_date,
+        payment_method,
+        transaction_id,
+        status,
+        notes
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+            [company_id, employee_id, salary_month, salary_year, total_salary, paid_amount,
+                remaining_amount, payment_date || new Date(), payment_method, transaction_id, status, notes
+            ]
+        );
+        // ✅ 🔥 UPDATE MAIN SALARY TABLE WHEN FULL PAID
+        if (remaining_amount == 0) {
+            await db.promise().query(
+                `UPDATE employeesalarydetails SET status = 1 WHERE company_id=? AND employee_id=? AND month=? 
+                AND year=?`, [company_id, employee_id, salary_month, salary_year]
+            );
+        }
+        return res.json({
+            status: true,
+            message: "Payment recorded successfully",
+            data: {
+                id: result.insertId,
+                paid_amount,
+                remaining_amount,
+                status,
+            },
+        });
+
+    } catch (error) {
+        console.error("Partial Payment Error:", error);
+        return res.json({
+            status: false,
+            message: "Something went wrong",
+        });
+    }
+});
 
 
 module.exports = router;
