@@ -35,9 +35,8 @@ router.post('/Attendancemark', async (req, res) => {
     const currentDate = attendanceDate ? new Date(`${attendanceDate}T00:00:00`) : new Date();
     const formattedTime = attendanceTime || `${String(currentDate.getHours()).padStart(2, '0')}:${String(currentDate.getMinutes()).padStart(2, '0')}:${String(currentDate.getSeconds()).padStart(2, '0')}`;
 
-
-
     let IpHandal = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+    
     if (!latitude || !longitude) {
         return res.status(200).json({ status: false, message: 'Location are required' });
     }
@@ -132,7 +131,7 @@ router.post('/Attendancemark', async (req, res) => {
                 if (late_coming_leaving == 1 && req?.user?.company_id == 10 && rule?.late_coming_penalty == 1) {
                     const attendanceCount = await queryDb(` 
                         SELECT COUNT(attendance_id) AS total FROM attendance WHERE employee_id = ? AND 
-                        company_id = ? AND late_coming_leaving = 1 AND MONTH(attendance_date) = ? AND 
+                        company_id = ? AND late_coming_leaving = 1 and short_leave = 0 AND MONTH(attendance_date) = ? AND 
                         YEAR(attendance_date) = ? `,
                         [empId, companyId, currentDate.getMonth() + 1, currentDate.getFullYear()]);
 
@@ -161,7 +160,7 @@ router.post('/Attendancemark', async (req, res) => {
 
                 const resultEmpin = await getEmployeeProfile(getEmployeeData);
                 setTimeout(() => {
-                req.io.to(empId.toString()).emit("profileResponse", resultEmpin);
+                    req.io.to(empId.toString()).emit("profileResponse", resultEmpin);
                 }, 1000);
 
                 return res.status(200).json({ status: true, message: `Attendance marked as 'in' at ${formattedTime}.` });
@@ -177,6 +176,7 @@ router.post('/Attendancemark', async (req, res) => {
             const checkStatus = checkInResults[0]?.status;
             const attendanceDate = checkInResults[0].attendance_date;
             let duration = '00:00';
+
             // Calculate total break duration --start
             let breakDurationMillis = 0;
             try {
@@ -363,7 +363,7 @@ router.post('/Attendancemark', async (req, res) => {
             const resultEmpout = await getEmployeeProfile(getEmployeeData);
 
             setTimeout(() => {
-            req.io.to(empId.toString()).emit("profileResponse", resultEmpout);
+                req.io.to(empId.toString()).emit("profileResponse", resultEmpout);
             }, 1000);
 
             return res.status(200).json({ status: true, message: `Attendance marked as 'out' at ${formattedTime}. Duration: ${duration}.` });

@@ -10,6 +10,7 @@ const leaveconversion = require("../../utils/leave/leaveconversion");
 // app cheak A / web cheak A
 
 router.post("/leave", async (req, res) => {
+
   const { leave_type, userData, start_date, end_date, reason, start_half, end_half, employeeId = 0 } = req.body;
   let type = "";
 
@@ -29,8 +30,8 @@ router.post("/leave", async (req, res) => {
   }
 
   // ================== DECODE USER DATA ====================
-   
- 
+
+
 
   const employeeIdNew = employeeId || req?.user?.id;
   if (employeeId != req?.user?.id && employeeId > 0) {
@@ -118,7 +119,7 @@ router.post("/leave", async (req, res) => {
     `SELECT leave_id, rm_id,rm_status,admin_id,admin_status FROM leaves 
      WHERE employee_id = ? AND company_id = ? 
      AND ((start_date BETWEEN ? AND ?) OR (end_date BETWEEN ? AND ?) OR (start_date <= ? AND end_date >= ?))
-     AND ((rm_status != 2) OR (admin_status != 2)) and deletestatus=0`,
+     AND ((rm_status != 2 and admin_status != 2)) and deletestatus=0`,
     [employeeIdNew, req?.user?.company_id, start_date, end_date, start_date, end_date, start_date, end_date]
   );
   if (existingLeave.length > 0) {
@@ -516,9 +517,9 @@ router.post("/api/ApprovalSubmit", async (req, res) => {
     reason
   } = req.body;
 
-   
 
- 
+
+
 
   if (!req?.user?.company_id) {
     return res.status(400).json({
