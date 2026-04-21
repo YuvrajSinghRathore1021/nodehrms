@@ -480,8 +480,6 @@ router.get('/api/PayEmployeeSalaryDetails', async (req, res) => {
         const countQuery = ` SELECT COUNT(*) AS total FROM employeesalarydetails esd
             INNER JOIN employees e ON esd.employee_id=e.id where 1=1  ${whereQuery}
         `;
-       
-
         const [countResult] = await db.promise().query(countQuery, whereValue);
         const totalRows = countResult[0].total;
         const totalPages = Math.ceil(totalRows / limitNum);
@@ -508,7 +506,6 @@ router.get('/api/PayEmployeeSalaryDetails', async (req, res) => {
 `;
 
         let [rowsSum] = await db.promise().query(querySum, whereValue);
-
         res.json({
             status: true,
             month,
@@ -538,13 +535,7 @@ const componentNmme = async (id) => {
 // app cheak A
 router.post('/api/EmployeeSalaryDetails', async (req, res) => {
     const { userData, month, year, salaryStatus } = req.body;
-
-
-
-
-
     // Decode and validate userData
-
     if (!req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
     }

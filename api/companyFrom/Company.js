@@ -43,7 +43,7 @@ const upload = multer({
 
 // CompanySwitch
 router.post('/company_switch', (req, res) => {
-    let id = req.user?.id;
+    let id = req.user?.user_id;
     const { switch_id, switch_company_id } = req.body;
 
     const query = `SELECT id,company_id,employee_id,password FROM employees WHERE employee_status = 1 AND status = 1 AND delete_status = 0  And login_status=1  and id=?`;
@@ -82,7 +82,7 @@ router.post('/company_switch', (req, res) => {
 
             let tokenTime = '180d'; // 180 days = 6 months approx.
             if (user.company_id != switch_company_id) {
-                tokenTime = '2h';
+                tokenTime = '2d';
             }
             const token = jwt.sign(
                 { id: user.id, company_id: user.company_id, employee_id: user.employee_id, switch_id: switch_id, switch_company_id: switch_company_id },
@@ -271,7 +271,7 @@ router.get('/api/data', (req, res) => {
     const page = parseInt(req.query.page, 10) || 1;
     const offset = (page - 1) * limit;
     let companyId = req?.user?.company_id;
-
+    // console.log("user -:", req?.user);
     if (!req?.user?.id) {
         return res.status(400).json({ status: false, error: 'Employee ID is required' });
     }

@@ -679,5 +679,254 @@ router.get('/api/salaryExcel', async (req, res) => {
         res.status(500).json({ status: false, error: 'Server error while generating Excel' });
     }
 });
+
+
+
+
+
+// leave 
+router.post("/upload-leave-balance", upload.single("file"), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.json({ status: false, message: "No file uploaded" });
+        }
+
+        // Read Excel
+        const workbook = xlsx.readFile(req.file.path);
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+
+        const data = xlsx.utils.sheet_to_json(sheet, { header: 1 });
+
+        /*
+          Excel Format Expected:
+          | EMP ID | 23 | 15 |
+          index:    0     1    2
+        */
+
+        let updated = 0;
+
+        for (let i = 1; i < data.length; i++) {
+            const row = data[i];
+
+            const emp_id = row[0];
+            const leave_rule_id = row[1];
+            const new_balance = row[2];
+
+            if (!emp_id || !leave_rule_id) continue;
+
+            // 🔍 Find employee
+            const [emp] = await db.promise().query(
+                "SELECT id FROM employees WHERE employee_id = ? and company_id=10",
+                [emp_id]
+            );
+            console.log(emp)
+            const Id = emp[0].id
+            if (emp.length === 0) continue;
+
+            //     // 🔄 Update leave balance
+            //     const [result] = await db.promise().query(
+            //         `UPDATE leave_balance 
+            //  SET old_balance = ? 
+            //  WHERE employee_id = ? AND leave_rules_id = ?`,
+            //         [new_balance, Id, leave_rule_id]
+            //     );
+            console.log(new_balance, Id, leave_rule_id)
+
+            // if (result.affectedRows > 0) {
+            //     updated++;
+            // }
+        }
+
+        res.json({
+            status: true,
+            message: "Leave balance updated",
+            updated_rows: updated
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.json({ status: false, message: "Error", error: error.message });
+    }
+});
+
+router.post("/upload-leave-balance-json", async (req, res) => {
+    try {
+
+
+        let data =
+
+            [
+                { "emp_id": "1HG03022", "value1": 0, "value2": 3.5 },
+                { "emp_id": "2HG20024", "value1": 0, "value2": 2 },
+                { "emp_id": "3HG17024", "value1": 0, "value2": 2.5 },
+                { "emp_id": "4HG08024", "value1": 0, "value2": 0 },
+                { "emp_id": "6HG05021", "value1": 0, "value2": 8 },
+                { "emp_id": "7HG08019", "value1": 0, "value2": -3.5 },
+                { "emp_id": "8HG30024", "value1": 0, "value2": 24 },
+                { "emp_id": "9HG07024", "value1": 0, "value2": 0 },
+                { "emp_id": "10HG27025", "value1": 0, "value2": -4 },
+                { "emp_id": "11HG07025", "value1": 0, "value2": 22 },
+                { "emp_id": "12HG08025", "value1": 0, "value2": 23 },
+                { "emp_id": "13HG29025", "value1": 0, "value2": 15 },
+                { "emp_id": "15HG43025", "value1": 0, "value2": -5 },
+                { "emp_id": "16HG44025", "value1": 3, "value2": 8.5 },
+                { "emp_id": "17HG44025", "value1": 2, "value2": 3 },
+                { "emp_id": "51HG15023", "value1": 0, "value2": -6.5 },
+                { "emp_id": "54HG23024", "value1": 7, "value2": 15.5 },
+                { "emp_id": "55HG03019", "value1": 0, "value2": 0.5 },
+                { "emp_id": "57HG22025", "value1": 0, "value2": -20 },
+                { "emp_id": "58HG23025", "value1": 10, "value2": 46.5 },
+                { "emp_id": "60HG16024", "value1": 0, "value2": 0.5 },
+                { "emp_id": "67HG33025", "value1": 2, "value2": -12 },
+                { "emp_id": "53HG19024", "value1": 0, "value2": 13.5 },
+                { "emp_id": "131HG42025", "value1": 8, "value2": 1 },
+                { "emp_id": "123HG33024", "value1": 0, "value2": -19.5 },
+                { "emp_id": "18HG20026", "value1": 1, "value2": 1.5 },
+                { "emp_id": "68HG09023", "value1": 4, "value2": -16.5 },
+                { "emp_id": "70HG04022", "value1": 9, "value2": 30.5 },
+                { "emp_id": "75HG01023", "value1": 1, "value2": 10.5 },
+                { "emp_id": "139HG04026", "value1": 6, "value2": 4.5 },
+                { "emp_id": "78HG14025", "value1": 3, "value2": -12 },
+                { "emp_id": "79HG15025", "value1": 6, "value2": -9 },
+                { "emp_id": "102HG02025", "value1": 1, "value2": 25.5 },
+                { "emp_id": "148HG13026", "value1": 4, "value2": 3 },
+                { "emp_id": "81HG12024", "value1": 12, "value2": -1.5 },
+                { "emp_id": "114HG31024", "value1": 10, "value2": -10.5 },
+                { "emp_id": "87HG03023", "value1": 8, "value2": 3 },
+                { "emp_id": "85HG37024", "value1": 0, "value2": -19.5 },
+                { "emp_id": "89HG01022", "value1": 2, "value2": 37.5 },
+                { "emp_id": "99HG09024", "value1": 1, "value2": -19.5 },
+                { "emp_id": "124HG35025", "value1": 13, "value2": -4.5 },
+                { "emp_id": "90HG22024", "value1": 1, "value2": 9.5 },
+                { "emp_id": "92HG13023", "value1": 2, "value2": 14 },
+                { "emp_id": "93HG07024", "value1": 0, "value2": 23.5 },
+                { "emp_id": "133HG44025", "value1": 7, "value2": 6 },
+                { "emp_id": "112HG06023", "value1": 0, "value2": 13.5 },
+                { "emp_id": "63HG13024", "value1": 0, "value2": 14.5 },
+                { "emp_id": "109HG28025", "value1": 0, "value2": 14 },
+                { "emp_id": "120HG28024", "value1": 11, "value2": 2.5 },
+                { "emp_id": "101HG07023", "value1": 0, "value2": -17 },
+                { "emp_id": "117HG04019", "value1": 2, "value2": -11.5 },
+                { "emp_id": "82HG36024", "value1": 2, "value2": -18.5 },
+                { "emp_id": "126HG37025", "value1": 3, "value2": 7.5 },
+                { "emp_id": "111HG08024", "value1": 13, "value2": 3.5 },
+                { "emp_id": "71HG24024", "value1": 7, "value2": 21.5 },
+                { "emp_id": "56HG18025", "value1": 4, "value2": 29 },
+                { "emp_id": "95HG32024", "value1": 11, "value2": -5.5 },
+                { "emp_id": "88HG34024", "value1": 0, "value2": -5.5 },
+                { "emp_id": "59HG14023", "value1": 0, "value2": 40.5 },
+                { "emp_id": "52HG10023", "value1": 3, "value2": 16.5 },
+                { "emp_id": "107HG01021", "value1": 12, "value2": 7 },
+                { "emp_id": "121HG05023", "value1": 13, "value2": 30.5 },
+                { "emp_id": "142HG07026", "value1": 1, "value2": 7.5 },
+                { "emp_id": "62HG05025", "value1": 4, "value2": -15.5 },
+                { "emp_id": "91HG05019", "value1": 4, "value2": -5.5 },
+                { "emp_id": "122HG05024", "value1": 0, "value2": -20 },
+                { "emp_id": "61HG01024", "value1": 1, "value2": 1.5 },
+                { "emp_id": "76HG04025", "value1": 1, "value2": -1.5 },
+                { "emp_id": "86HG38024", "value1": 6, "value2": -15.5 },
+                { "emp_id": "100HG06025", "value1": 3, "value2": 14 },
+                { "emp_id": "84HG15023", "value1": 3, "value2": -5 },
+                { "emp_id": "118HG20025", "value1": 9, "value2": 2 },
+                { "emp_id": "137HG02026", "value1": 5, "value2": 4.5 },
+                { "emp_id": "136HG01026", "value1": 5, "value2": 4.5 },
+                { "emp_id": "138HG03026", "value1": 5, "value2": 4.5 },
+                { "emp_id": "145HG10026", "value1": 4, "value2": 4.5 },
+                { "emp_id": "156HG21026", "value1": 0, "value2": 0 },
+                { "emp_id": "140HG05026", "value1": 5, "value2": 4.5 },
+                { "emp_id": "141HG06026", "value1": 5, "value2": 4.5 },
+                { "emp_id": "143HG08026", "value1": 0, "value2": 4.5 },
+                { "emp_id": "144HG09026", "value1": 1, "value2": 4.5 },
+                { "emp_id": "146HG11026", "value1": 5, "value2": 3 },
+                { "emp_id": "119HG16025", "value1": 10, "value2": 15 },
+                { "emp_id": "96HG14024", "value1": 5, "value2": 10.5 },
+                { "emp_id": "66HG06022", "value1": 0, "value2": -10.5 },
+                { "emp_id": "151HG16026", "value1": 3, "value2": 3 },
+                { "emp_id": "130HG41025", "value1": 0, "value2": -4 },
+                { "emp_id": "113HG06024", "value1": 0, "value2": -19.5 },
+                { "emp_id": "153HG18026", "value1": 2, "value2": 1.5 },
+                { "emp_id": "156HG22026", "value1": 0, "value2": 0 },
+                { "emp_id": "97HG01019", "value1": 4, "value2": -11.5 },
+                { "emp_id": "147HG12026", "value1": 0, "value2": -8 },
+                { "emp_id": "149HG14026", "value1": 4, "value2": 3 },
+                { "emp_id": "103HG61019", "value1": 2, "value2": 27.5 },
+                { "emp_id": "115HG12023", "value1": 0, "value2": 0.5 },
+                { "emp_id": "64HG02019", "value1": 0, "value2": -2.5 },
+                { "emp_id": "98HG15024", "value1": 0, "value2": 8.5 },
+                { "emp_id": "152HG17026", "value1": 1, "value2": 3 },
+                { "emp_id": "150HG15026", "value1": 2, "value2": 3 }
+            ]
+
+
+        let updated = 0;
+
+        for (let i = 1; i < data.length; i++) {
+            const row = data[i];
+
+            const emp_id = row?.emp_id;
+            const cl = row?.value1;
+            const pl = row?.value2;
+
+            if (!emp_id) continue;
+
+            // 🔍 Find employee
+            const [emp] = await db.promise().query(
+                "SELECT id FROM employees WHERE employee_id = ? and company_id=10",
+                [emp_id]
+            );
+            console.log(emp)
+            const Id = emp[0]?.id
+            if (emp.length == 1) {
+
+
+
+                //  // 🔄 Update leave balance
+
+                // cl 
+                const [result1] = await db.promise().query(
+                    `UPDATE leave_balance 
+                 SET old_balance = ? 
+                 WHERE employee_id = ? AND leave_rules_id = ? and session_start >"2026-03-31 00:00:00.000"`,
+                    [cl, Id, 23]
+                );
+                console.log(cl, Id, 23);
+
+                // //// pl 
+                const [result2] = await db.promise().query(
+                    `UPDATE leave_balance 
+                 SET old_balance = ? 
+                 WHERE employee_id = ? AND leave_rules_id = ? and session_start >"2026-03-31 00:00:00.000"`,
+                    [pl, Id, 15]
+                );
+                const [result3] = await db.promise().query(
+                    `UPDATE leave_balance 
+                 SET old_balance = ? 
+                 WHERE employee_id = ? AND leave_rules_id = ? and session_start >"2026-03-31 00:00:00.000"`,
+                    [pl, Id, 21]
+                );
+                console.log(pl, Id, 15);
+
+
+
+                // if (result.affectedRows > 0) {
+                //     updated++;
+                // }
+            } else {
+                console.log("id not exit := ", emp_id)
+            }
+        }
+
+        res.json({
+            status: true,
+            message: "Leave balance updated",
+            updated_rows: updated
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.json({ status: false, message: "Error", error: error.message });
+    }
+});
 // Export the router
 module.exports = router;
