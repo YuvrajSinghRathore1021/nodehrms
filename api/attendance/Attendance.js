@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../../DB/ConnectionSql');
+const { LockCheck } = require('../../model/functlity/LockCheck');
 
 // app cheak A / web cheak A
 router.post('/AttendanceGet', (req, res) => {
@@ -114,8 +115,8 @@ router.post('/api/data', async (req, res) => {
         const page = parseInt(req.body.page, 10) || 1;
 
         // Step 1: Decode user data
-      
-        if ( !req?.user?.id) {
+
+        if (!req?.user?.id) {
             return res.status(400).json({ status: false, message: 'Invalid or missing user data' });
         }
 
@@ -376,11 +377,8 @@ router.get('/api/attendance', async (req, res) => {
     let year = null;
     let month = null;
     let searchData = null;
-     
 
-    
-
-    if ( !req?.user?.id || !req?.user?.company_id) {
+    if (!req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, message: 'Employee ID is required', error: 'Employee ID is required' });
     }
 
@@ -411,6 +409,8 @@ router.get('/api/attendance', async (req, res) => {
         return res.status(200).json({ status: false, message: 'Invalid employee IDs' });
     }
 
+    const lockCheck = await LockCheck(req?.user?.id, req?.user?.company_id, 'attendance_convert_lwp');
+
     try {
         let empsql = `SELECT id,CONCAT(first_name, " ", last_name) AS first_name, work_week_id, employee_id FROM employees WHERE company_id=? `;
         let EmpArrayValue = [req?.user?.company_id];
@@ -419,7 +419,6 @@ router.get('/api/attendance', async (req, res) => {
         if (employeeStatus && employeeStatus == 1) {
             empsql += ` AND employee_status=1 and status=1 and delete_status=0 AND id IN (?)`;
             EmpArrayValue.push(employeeIdsArray);
-
         } else {
             empsql += ` AND (employee_status=0 or status=0 or delete_status=1) `;
         }
@@ -538,7 +537,6 @@ router.get('/api/attendance', async (req, res) => {
                 // ================= ATTENDANCE =================
                 if (attendance) {
                     const st = attendance.status.toLowerCase();
-
                     if (st === 'present') {
                         if (isHoliday) {
                             status = 'PH';
@@ -595,7 +593,6 @@ router.get('/api/attendance', async (req, res) => {
                 // ================= HOLIDAY / WO / SANDWICH =================
                 else if (isHoliday || isWeeklyOff) {
                     // else if ((req?.user?.company_id == 10 && isWeeklyOff) || (req?.user?.company_id != 10 && (isHoliday || isWeeklyOff))) {
-
 
                     const prev = new Date(date); prev.setDate(prev.getDate() - 1);
                     const next = new Date(date); next.setDate(next.getDate() + 1);
@@ -731,9 +728,9 @@ const parseDurationToMinutes = (duration) => {
 // app cheak A / web cheak A
 router.post('/api/BreakDetails', async (req, res) => {
     const { userData, attendance_id } = req.body;
-     
-    
-    if ( !req?.user?.id || !req?.user?.company_id) {
+
+
+    if (!req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
     }
     const query = 'SELECT break_id, start_time, end_time, duration, in_ip, out_ip, in_latitude, in_longitude, out_latitude, out_longitude, created FROM break_logs WHERE attendance_id=?';
@@ -768,8 +765,8 @@ router.post('/api/AttendanceTypeDetails', async (req, res) => {
         SearchDate = Date;
     }
 
-  
-    if ( !req?.user?.id || !req?.user?.company_id) {
+
+    if (!req?.user?.id || !req?.user?.company_id) {
         return res.status(400).json({ status: false, error: 'Employee ID and Company ID are required' });
     }
     const limit = parseInt(req.body.limit, 10) || 10;
@@ -943,9 +940,9 @@ router.post('/attendanceDetails', async (req, res) => {
     const { userData, employee_id, attendance_date, attendance_id } = req.body;
 
     /* ================= USER DATA ================= */
-    
 
-    if ( !req?.user?.company_id) {
+
+    if (!req?.user?.company_id) {
         return res.status(400).json({
             status: false,
             error: 'Company ID required'

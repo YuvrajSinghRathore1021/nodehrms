@@ -197,9 +197,6 @@ router.post("/FetchLeaveCount", async (req, res) => {
     return res.status(400).json({ status: false, message: "UserData is required." });
   }
 
-
-  
-
   const companyId = req?.user?.company_id;
   const employeeId = employee_Id || req?.user?.id;
 
@@ -372,12 +369,16 @@ router.post("/FetchLeaveCount", async (req, res) => {
       }
 
       // Round to 1 decimal place
-      available = Math.round(available * 10) / 10;
-      const totalAvailable = Math.round((total + carryForward) * 10) / 10;
+      // available = Math.round(available * 10) / 10;
+      // const totalAvailable = Math.round((total + carryForward) * 10) / 10;
+      const totalAvailable = total + carryForward
       if (month) {
-        available = Math.round(available / month) * monthCount;
+        available = available / month * monthCount;
       }
-      available = available + carryForward - used - pending;
+      
+      
+      let oldBalance=Number(rule?.old_balance);
+      available = available + oldBalance + carryForward - used - pending;
       if (!rule.negative_leaves && available < 0) {
         available = 0;
       } else if (rule.negative_leaves && rule.max_negative_leaves > 0) {
